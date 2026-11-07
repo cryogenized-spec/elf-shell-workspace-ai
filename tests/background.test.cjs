@@ -13,7 +13,7 @@ function createHarness(seed={},options={}) {
     runtime: {
       id: "workspace-ai@elf-shell.local",
       getURL: name => "moz-extension://fixture/" + name,
-      getManifest: () => ({version:"0.9.0"}),
+      getManifest: () => ({version:"0.10.0"}),
       onMessage: { addListener: callback => { onMessage = callback; } },
       onMessageExternal: { addListener: callback => { onExternal = callback; } }
     },
@@ -609,7 +609,7 @@ test("release alerts default off and do not call GitHub without opt-in",async()=
   const h=createHarness();
   const status=await h.dispatch({type:"UPDATE_STATUS"});
   assert.equal(status.ok,true,status.error);
-  assert.equal(status.update.current,"0.9.0");
+  assert.equal(status.update.current,"0.10.0");
   assert.equal(status.update.enabled,false);
   assert.equal(status.update.permissionGranted,false);
   assert.equal(status.update.notice,false);
@@ -626,7 +626,7 @@ test("opt-in release feed shows a badge but never downloads or installs an exten
     assert.equal(options.credentials,"omit");
     assert.equal(options.redirect,"error");
     return {ok:true,status:200,json:async()=>[{
-      tag_name:"v0.9.1",html_url:U.RELEASE_PREFIX+"v0.9.1",
+      tag_name:"v0.10.1",html_url:U.RELEASE_PREFIX+"v0.10.1",
       draft:false,prerelease:false,name:"Small fixes",body:"Better performance"
     }]};
   }});
@@ -638,11 +638,11 @@ test("opt-in release feed shows a badge but never downloads or installs an exten
   const checked=await h.dispatch({type:"UPDATE_CHECK"});
   assert.equal(checked.ok,true,checked.error);
   assert.equal(checked.update.notice,true);
-  assert.equal(checked.update.latest.version,"v0.9.1");
+  assert.equal(checked.update.latest.version,"v0.10.1");
   assert.equal(h.badgeState.text,"1");
   assert.equal(h.fetchCalls.length,1);
   assert(h.fetchCalls[0].url.includes("/releases?per_page=10"));
-  const ignored=await h.dispatch({type:"UPDATE_IGNORE",version:"v0.9.1"});
+  const ignored=await h.dispatch({type:"UPDATE_IGNORE",version:"v0.10.1"});
   assert.equal(ignored.ok,true);
   assert.equal(ignored.update.notice,false);
   assert.equal(h.badgeState.text,"");
@@ -654,7 +654,7 @@ test("release checks accept preview channel but external core cannot check or co
   const U=require("../updater/release.js");
   const h=createHarness({}, {releasePermission:true,mockFetch:async()=>({
     ok:true,status:200,json:async()=>[
-      {tag_name:"v0.9.2-beta.1",html_url:U.RELEASE_PREFIX+"v0.9.2-beta.1",
+      {tag_name:"v0.10.2-beta.1",html_url:U.RELEASE_PREFIX+"v0.10.2-beta.1",
         draft:false,prerelease:true,name:"Preview",body:"Improvements"}
     ]})});
   await h.dispatch({type:"UPDATE_CONFIG",enabled:true,channel:"stable"});
@@ -662,7 +662,7 @@ test("release checks accept preview channel but external core cannot check or co
   assert.equal(stable.update.notice,false);
   await h.dispatch({type:"UPDATE_CONFIG",enabled:true,channel:"preview"});
   const preview=await h.dispatch({type:"UPDATE_CHECK"});
-  assert.equal(preview.update.latest.version,"v0.9.2-beta.1");
+  assert.equal(preview.update.latest.version,"v0.10.2-beta.1");
   assert.equal(preview.update.notice,true);
   const external=await h.external({kind:"elfshell.workspace.bridge",version:1,command:"UPDATE_CHECK"});
   assert.equal(external.ok,false);
