@@ -72,11 +72,25 @@ function renderProfiles(profiles,activeProfileId) {
   const remove=document.querySelector("#profile-delete");
   if(remove) remove.disabled=activeProfileId==="default"||profiles.length===1;
 }
+function renderPersona(persona) {
+  const mode=document.querySelector("#persona-mode");
+  const custom=document.querySelector("#persona-custom");
+  const label=document.querySelector("#persona-current-mode");
+  if(mode && custom) {
+    mode.value=persona.mode;
+    custom.value=persona.customPrompt;
+    custom.disabled=persona.mode!=="custom";
+  }
+  if(label) label.textContent=persona.mode==="ayarime"
+    ? "Ayarime — Original" : persona.mode==="professional" ? "Professional — Neutral" : "Custom personality";
+}
 async function refresh(){
   try {
     const result=await request({type:"GET_STATE"});
     render(result.resources);
     renderProfiles(result.profiles,result.activeProfileId);
+    const preference=await request({type:"GET_PERSONA"});
+    renderPersona(preference.persona);
   } catch(error) {announce(error.message,true);}
 }
 document.querySelector("#launch").addEventListener("click",async(event)=>{
@@ -142,6 +156,29 @@ if(profileForm) {
       render(result.resources);renderProfiles(result.profiles,result.activeProfileId);
       announce("Saved Workspace profile deleted. All open Firefox tabs were preserved.");
     }catch(error){announce(error.message,true);}finally{await refresh();}
+  });
+}
+const personaForm=document.querySelector("#persona-form");
+if(personaForm) {
+  const mode=personaForm.querySelector("#persona-mode");
+  const custom=personaForm.querySelector("#persona-custom");
+  mode.addEventListener("change",()=>{custom.disabled=mode.value!=="custom";});
+  personaForm.addEventListener("submit",async event=>{
+    event.preventDefault();
+    const save=personaForm.querySelector('button[type="submit"]');save.disabled=true;
+    try {
+      const response=await request({type:"SET_PERSONA",mode:mode.value,customPrompt:custom.value});
+      renderPersona(response.persona);
+      announce("Ayarime personality saved locally. AI service integration is not enabled yet.");
+    }catch(error){announce(error.message,true);}
+    finally{save.disabled=false;}
+  });
+  personaForm.querySelector("#persona-reset").addEventListener("click",async()=>{
+    try {
+      const response=await request({type:"RESET_PERSONA"});
+      renderPersona(response.persona);
+      announce("Default Ayarime personality restored.");
+    }catch(error){announce(error.message,true);}
   });
 }
 refresh();

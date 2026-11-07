@@ -53,3 +53,9 @@ This behavior is covered by mocked pre-navigation/redirect tests and isolated re
 In addition to `accounts.google.com`, unauthenticated Gmail and Calendar launches can redirect to `workspace.google.com` product pages. Ayarime recognizes this origin **only for a tab previously identified by the session registry**, preventing the browser from repeatedly opening those applications while the user is signed out. Unrelated websites are not accepted as tracked Workspace destinations.
 
 The isolated dual-extension test in `tests/native_bridge.py` checks the real ELF//SHELL command palette invoking the Workspace AI external message protocol. It verifies the pinned Hub, Firefox native tab group and repeat-launch idempotence without real Workspace account credentials.
+
+## Ayarime personality configuration (v0.4 alpha)
+
+`shared/persona.js` defines an original Ayarime preset, a neutral professional style and a user-written custom style capped at 6000 characters. `elfshell.workspace.persona.v1` stores the selected settings in Firefox local extension storage, not encrypted. The Hub offers edit, save and reset controls; the sidebar displays the active mode. No provider endpoint is called in this phase.
+
+Persona settings are a presentation/communication layer. Future AI orchestration must keep authorization, tool availability, user approvals and data-sharing restrictions in code rather than placing them under the user's editable prompt. The external bridge cannot modify persona settings.

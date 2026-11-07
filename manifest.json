@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ELF//SHELL — Workspace AI",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Optional Ayarime Firefox Workspace Hub, named profiles, grouped tabs and sidebar. No Google account access or AI calls in this alpha.",
   "permissions": [
     "tabs",
@@ -11,6 +11,7 @@
   "background": {
     "scripts": [
       "shared/workspace.js",
+      "shared/persona.js",
       "background.js"
     ]
   },

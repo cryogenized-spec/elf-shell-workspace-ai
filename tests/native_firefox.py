@@ -9,7 +9,7 @@ import traceback
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.service import Service as FirefoxService
-from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support.ui import WebDriverWait, Select
 
 ROOT=Path(__file__).resolve().parents[1]
 PACKAGE=ROOT/"dist"/"workspace-ai-alpha-unsigned.xpi"
@@ -121,6 +121,33 @@ try:
     after=tab_state()["tabs"]
     check("deleting a saved profile never closes existing tabs",
           lambda:require(deleted["activeProfileId"]=="default" and len(before)==len(after),"Unexpected tab close"))
+
+    # Exercise the actual Hub controls, not just the background API.
+    WebDriverWait(driver,10).until(
+        lambda d:d.find_element(By.ID,"persona-mode").get_attribute("value")=="ayarime")
+    Select(driver.find_element(By.ID,"persona-mode")).select_by_value("professional")
+    driver.find_element(By.CSS_SELECTOR,'#persona-form button[type="submit"]').click()
+    WebDriverWait(driver,10).until(
+        lambda d:extension_call({"type":"GET_PERSONA"})["persona"]["mode"]=="professional")
+    driver.refresh()
+    WebDriverWait(driver,10).until(
+        lambda d:d.find_element(By.ID,"persona-mode").get_attribute("value")=="professional")
+    check("professional personality saves and survives Hub reload",
+          lambda:require(extension_call({"type":"GET_PERSONA"})["persona"]["mode"]=="professional","Mode not retained"))
+
+    Select(driver.find_element(By.ID,"persona-mode")).select_by_value("custom")
+    custom=driver.find_element(By.ID,"persona-custom")
+    custom.send_keys("Use my preferred precise technical writing style.")
+    driver.find_element(By.CSS_SELECTOR,'#persona-form button[type="submit"]').click()
+    WebDriverWait(driver,10).until(
+        lambda d:extension_call({"type":"GET_PERSONA"})["persona"]["mode"]=="custom")
+    check("custom personality is locally editable",
+          lambda:require("precise technical" in extension_call({"type":"GET_PERSONA"})["persona"]["customPrompt"],"Prompt not saved"))
+    driver.find_element(By.ID,"persona-reset").click()
+    WebDriverWait(driver,10).until(
+        lambda d:extension_call({"type":"GET_PERSONA"})["persona"]["mode"]=="ayarime")
+    check("personality reset restores Ayarime default",
+          lambda:require(extension_call({"type":"GET_PERSONA"})["persona"]["customPrompt"]=="","Reset failed"))
 
     driver.save_screenshot(str(ARTIFACTS/"workspace-hub.png"))
     results["status"]="PASS"
