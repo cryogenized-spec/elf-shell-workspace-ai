@@ -92,6 +92,11 @@ try:
           lambda:require(len(state["resources"])==6 and len(state["profiles"])==1,str(state)))
 
     first=extension_call({"type":"OPEN_WORKSPACE"})
+    initial_tabs=tab_state()
+    print("FIRST_LAUNCH_TAB_URLS:", json.dumps([
+      {"id":t["id"],"url":t.get("url"),"group":t.get("groupId")}
+      for t in initial_tabs.get("tabs",[])
+    ]), flush=True)
     second=extension_call({"type":"OPEN_WORKSPACE"})
     check("repeated launches do not duplicate any Google tabs",
           lambda:require(first["result"]["opened"]==6 and second["result"]["opened"]==0,str([first,second])))
