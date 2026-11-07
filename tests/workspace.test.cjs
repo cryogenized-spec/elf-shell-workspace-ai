@@ -15,7 +15,7 @@ test("file IDs match regardless of editor route or query parameters",()=>{
 test("app home matches an already open editor tab",()=>{
   const home=normalizeResource("Sheets",DEFAULT_RESOURCES.find(x=>x.name==="Sheets").url);
   assert.equal(resourceKey(home.url),"app:sheets");
-  assert.equal(matchesTab(home,{url:"https://docs.google.com/spreadsheets/d/abc12345678/edit"}),false);
+  assert.equal(matchesTab(home,{url:"https://docs.google.com/spreadsheets/d/abc12345678/edit"}),true);
 });
 test("invalid names and non Google tab URLs cannot match",()=>{
   assert.throws(()=>normalizeResource(" ","https://drive.google.com/drive/"));
