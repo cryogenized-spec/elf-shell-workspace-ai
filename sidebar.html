@@ -16,5 +16,29 @@
 <a class="mini companion-link" href="hub.html" target="_blank" rel="noopener noreferrer">Configure Google in Hub ↗</a>
 </section>
 <section class="frame side-panel"><p class="eyebrow">// MORNING COFFEE</p><p class="quiet">Scheduled for a later release, after explicit OAuth permissions and evidence-linked briefing tests.</p></section>
-<footer>ELF//SHELL · ALPHA 0.5</footer>
+<section class="frame ai-console" aria-label="Ayarime AI console">
+  <p class="eyebrow">// AYARIME · BYOK</p>
+  <h2>AI Console</h2>
+  <form id="ai-settings-form" class="ai-form">
+    <label for="ai-provider">Provider</label>
+    <select id="ai-provider"><option value="openai">OpenAI</option><option value="anthropic">Anthropic / Claude</option><option value="gemini">Google Gemini</option></select>
+    <label for="ai-model">Model ID</label>
+    <input id="ai-model" type="text" maxlength="90" spellcheck="false" required placeholder="Model ID" />
+    <button class="mini" type="submit">Save provider / model</button>
+  </form>
+  <div class="ai-key-controls">
+    <button id="ai-grant" type="button" class="mini">Allow provider connection</button>
+    <label for="ai-key">API key · Session only</label>
+    <input id="ai-key" type="password" autocomplete="off" spellcheck="false" placeholder="Your API key" />
+    <button id="ai-set-key" type="button" class="mini">Use key this session</button>
+    <button id="ai-clear-key" type="button" class="mini danger">Forget key</button>
+  </div>
+  <label for="ai-prompt" class="eyebrow">EXPLICIT TEXT PROMPT</label>
+  <textarea id="ai-prompt" rows="4" maxlength="6000" placeholder="Ask Ayarime…"></textarea>
+  <button id="ai-send" type="button" class="secondary">Ask Ayarime ↗</button>
+  <p id="ai-status" class="status" role="status" aria-live="polite">AI not configured.</p>
+  <div id="ai-output" class="ai-output" aria-live="polite"></div>
+  <p class="quiet">Only your submitted text and persona go to the selected provider. API usage may incur charges. No Google file data is sent automatically.</p>
+</section>
+<footer>ELF//SHELL · ALPHA 0.7</footer>
 </main></body></html>
