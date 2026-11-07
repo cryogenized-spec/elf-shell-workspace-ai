@@ -86,7 +86,7 @@
     <button type="submit" class="secondary">Save OAuth configuration</button>
   </form>
   <div class="google-controls">
-    <button type="button" id="google-grant" class="mini">1 · Allow Google API connections</button>
+    <button type="button" id="google-grant" class="mini">1 · Allow Google connection and data sharing</button>
     <button type="button" id="google-prepare" class="mini">2 · Prepare sign-in</button>
     <button type="button" id="google-connect" class="secondary" disabled>3 · Connect Google</button>
     <button type="button" id="google-read" class="mini" disabled>Read today's Calendar / Tasks</button>
@@ -131,7 +131,7 @@
     <button type="submit" class="mini">Save provider and model</button>
   </form>
   <div class="ai-key-controls">
-    <button id="ai-grant" type="button" class="mini">Allow provider connection</button>
+    <button id="ai-grant" type="button" class="mini">Allow provider and data sharing</button>
     <label for="ai-key">API key · Firefox session only</label>
     <input id="ai-key" type="password" autocomplete="off" spellcheck="false" placeholder="Paste your own provider API key" />
     <button id="ai-set-key" type="button" class="mini">Use key this session</button>
@@ -142,7 +142,7 @@
   <button id="ai-send" type="button" class="secondary">Ask Ayarime ↗</button>
   <p id="ai-status" class="status" role="status" aria-live="polite">AI not configured.</p>
   <div id="ai-output" class="ai-output" aria-live="polite"></div>
-  <p class="quiet">Only the text you submit and the active persona are sent to your chosen provider. Provider API usage may incur charges. The response is not saved or forwarded to Google.</p>
+  <p class="quiet">Only the text you explicitly submit and the active persona are sent to your chosen provider, after Firefox's optional data-sharing consent. Provider API usage may incur charges. The response is not saved or forwarded to Google.</p>
 </section>
 <section class="frame updater-panel" aria-label="Extension release notifications">
   <p class="eyebrow">// 09 · SOFTWARE RELEASES</p>
