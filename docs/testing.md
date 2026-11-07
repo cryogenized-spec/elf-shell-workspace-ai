@@ -79,3 +79,15 @@ This test passed in the November 7, 2026 GitHub Actions run. It does not access 
 39. With fake provider responses, verify OpenAI/Anthropic/Gemini text extraction and HTML rendered as plain text, without executing markup.
 40. Verify provider errors reveal only status categories, not the raw response body or secrets.
 41. Confirm Google Workspace content is never attached to an AI prompt without separately designed explicit sharing controls. Real API-key inference and costs have **not** been tested.
+
+## Local Morning Coffee (v0.8)
+
+42. Confirm the Morning Coffee panel initially has no cached report and does not automatically read Calendar/Tasks.
+43. With no Google OAuth token, pressing Prepare reports the missing authorization and renders no account items.
+44. With a fake scoped Calendar token, verify selecting only Calendar triggers precisely one Calendar GET and zero Tasks/AI requests.
+45. With Tasks permission missing, verify an honest partial/incomplete briefing and no Tasks fetch.
+46. Verify Google Tasks earlier scheduled dates are **not** described as overdue deadlines, and cancelled/finished items do not appear in highlights.
+47. Check source-link validation rejects untrusted hosts, port/userinfo tricks and script URLs.
+48. Check an exact shared Google Docs/Sheets link is labelled as a matching **reference**, not conclusive business context.
+49. Verify the external core bridge cannot start Morning Coffee or access its contents.
+50. Do not claim coverage of Gmail, other calendars or all tasks. A real OAuth account has not yet been used in acceptance.
