@@ -395,5 +395,97 @@ if(googleForm) {
     finally{await refreshGoogle();}
   });
 }
+const AI_HOSTS={
+  openai:"https://api.openai.com/*",
+  anthropic:"https://api.anthropic.com/*",
+  gemini:"https://generativelanguage.googleapis.com/*"
+};
+const AI_DEFAULTS={openai:"gpt-5.5",anthropic:"claude-sonnet-4-5",gemini:"gemini-3.8-flash"};
+const aiForm=document.querySelector("#ai-settings-form");
+let aiSavedProvider="openai";
+function aiMessage(message,error=false){
+  const target=document.querySelector("#ai-status");
+  if(!target)return;
+  target.textContent=message;
+  target.classList.toggle("error",error);
+}
+function showAIState(ai){
+  if(!aiForm)return;
+  const provider=aiForm.querySelector("#ai-provider"),model=aiForm.querySelector("#ai-model");
+  provider.value=ai.provider;model.value=ai.model;
+  aiSavedProvider=ai.provider;
+  document.querySelector("#ai-send").disabled=!ai.hasSessionKey||!ai.hostGranted;
+  document.querySelector("#ai-clear-key").disabled=!ai.hasSessionKey;
+  aiMessage(ai.hasSessionKey
+    ? "Session key ready · "+ai.provider+" / "+ai.model+" · manual prompts only"
+    : ai.hostGranted
+      ? "Provider network permission granted. Enter a session key to begin."
+      : "Provider not connected. Save settings and allow this provider's API host.");
+}
+async function refreshAI(){
+  if(!aiForm)return;
+  try{const status=await request({type:"AI_STATUS"});showAIState(status.ai);}
+  catch(error){aiMessage(error.message,true);}
+}
+if(aiForm){
+  const provider=aiForm.querySelector("#ai-provider"),model=aiForm.querySelector("#ai-model");
+  provider.addEventListener("change",()=>{model.value=AI_DEFAULTS[provider.value];});
+  aiForm.addEventListener("submit",async event=>{
+    event.preventDefault();
+    const button=aiForm.querySelector('button[type="submit"]');button.disabled=true;
+    try {
+      const response=await request({type:"AI_SAVE_SETTINGS",
+        provider:provider.value,model:model.value.trim()});
+      showAIState(response.ai);
+      aiMessage("Provider/model saved. Enable its host and enter your session API key.");
+    }catch(error){aiMessage(error.message,true);}
+    finally{button.disabled=false;}
+  });
+  document.querySelector("#ai-grant").addEventListener("click",async()=>{
+    // Direct Firefox user-gesture, without an intervening await.
+    const host=AI_HOSTS[aiSavedProvider];
+    if(!host)return;
+    let grant;
+    try{grant=browser.permissions.request({origins:[host]});}
+    catch{aiMessage("Firefox rejected the provider permission request.",true);return;}
+    aiMessage("Review Firefox's provider connection permission prompt…");
+    try{
+      if(!await grant){aiMessage("AI provider permission declined.",true);return;}
+      await refreshAI();
+    }catch(error){aiMessage("Permission request failed: "+error.message,true);}
+  });
+  document.querySelector("#ai-set-key").addEventListener("click",async()=>{
+    const field=document.querySelector("#ai-key");
+    const button=document.querySelector("#ai-set-key");button.disabled=true;
+    try{
+      const result=await request({type:"AI_SET_SESSION_KEY",key:field.value});
+      field.value="";showAIState(result.ai);
+      aiMessage("Key held for this Firefox session only. It has not been saved as a permanent preference.");
+    }catch(error){aiMessage(error.message,true);}
+    finally{button.disabled=false;}
+  });
+  document.querySelector("#ai-clear-key").addEventListener("click",async()=>{
+    try{
+      const result=await request({type:"AI_CLEAR_SESSION_KEY"});
+      document.querySelector("#ai-key").value="";
+      showAIState(result.ai);aiMessage("Session key cleared.");
+    }catch(error){aiMessage(error.message,true);}
+  });
+  document.querySelector("#ai-send").addEventListener("click",async()=>{
+    const button=document.querySelector("#ai-send");
+    const prompt=document.querySelector("#ai-prompt").value;
+    const output=document.querySelector("#ai-output");output.replaceChildren();
+    button.disabled=true;aiMessage("Sending your explicit text prompt to the selected provider…");
+    try{
+      const result=await request({type:"AI_SEND_PROMPT",text:prompt});
+      output.textContent=result.result.text;
+      if(result.result.truncated)output.append(node("p","quiet","Output preview truncated."));
+      aiMessage("Response received · "+result.result.provider+" / "+result.result.model+
+        " · no Google data fetched or transmitted.");
+    }catch(error){aiMessage(error.message,true);}
+    finally{await refreshAI();}
+  });
+}
+refreshAI();
 refreshGoogle();
 refresh();
