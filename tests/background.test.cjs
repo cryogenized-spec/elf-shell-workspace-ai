@@ -3,6 +3,8 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const cryptoApi = require("node:crypto").webcrypto;
+const {TextEncoder}=require("node:util");
 
 function createHarness(seed={},options={}) {
   const tabs = [], groups = [], settings = {...seed}, sessionSettings={};
@@ -22,9 +24,18 @@ function createHarness(seed={},options={}) {
         set: async values => {Object.assign(settings,values);}
       },
       session: {
-        get: async key => ({[key]:sessionSettings[key]}),
-        set: async values => {Object.assign(sessionSettings,values);}
+        get: async key => Array.isArray(key)
+          ? Object.fromEntries(key.map(item=>[item,sessionSettings[item]]))
+          : ({[key]:sessionSettings[key]}),
+        set: async values => {Object.assign(sessionSettings,values);},
+        remove: async keys => {for(const item of (Array.isArray(keys)?keys:[keys]))delete sessionSettings[item];}
       }
+    },
+    permissions: {
+      contains: async () => Boolean(options.googlePermission)
+    },
+    identity: {
+      getRedirectURL: () => "https://devredirect.extensions.allizom.org/"
     },
     tabs: {
       query: async () => tabs.map(tab => ({ ...tab })),
@@ -60,12 +71,21 @@ function createHarness(seed={},options={}) {
     },
     action: { onClicked: {addListener:()=>{}} }
   };
-  const context = vm.createContext({browser, URL, console});
-  for (const file of ["shared/workspace.js","shared/persona.js","background.js"]) {
+  const fetchCalls=[];
+  const mockFetch=async (url,init) => {
+    fetchCalls.push({url,init});
+    if(typeof options.mockFetch==="function")return options.mockFetch(url,init);
+    throw new Error("No Google network request expected in this test");
+  };
+  const context = vm.createContext({
+    browser,URL,URLSearchParams,console,fetch:mockFetch,crypto:cryptoApi,TextEncoder,btoa
+  });
+  for (const file of ["shared/workspace.js","shared/persona.js",
+    "google/oauth.js","google/read.js","google/session.js","background.js"]) {
     vm.runInContext(fs.readFileSync(path.resolve(__dirname,"..",file),"utf8"),context,{filename:file});
   }
   return {
-    tabs, groups, settings, sessionSettings,
+    tabs, groups, settings, sessionSettings, fetchCalls,
     dispatch: async (message, sender={id:browser.runtime.id}) => onMessage(message,sender),
     external: async (message, sender={id:"elf-shell-ayarime@local.theme"}) => onExternal(message,sender)
   };
@@ -304,4 +324,82 @@ test("external ELF//SHELL bridge cannot modify personality",async()=>{
   const response=await h.external(request);
   assert.equal(response.ok,false);
   assert.equal(h.settings["elfshell.workspace.persona.v1"],undefined);
+});
+
+test("Google connector begins disconnected, with zero network activity",async()=>{
+  const h=createHarness();
+  const auth=await h.dispatch({type:"GOOGLE_AUTH_STATUS"});
+  assert.equal(auth.ok,true);
+  assert.equal(auth.auth.connected,false);
+  assert.equal(auth.auth.permissionsGranted,false);
+  assert.equal(auth.auth.config.clientId,"");
+  assert.equal(h.fetchCalls.length,0);
+  assert.equal((await h.dispatch({type:"GOOGLE_AUTH_PREPARE"})).ok,false);
+  assert.equal((await h.dispatch({type:"GOOGLE_READ_OVERVIEW"})).ok,false);
+  assert.equal(h.fetchCalls.length,0);
+});
+test("Google OAuth consent flow uses only session tokens and supports local disconnect",async()=>{
+  const client="123456789-abcdefabcdef.apps.googleusercontent.com";
+  const cal="https://www.googleapis.com/auth/calendar.events.readonly";
+  const task="https://www.googleapis.com/auth/tasks.readonly";
+  const h=createHarness({},{
+    googlePermission:true,
+    mockFetch:async(url,init)=>{
+      if(url==="https://oauth2.googleapis.com/token") {
+        assert.equal(init.method,"POST");
+        assert(init.body.includes("code_verifier="));
+        return {ok:true,status:200,json:async()=>({
+          access_token:"access_mock_valid_token",token_type:"Bearer",expires_in:3600,
+          scope:cal+" "+task,refresh_token:"SECRET_REFRESH_TOKEN_NEVER_STORED"
+        })};
+      }
+      if(url==="https://oauth2.googleapis.com/revoke")
+        return {ok:true,status:200};
+      if(url.includes("/calendar/v3/"))
+        return {ok:true,status:200,json:async()=>({items:[{id:"evt",summary:"Supplier meeting",
+          start:{dateTime:"2026-11-07T14:00:00+02:00"}}]})};
+      if(url.includes("/users/@me/lists"))
+        return {ok:true,status:200,json:async()=>({items:[{id:"list1",title:"Today"}]})};
+      if(url.includes("/lists/list1/tasks"))
+        return {ok:true,status:200,json:async()=>({items:[{id:"tsk",title:"Check inventory"}]})};
+      throw Error("Unexpected Google endpoint "+url);
+    }
+  });
+  const set=await h.dispatch({type:"GOOGLE_AUTH_CONFIG",clientId:client,scopes:[cal,task]});
+  assert.equal(set.ok,true);
+  assert.equal(set.auth.connected,false);
+  assert.equal(set.auth.config.clientId,client);
+  const prepare=await h.dispatch({type:"GOOGLE_AUTH_PREPARE"});
+  assert.equal(prepare.ok,true,prepare.error);
+  const auth=new URL(prepare.auth.prepared.url);
+  assert.equal(auth.hostname,"accounts.google.com");
+  assert.equal(auth.searchParams.get("code_challenge_method"),"S256");
+  assert.equal(h.fetchCalls.length,0,"Preparing must not contact Google");
+  const state=auth.searchParams.get("state");
+  const callback="http://127.0.0.1/mozoauth2/devredirect?state="+state+"&code=mock_authorization_code";
+  assert.equal((await h.dispatch({type:"GOOGLE_AUTH_COMPLETE",callbackUrl:callback.replace(state,"WRONG")})).ok,false);
+  assert.equal(h.fetchCalls.length,0,"Wrong state must never reach token endpoint");
+  const connected=await h.dispatch({type:"GOOGLE_AUTH_COMPLETE",callbackUrl:callback});
+  assert.equal(connected.ok,true,connected.error);
+  assert.equal(connected.auth.connected,true);
+  assert.deepEqual([...connected.auth.grantedScopes].sort(),[cal,task].sort());
+  assert.equal(JSON.stringify(connected).includes("access_mock_valid_token"),false);
+  assert.equal(JSON.stringify(h.settings).includes("access_mock_valid_token"),false);
+  assert.equal(JSON.stringify(h.sessionSettings).includes("SECRET_REFRESH_TOKEN_NEVER_STORED"),false);
+  const read=await h.dispatch({type:"GOOGLE_READ_OVERVIEW"});
+  assert.equal(read.ok,true,read.error);
+  assert.equal(read.result.calendar.events[0].title,"Supplier meeting");
+  assert.equal(read.result.tasks.lists[0].tasks[0].title,"Check inventory");
+  assert(h.fetchCalls.filter(x=>x.init.method==="GET").length===3);
+  const done=await h.dispatch({type:"GOOGLE_AUTH_DISCONNECT"});
+  assert.equal(done.ok,true);
+  assert.equal(done.result.serverRevoked,true);
+  assert.equal((await h.dispatch({type:"GOOGLE_AUTH_STATUS"})).auth.connected,false);
+  assert.equal(h.sessionSettings["elfshell.google.sessionToken.v1"],undefined);
+});
+test("external ELF//SHELL core cannot read Google account information",async()=>{
+  const h=createHarness({}, {googlePermission:true});
+  const request={kind:"elfshell.workspace.bridge",version:1,command:"GOOGLE_READ_OVERVIEW"};
+  assert.equal((await h.external(request)).ok,false);
+  assert.equal(h.fetchCalls.length,0);
 });

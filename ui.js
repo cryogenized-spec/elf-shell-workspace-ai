@@ -181,4 +181,155 @@ if(personaForm) {
     }catch(error){announce(error.message,true);}
   });
 }
+const GOOGLE_CALENDAR_SCOPE="https://www.googleapis.com/auth/calendar.events.readonly";
+const GOOGLE_TASKS_SCOPE="https://www.googleapis.com/auth/tasks.readonly";
+const GOOGLE_HOST_PERMISSIONS=[
+  "https://oauth2.googleapis.com/*",
+  "https://www.googleapis.com/*",
+  "https://tasks.googleapis.com/*"
+];
+let googlePreparedUrl=null;
+const googleForm=document.querySelector("#google-config-form");
+function googleMessage(value,error=false) {
+  const target=document.querySelector("#google-auth-status");
+  if(!target)return;
+  target.textContent=value;
+  target.classList.toggle("error",error);
+}
+function showGoogleState(auth) {
+  if(!googleForm) return;
+  const field=googleForm.querySelector("#google-client-id");
+  field.value=auth.config.clientId;
+  googleForm.querySelector("#google-scope-calendar").checked=auth.config.scopes.includes(GOOGLE_CALENDAR_SCOPE);
+  googleForm.querySelector("#google-scope-tasks").checked=auth.config.scopes.includes(GOOGLE_TASKS_SCOPE);
+  googlePreparedUrl=auth.prepared?.url || null;
+  document.querySelector("#google-prepare").disabled=!auth.permissionsGranted || !auth.config.clientId;
+  document.querySelector("#google-connect").disabled=!googlePreparedUrl;
+  document.querySelector("#google-read").disabled=!auth.connected;
+  document.querySelector("#google-disconnect").disabled=!auth.connected;
+  googleMessage(auth.connected
+    ? "Connected until "+new Date(auth.expiresAt).toLocaleTimeString()+
+       " · Granted: "+auth.grantedScopes.map(s=>s.includes("tasks")?"Tasks":"Calendar").join(", ")
+    : auth.prepared
+      ? "Authorization prepared. Select Connect Google to open Firefox's sign-in."
+      : auth.permissionsGranted
+        ? "Google not connected. Save your OAuth client and prepare sign-in."
+        : "Google not connected. API host permission must be granted explicitly.");
+}
+async function refreshGoogle() {
+  if(!googleForm)return;
+  try {
+    const result=await request({type:"GOOGLE_AUTH_STATUS"});
+    showGoogleState(result.auth);
+  }catch(error){googleMessage(error.message,true);}
+}
+function renderGoogleResults(data) {
+  const host=document.querySelector("#google-results");
+  if(!host)return;
+  host.replaceChildren();
+  function section(title,items,description) {
+    const article=node("article","");
+    article.append(node("h3","",title),node("p","",description));
+    if(items.length) {
+      const ul=node("ul","");
+      items.forEach(item=>ul.append(node("li","",item)));
+      article.append(ul);
+    }
+    host.append(article);
+  }
+  if(data.calendar) {
+    section("Calendar — Today's events",
+      data.calendar.events.map(e=>e.title+" · "+(e.start||"No start time")),
+      (data.calendar.limited?"First 30 only. ":"")+
+      (data.calendar.events.length+" event(s) returned; read only."));
+  }
+  if(data.tasks) {
+    const items=data.tasks.lists.flatMap(list=>
+      list.tasks.map(task=>list.list+": "+task.title+(task.due?" · due "+task.due:"")));
+    section("Google Tasks — Incomplete",
+      items,
+      (data.tasks.limited?"Partial list: results truncated. ":"")+
+      (items.length+" incomplete task(s) from up to five lists; read only."));
+  }
+  (data.errors||[]).forEach(error=>
+    section(error.service+" unavailable",[],String(error.message||"Unable to read")));
+  if(!data.calendar && !data.tasks && !(data.errors||[]).length)
+    section("No readable sources",[],"Reconnect with Calendar or Tasks permissions.");
+}
+if(googleForm) {
+  googleForm.addEventListener("submit",async event=>{
+    event.preventDefault();
+    const save=googleForm.querySelector('button[type="submit"]');save.disabled=true;
+    const scopes=[];
+    if(googleForm.querySelector("#google-scope-calendar").checked)scopes.push(GOOGLE_CALENDAR_SCOPE);
+    if(googleForm.querySelector("#google-scope-tasks").checked)scopes.push(GOOGLE_TASKS_SCOPE);
+    try {
+      const r=await request({type:"GOOGLE_AUTH_CONFIG",
+        clientId:googleForm.querySelector("#google-client-id").value,scopes});
+      showGoogleState(r.auth);
+      googleMessage("Configuration saved. Grant browser permission, then prepare sign-in.");
+    }catch(error){googleMessage(error.message,true);}
+    finally{save.disabled=false;}
+  });
+  document.querySelector("#google-grant").addEventListener("click",async()=>{
+    // Permission must originate from this direct click, before async work.
+    let grant;
+    try {grant=browser.permissions.request({origins:GOOGLE_HOST_PERMISSIONS});}
+    catch(error){googleMessage("Firefox could not request API host permission.",true);return;}
+    googleMessage("Choose Allow or Deny in Firefox's permission dialog…");
+    try{
+      if(!await grant){googleMessage("Google API permission declined. Nothing was connected.",true);return;}
+      await refreshGoogle();
+    }catch(error){googleMessage("Permission request failed: "+error.message,true);}
+  });
+  document.querySelector("#google-prepare").addEventListener("click",async()=>{
+    try{
+      const r=await request({type:"GOOGLE_AUTH_PREPARE"});
+      showGoogleState(r.auth);
+    }catch(error){googleMessage(error.message,true);}
+  });
+  document.querySelector("#google-connect").addEventListener("click",async()=>{
+    const url=googlePreparedUrl;
+    if(!url){googleMessage("Prepare sign-in first.",true);return;}
+    let login;
+    try {
+      // User gesture must directly call Firefox's identity API.
+      login=browser.identity.launchWebAuthFlow({interactive:true,url});
+    }catch(error){googleMessage("Firefox sign-in could not open.",true);return;}
+    googlePreparedUrl=null;
+    document.querySelector("#google-connect").disabled=true;
+    googleMessage("Waiting for Google's authorization response…");
+    try {
+      const callback=await login;
+      const r=await request({type:"GOOGLE_AUTH_COMPLETE",callbackUrl:callback});
+      showGoogleState(r.auth);
+    }catch(error){
+      googleMessage("Google sign-in did not complete: "+error.message,true);
+      await refreshGoogle();
+    }
+  });
+  document.querySelector("#google-disconnect").addEventListener("click",async()=>{
+    const button=document.querySelector("#google-disconnect");button.disabled=true;
+    try {
+      const result=await request({type:"GOOGLE_AUTH_DISCONNECT"});
+      document.querySelector("#google-results").replaceChildren();
+      await refreshGoogle();
+      googleMessage(result.result.serverRevoked
+        ? "Disconnected. Google confirmed access-token revocation."
+        : "Disconnected locally. Remote revocation was not confirmed; review Google account permissions.");
+    }catch(error){googleMessage(error.message,true);}
+    finally{await refreshGoogle();}
+  });
+  document.querySelector("#google-read").addEventListener("click",async()=>{
+    const button=document.querySelector("#google-read");button.disabled=true;
+    googleMessage("Reading authorized Calendar / Tasks information directly from Google…");
+    try {
+      const result=await request({type:"GOOGLE_READ_OVERVIEW"});
+      renderGoogleResults(result.result);
+      googleMessage("Read-only snapshot prepared. No AI service received this data.");
+    }catch(error){googleMessage(error.message,true);}
+    finally{await refreshGoogle();}
+  });
+}
+refreshGoogle();
 refresh();

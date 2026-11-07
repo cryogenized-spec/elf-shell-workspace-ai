@@ -49,3 +49,13 @@ This test passed in the November 7, 2026 GitHub Actions run. It does not access 
 18. Reset to Ayarime; confirm default mode and empty custom instructions.
 19. Enter an empty Custom prompt, an unsupported mode and an oversized prompt; confirm validation errors and no unexpected changes.
 20. Confirm the companion still works with no AI provider configured and its external core bridge cannot edit persona settings.
+
+## Google developer-preview checks
+
+21. Without a configured Google Desktop OAuth client ID, confirm the account shows disconnected and performs no network requests.
+22. Select Calendar only, save, grant optional Firefox API origins explicitly; verify declining the prompt leaves access disabled.
+23. Prepare sign-in and inspect that the authorization URL uses Firefox's documented `127.0.0.1/mozoauth2/<derived identity>` redirect, state and PKCE S256.
+24. With a disposable Google OAuth project and test account, validate interactive Firefox redirect, token exchange, granular scope consent and cancellation; this **has not yet been run**.
+25. Click the manual read action; confirm only Google Calendar/Tasks GETs are made, no Gmail scopes are requested, and partial/truncated results are labelled.
+26. Disconnect and verify local credentials are cleared regardless of whether Google confirms revocation.
+27. Verify no Google token reaches ELF//SHELL core extension, generic UI status messages, logs, or persistent `storage.local`.

@@ -149,6 +149,37 @@ try:
     check("personality reset restores Ayarime default",
           lambda:require(extension_call({"type":"GET_PERSONA"})["persona"]["customPrompt"]=="","Reset failed"))
 
+    auth=extension_call({"type":"GOOGLE_AUTH_STATUS"})
+    check("Google authorization is disconnected and no scope is pre-granted",
+          lambda:require(auth["ok"] and not auth["auth"]["connected"] and
+            not auth["auth"]["permissionsGranted"] and
+            not auth["auth"]["config"]["clientId"],str(auth)))
+    check("Google sign-in is opt-in and disabled before preparation",
+          lambda:require(not driver.find_element(By.ID,"google-connect").is_enabled(),
+            "Connect Google unexpectedly enabled"))
+    client="123456789-abcdefabcdef.apps.googleusercontent.com"
+    input=driver.find_element(By.ID,"google-client-id")
+    input.send_keys(client)
+    driver.find_element(By.CSS_SELECTOR,'#google-config-form button[type="submit"]').click()
+    WebDriverWait(driver,10).until(
+        lambda d:extension_call({"type":"GOOGLE_AUTH_STATUS"})["auth"]["config"]["clientId"]==client)
+    check("public OAuth Desktop client ID saves locally without tokens",
+          lambda:require(not extension_call({"type":"GOOGLE_AUTH_STATUS"})["auth"]["connected"],
+            "Unexpected Google account connection"))
+    driver.refresh()
+    WebDriverWait(driver,10).until(
+        lambda d:d.find_element(By.ID,"google-client-id").get_attribute("value")==client)
+    check("OAuth configuration persists without contacting Google",
+          lambda:require(not driver.find_element(By.ID,"google-connect").is_enabled(),
+            "Connection enabled without Firefox host consent"))
+    blocked=driver.execute_async_script("""
+      const done=arguments[arguments.length-1];
+      browser.runtime.sendMessage({type:"GOOGLE_AUTH_PREPARE"})
+        .then(done,error=>done({ok:false,error:String(error)}));
+    """)
+    check("OAuth preparation is blocked until Google API origins are granted",
+          lambda:require(not blocked["ok"] and "Grant" in blocked.get("error",""),str(blocked)))
+
     driver.save_screenshot(str(ARTIFACTS/"workspace-hub.png"))
     results["status"]="PASS"
 except Exception as error:

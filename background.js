@@ -205,6 +205,15 @@ async function handle(message) {
     switch (message.type) {
       case "GET_STATE":
         return {ok:true,...await serialise(()=>snapshot())};
+      case "GOOGLE_AUTH_STATUS":
+      case "GOOGLE_AUTH_CONFIG":
+      case "GOOGLE_AUTH_PREPARE":
+      case "GOOGLE_AUTH_COMPLETE":
+      case "GOOGLE_AUTH_DISCONNECT":
+      case "GOOGLE_READ_OVERVIEW":
+        // Only same-extension callers enter this switch; the external ELF//SHELL
+        // bridge deliberately cannot invoke Google authorization or data reads.
+        return await serialise(()=>globalThis.WorkspaceGoogleSession.handle(message,browser,fetch,crypto));
       case "GET_PERSONA":
         return {ok:true,persona:await serialise(readPersona)};
       case "SET_PERSONA":

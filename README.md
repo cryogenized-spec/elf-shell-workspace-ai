@@ -2,7 +2,7 @@
 
 An optional **Firefox Desktop** companion to [ELF//SHELL — Ayarime](https://github.com/cryogenized-spec/elf-shell-ayarime).
 
-**Status: v0.4.0 prototype, unsigned and not released publicly.** Native Firefox CI, two-extension command integration and strict Mozilla lint have passed; signed installation and user-profile acceptance are still pending.
+**Status: v0.5.0 developer preview, unsigned and not released publicly.** Native Firefox CI, two-extension command integration and strict Mozilla lint have passed; signed installation and user-profile acceptance are still pending.
 
 This companion is independent of the existing Firefox new-tab extension and does not replace its interface. The first alpha implements a native pinned **Super Tab**, a sidebar styled after the original ELF//SHELL palette, and user-initiated restoration of real Google Workspace tabs.
 
@@ -12,6 +12,7 @@ This companion is independent of the existing Firefox new-tab extension and does
 - Find or create a pinned Super Tab outside the subordinate tab group.
 - Maintain a transient Firefox session tab index so redirects (including Google's sign-in and Workspace landing pages) and initial `about:blank` navigation do not create duplicate tabs.
 - Configure Ayarime's original persona, a neutral professional preset or a custom personality prompt in the Hub. The choice is stored locally; no AI provider is called yet.
+- Opt into developer-preview Google OAuth (Desktop client ID and PKCE) to retrieve bounded, read-only Calendar/Tasks snapshots after explicit consent. This flow is not yet verified against a live Google account.
 - Reuse open Google Workspace tabs (Gmail, Calendar, Drive, Docs, Sheets and Tasks) and create only missing tabs.
 - Group Workspace tabs in Firefox and focus the master Hub.
 - Create, rename and switch between up to 10 local Workspace profiles. Each has its own saved Google links and named tab group. Switching/deleting a profile never closes your tabs.
@@ -20,7 +21,7 @@ This companion is independent of the existing Firefox new-tab extension and does
 - Add and remove resources without automatically closing user's tabs.
 - Use the native Firefox sidebar as a companion to the real Google applications.
 
-**Not yet implemented:** OAuth, Google API data access, AI/BYOK model inference, Morning Coffee, ChatGPT/Claude MCP client support, tab migration between windows, or Android. The core-side command has been implemented on the ELF//SHELL development branch and real Firefox cross-extension acceptance has passed. The companion-side versioned bridge can now respond to a recognized ELF//SHELL core add-on, but core 0.5.4 has not been changed. The initial extension makes **no Google API requests**.
+**Not yet implemented:** live-tested/verified public Google OAuth onboarding, AI/BYOK model inference, Morning Coffee, Gmail access, ChatGPT/Claude MCP client support, tab migration between windows, or Android. The core-side command has been implemented on the ELF//SHELL development branch and real Firefox cross-extension acceptance has passed. The companion-side versioned bridge can now respond to a recognized ELF//SHELL core add-on, but core 0.5.4 has not been changed. The initial extension makes **no Google API requests**.
 
 ## Install for development
 
@@ -62,3 +63,7 @@ Tab IDs are also cached in Firefox `storage.session` (cleared when the browser s
 The `integrated-firefox` workflow also verifies the command from ELF//SHELL's real palette into this companion, in a fresh Firefox profile with both unsigned add-ons installed. No real Google login is involved.
 
 Personality options adjust the assistant's proposed conversational style only. They do **not** change the extension's tool permissions, network access or write-approval requirements.
+
+## Google OAuth developer preview
+
+Read [OAuth setup, scope and privacy constraints](docs/google-oauth.md) before connecting. A developer-provided Google **Desktop app OAuth client ID** and consent-screen setup are required. This is not a general public sign-in service yet. There are no Gmail permissions or arbitrary Google API calls. Access tokens are kept in Firefox session storage only, with no refresh token persistence.
