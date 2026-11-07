@@ -7,12 +7,13 @@ const cryptoApi = require("node:crypto").webcrypto;
 const {TextEncoder}=require("node:util");
 
 function createHarness(seed={},options={}) {
-  const tabs = [], groups = [], settings = {...seed}, sessionSettings={};
+  const tabs = [], groups = [], settings = {...seed}, sessionSettings={}, scheduledAlarms={}, badgeState={text:""};
   let tabId = 1, groupId = 1, onMessage = null, onExternal = null;
   const browser = {
     runtime: {
       id: "workspace-ai@elf-shell.local",
       getURL: name => "moz-extension://fixture/" + name,
+      getManifest: () => ({version:"0.9.0"}),
       onMessage: { addListener: callback => { onMessage = callback; } },
       onMessageExternal: { addListener: callback => { onExternal = callback; } }
     },
@@ -32,7 +33,7 @@ function createHarness(seed={},options={}) {
       }
     },
     permissions: {
-      contains: async ({origins}) => origins.some(x=>/api\.openai\.com|api\.anthropic\.com|generativelanguage\.googleapis\.com/.test(x)) ? Boolean(options.aiPermission) : Boolean(options.googlePermission)
+      contains: async ({origins}) => origins.some(x=>x.includes("api.github.com")) ? Boolean(options.releasePermission) : origins.some(x=>/api\.openai\.com|api\.anthropic\.com|generativelanguage\.googleapis\.com/.test(x)) ? Boolean(options.aiPermission) : Boolean(options.googlePermission)
     },
     identity: {
       getRedirectURL: () => "https://devredirect.extensions.allizom.org/"
@@ -69,7 +70,15 @@ function createHarness(seed={},options={}) {
       getLastFocused: async () => ({id:1}),
       update: async () => ({})
     },
-    action: { onClicked: {addListener:()=>{}} }
+    alarms: {
+      create: async (name,rule)=>{scheduledAlarms[name]=rule;},
+      clear: async name=>{delete scheduledAlarms[name];return true;},
+      onAlarm:{addListener:()=>{}}
+    },
+    action: { onClicked: {addListener:()=>{}},
+      setBadgeText: async ({text})=>{badgeState.text=text;},
+      setBadgeBackgroundColor: async ()=>{}
+    }
   };
   const fetchCalls=[];
   const mockFetch=async (url,init) => {
@@ -82,11 +91,11 @@ function createHarness(seed={},options={}) {
   });
   for (const file of ["shared/workspace.js","shared/persona.js",
     "google/oauth.js","google/read.js","google/files.js","briefing/engine.js","google/session.js",
-    "ai/providers.js","ai/session.js","background.js"]) {
+    "ai/providers.js","ai/session.js","updater/release.js","updater/checker.js","background.js"]) {
     vm.runInContext(fs.readFileSync(path.resolve(__dirname,"..",file),"utf8"),context,{filename:file});
   }
   return {
-    tabs, groups, settings, sessionSettings, fetchCalls,
+    tabs, groups, settings, sessionSettings, scheduledAlarms, badgeState, fetchCalls,
     dispatch: async (message, sender={id:browser.runtime.id}) => onMessage(message,sender),
     external: async (message, sender={id:"elf-shell-ayarime@local.theme"}) => onExternal(message,sender)
   };
@@ -587,4 +596,75 @@ test("same-extension source navigation reuses safe Calendar URL and blocks hosti
     url:"https://www.google.com.evil.invalid/calendar/event?eid=hack"});
   assert.equal(evil.ok,false);
   assert.equal(h.tabs.length,1);
+});
+
+test("release alerts default off and do not call GitHub without opt-in",async()=>{
+  const h=createHarness();
+  const status=await h.dispatch({type:"UPDATE_STATUS"});
+  assert.equal(status.ok,true,status.error);
+  assert.equal(status.update.current,"0.9.0");
+  assert.equal(status.update.enabled,false);
+  assert.equal(status.update.permissionGranted,false);
+  assert.equal(status.update.notice,false);
+  assert.equal(h.fetchCalls.length,0);
+  assert.equal(Object.keys(h.scheduledAlarms).length,0);
+  assert.equal((await h.dispatch({type:"UPDATE_CONFIG",enabled:true,channel:"stable"})).ok,false);
+  assert.equal((await h.dispatch({type:"UPDATE_CHECK"})).ok,false);
+  assert.equal(h.fetchCalls.length,0);
+});
+test("opt-in release feed shows a badge but never downloads or installs an extension",async()=>{
+  const U=require("../updater/release.js");
+  const h=createHarness({}, {releasePermission:true,mockFetch:async(url,options)=>{
+    assert.equal(url,U.API_URL);assert.equal(options.method,"GET");
+    assert.equal(options.credentials,"omit");
+    assert.equal(options.redirect,"error");
+    return {ok:true,status:200,json:async()=>[{
+      tag_name:"v0.9.1",html_url:U.RELEASE_PREFIX+"v0.9.1",
+      draft:false,prerelease:false,name:"Small fixes",body:"Better performance"
+    }]};
+  }});
+  const configured=await h.dispatch({type:"UPDATE_CONFIG",enabled:true,channel:"stable"});
+  assert.equal(configured.ok,true,configured.error);
+  assert.equal(configured.update.enabled,true);
+  assert.equal(Object.values(h.scheduledAlarms)[0].periodInMinutes,1440);
+  assert.equal(h.fetchCalls.length,0);
+  const checked=await h.dispatch({type:"UPDATE_CHECK"});
+  assert.equal(checked.ok,true,checked.error);
+  assert.equal(checked.update.notice,true);
+  assert.equal(checked.update.latest.version,"v0.9.1");
+  assert.equal(h.badgeState.text,"1");
+  assert.equal(h.fetchCalls.length,1);
+  assert(h.fetchCalls[0].url.includes("/releases?per_page=10"));
+  const ignored=await h.dispatch({type:"UPDATE_IGNORE",version:"v0.9.1"});
+  assert.equal(ignored.ok,true);
+  assert.equal(ignored.update.notice,false);
+  assert.equal(h.badgeState.text,"");
+  const disabled=await h.dispatch({type:"UPDATE_CONFIG",enabled:false,channel:"stable"});
+  assert.equal(disabled.ok,true);
+  assert.equal(Object.keys(h.scheduledAlarms).length,0);
+});
+test("release checks accept preview channel but external core cannot check or configure updates",async()=>{
+  const U=require("../updater/release.js");
+  const h=createHarness({}, {releasePermission:true,mockFetch:async()=>({
+    ok:true,status:200,json:async()=>[
+      {tag_name:"v0.9.2-beta.1",html_url:U.RELEASE_PREFIX+"v0.9.2-beta.1",
+        draft:false,prerelease:true,name:"Preview",body:"Improvements"}
+    ]})});
+  await h.dispatch({type:"UPDATE_CONFIG",enabled:true,channel:"stable"});
+  const stable=await h.dispatch({type:"UPDATE_CHECK"});
+  assert.equal(stable.update.notice,false);
+  await h.dispatch({type:"UPDATE_CONFIG",enabled:true,channel:"preview"});
+  const preview=await h.dispatch({type:"UPDATE_CHECK"});
+  assert.equal(preview.update.latest.version,"v0.9.2-beta.1");
+  assert.equal(preview.update.notice,true);
+  const external=await h.external({kind:"elfshell.workspace.bridge",version:1,command:"UPDATE_CHECK"});
+  assert.equal(external.ok,false);
+});
+test("private or unpublished releases return an honest status, never a phantom download",async()=>{
+  const h=createHarness({}, {releasePermission:true,mockFetch:async()=>({ok:false,status:404})});
+  await h.dispatch({type:"UPDATE_CONFIG",enabled:true,channel:"stable"});
+  const result=await h.dispatch({type:"UPDATE_CHECK"});
+  assert.equal(result.ok,true);
+  assert.equal(result.update.available,false);
+  assert.match(result.update.error,/No public GitHub release/);
 });
