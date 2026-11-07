@@ -41,3 +41,7 @@ The editable personality layer is implemented as a local-only module with three 
 ### v0.5 developer-preview progress
 
 Google OAuth PKCE and opt-in Firefox host permissions have been implemented in source with read-only Calendar/Tasks REST adapters and an explicit account UI. Credentials are stored as short-lived browser-session access tokens; no refresh tokens are retained. Live Google sign-in, public OAuth verification, broader service connectors and AI integration are still pending. See [Google OAuth developer preview](google-oauth.md).
+
+### v0.6 developer-preview progress
+
+Read-only Docs and Sheets preview adapters are implemented behind explicit Google OAuth scopes and saved-file IDs. No Drive-wide discovery or Docs/Sheets editing. The read-only Docs/Sheets scopes are sensitive and require Google verification before broad public use. The proposed per-file `drive.file` path needs a genuine file picker, not just URL pasting. See [Google files](google-files.md).
