@@ -37,3 +37,7 @@ Source-of-truth staged plan (7 November 2026). Stable core must not be modified 
 
 ### v0.4 progress
 The editable personality layer is implemented as a local-only module with three modes and validation. Actual AI-provider adapters, credential storage and model orchestration remain pending in Phase 5. This does not constitute BYOK inference.
+
+### v0.5 developer-preview progress
+
+Google OAuth PKCE and opt-in Firefox host permissions have been implemented in source with read-only Calendar/Tasks REST adapters and an explicit account UI. Credentials are stored as short-lived browser-session access tokens; no refresh tokens are retained. Live Google sign-in, public OAuth verification, broader service connectors and AI integration are still pending. See [Google OAuth developer preview](google-oauth.md).
