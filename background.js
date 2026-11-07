@@ -7,6 +7,12 @@ const GROUP_TITLE = "ELF//SHELL · GOOGLE WORKSPACE";
 const MAX_PROFILES = 10;
 const MAX_RESOURCES = 80;
 const REGISTRY_KEY = "elfshell.workspace.tabRegistry.v1";
+const PERSONA_KEY = "elfshell.workspace.persona.v1";
+const PERSONA = globalThis.WorkspacePersonaUtils;
+async function readPersona() {
+  const saved=(await browser.storage.local.get(PERSONA_KEY))[PERSONA_KEY];
+  return PERSONA.normalize(saved);
+}
 let ephemeralRegistry = Object.create(null);
 // Firefox can initially report a newly opened Google tab as about:blank.
 // Keep a session-scoped mapping from saved resource IDs to actual Firefox tab IDs.
@@ -199,6 +205,20 @@ async function handle(message) {
     switch (message.type) {
       case "GET_STATE":
         return {ok:true,...await serialise(()=>snapshot())};
+      case "GET_PERSONA":
+        return {ok:true,persona:await serialise(readPersona)};
+      case "SET_PERSONA":
+        return {ok:true,persona:await serialise(async()=>{
+          const persona=PERSONA.validate({mode:message.mode,customPrompt:message.customPrompt});
+          await browser.storage.local.set({[PERSONA_KEY]:persona});
+          return persona;
+        })};
+      case "RESET_PERSONA":
+        return {ok:true,persona:await serialise(async()=>{
+          const persona={...PERSONA.DEFAULT};
+          await browser.storage.local.set({[PERSONA_KEY]:persona});
+          return persona;
+        })};
       case "CREATE_PROFILE":
         return {ok:true,...await serialise(async()=>{
           const state=await readProfiles(),name=profileName(message.name);
