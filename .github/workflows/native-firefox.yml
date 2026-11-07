@@ -1,0 +1,46 @@
+name: Native Firefox Workspace acceptance
+on:
+  pull_request:
+  push:
+    branches: [qa/native-firefox-super-tab]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-firefox:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build isolated browser extension
+        run: |
+          npm test
+          npm run package
+      - name: Mozilla Add-ons lint
+        run: npx --yes web-ext@10.8.0 lint --source-dir dist/extension --warnings-as-errors
+      - name: Install release Firefox
+        id: firefox
+        uses: browser-actions/setup-firefox@v1
+        with:
+          firefox-version: latest
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Selenium
+        run: python -m pip install 'selenium>=4.30,<5'
+      - name: Native Firefox headless tab orchestration
+        env:
+          FIREFOX_BINARY: ${{ steps.firefox.outputs.firefox-path }}
+        run: python3 tests/native_firefox.py
+      - name: Publish isolated test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: workspace-ai-firefox-qa
+          path: dist/native-firefox/
+          if-no-files-found: warn
