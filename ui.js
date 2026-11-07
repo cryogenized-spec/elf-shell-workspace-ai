@@ -44,7 +44,7 @@ function makeResourceCard(item) {
       remove.disabled=true;
       try{
         const result=await request({type:"REMOVE_RESOURCE",key:item.key});
-        render(result.resources);announce("Removed from your Workspace profile. Open tabs were not closed.");
+        await refresh();announce("Removed from your Workspace profile. Open tabs were not closed.");
       }catch(error){announce(error.message,true);}finally{remove.disabled=false;}
     });
     actions.append(remove);
@@ -55,13 +55,29 @@ function makeResourceCard(item) {
 function render(items) {
   list.replaceChildren();
   items.forEach(item=>list.append(makeResourceCard(item)));
-  if (!items.length) list.append(node("p","quiet","No Google resources saved."));
+  if (!items.length) list.append(node("p","quiet","No Google resources saved in this profile."));
   const count=document.querySelector("#count");
   if(count) count.textContent=String(items.length).padStart(2,"0");
 }
+function renderProfiles(profiles,activeProfileId) {
+  const select=document.querySelector("#profile-select");
+  if(!select) return;
+  select.replaceChildren();
+  profiles.forEach(profile=>{
+    const option=node("option","",profile.name+" · "+profile.count);
+    option.value=profile.id;
+    select.append(option);
+  });
+  select.value=activeProfileId;
+  const remove=document.querySelector("#profile-delete");
+  if(remove) remove.disabled=activeProfileId==="default"||profiles.length===1;
+}
 async function refresh(){
-  try{const result=await request({type:"GET_STATE"});render(result.resources);}
-  catch(error){announce(error.message,true);}
+  try {
+    const result=await request({type:"GET_STATE"});
+    render(result.resources);
+    renderProfiles(result.profiles,result.activeProfileId);
+  } catch(error) {announce(error.message,true);}
 }
 document.querySelector("#launch").addEventListener("click",async(event)=>{
   const button=event.currentTarget;button.disabled=true;announce("Preparing Workspace tabs…");
@@ -80,8 +96,52 @@ if(form) form.addEventListener("submit",async(event)=>{
   button.disabled=true;
   try{
     const result=await request({type:"SAVE_RESOURCE",name:form.querySelector("#name").value,url:form.querySelector("#url").value});
-    render(result.resources);form.reset();announce("Google resource saved. It will open or be reused at next launch.");
+    await refresh();form.reset();announce("Google resource saved. It will open or be reused at next launch.");
   }catch(error){announce(error.message,true);}
   finally{button.disabled=false;}
 });
+
+const profileSelect=document.querySelector("#profile-select");
+if(profileSelect) profileSelect.addEventListener("change",async event=>{
+  const select=event.currentTarget;select.disabled=true;
+  try {
+    const result=await request({type:"SELECT_PROFILE",id:select.value});
+    render(result.resources);renderProfiles(result.profiles,result.activeProfileId);
+    announce("Workspace profile selected. Existing tabs are unchanged.");
+  }catch(error){announce(error.message,true);await refresh();}
+  finally{select.disabled=false;}
+});
+const profileForm=document.querySelector("#profile-form");
+if(profileForm) {
+  const input=profileForm.querySelector("#profile-name");
+  profileForm.addEventListener("submit",async event=>{
+    event.preventDefault();
+    const create=profileForm.querySelector("#profile-create");create.disabled=true;
+    try {
+      const result=await request({type:"CREATE_PROFILE",name:input.value});
+      render(result.resources);renderProfiles(result.profiles,result.activeProfileId);
+      input.value="";announce("New empty Workspace profile created and selected.");
+    }catch(error){announce(error.message,true);}
+    finally{create.disabled=false;}
+  });
+  profileForm.querySelector("#profile-rename").addEventListener("click",async()=>{
+    const button=profileForm.querySelector("#profile-rename");button.disabled=true;
+    try{
+      const result=await request({type:"RENAME_PROFILE",name:input.value});
+      render(result.resources);renderProfiles(result.profiles,result.activeProfileId);
+      input.value="";announce("Workspace profile renamed. Open tabs remain unchanged.");
+    }catch(error){announce(error.message,true);}finally{button.disabled=false;}
+  });
+  profileForm.querySelector("#profile-delete").addEventListener("click",async()=>{
+    const id=profileSelect.value;
+    const label=profileSelect.selectedOptions[0]?.textContent || "this Workspace";
+    if(!window.confirm("Delete saved profile "+label+"? Open Firefox tabs will not be closed.")) return;
+    const button=profileForm.querySelector("#profile-delete");button.disabled=true;
+    try {
+      const result=await request({type:"DELETE_PROFILE",id});
+      render(result.resources);renderProfiles(result.profiles,result.activeProfileId);
+      announce("Saved Workspace profile deleted. All open Firefox tabs were preserved.");
+    }catch(error){announce(error.message,true);}finally{await refresh();}
+  });
+}
 refresh();
