@@ -5,6 +5,7 @@
   const CONFIG_KEY="elfshell.google.oauthConfig.v1";
   const PENDING_KEY="elfshell.google.pending.v1";
   const TOKEN_KEY="elfshell.google.sessionToken.v1";
+  const DATA_TYPES=Object.freeze(["authenticationInfo","websiteContent"]);
   const HOSTS=Object.freeze([
     "https://oauth2.googleapis.com/*",
     "https://www.googleapis.com/*",
@@ -30,7 +31,7 @@
   }
   async function permitted(browserApi,requested) {
     const selected=requested || (await config(browserApi)).scopes;
-    return Boolean(await browserApi.permissions.contains({origins:requiredHosts(selected)}));
+    return Boolean(await browserApi.permissions.contains({origins:requiredHosts(selected),data_collection:[...DATA_TYPES]}));
   }
   function safePending(value,now) {
     return value && typeof value==="object" &&
@@ -183,6 +184,6 @@
     }
   }
   root.WorkspaceGoogleSession={HOSTS,requiredHosts,CONFIG_KEY,PENDING_KEY,TOKEN_KEY,handle,
-    status,prepare,complete,disconnect,overview,morningCoffee};
+    status,prepare,complete,disconnect,overview,morningCoffee,DATA_TYPES};
   if(typeof module!=="undefined"&&module.exports) module.exports=root.WorkspaceGoogleSession;
 })(globalThis);
