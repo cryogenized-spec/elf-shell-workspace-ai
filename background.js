@@ -228,6 +228,7 @@ async function handle(message) {
       case "AI_SAVE_SETTINGS":
       case "AI_SET_SESSION_KEY":
       case "AI_CLEAR_SESSION_KEY":
+      case "AI_CHECK_MODEL":
       case "AI_SEND_PROMPT":
         // This is unavailable to the external core bridge. Explicit only.
         return await serialise(()=>globalThis.WorkspaceBYOKSession.handle(
@@ -237,6 +238,7 @@ async function handle(message) {
       case "GOOGLE_AUTH_PREPARE":
       case "GOOGLE_AUTH_COMPLETE":
       case "GOOGLE_AUTH_DISCONNECT":
+      case "GOOGLE_TEST_ACCESS":
       case "GOOGLE_READ_OVERVIEW":
       case "GOOGLE_READ_FILE":
       case "MORNING_COFFEE_PREPARE":
