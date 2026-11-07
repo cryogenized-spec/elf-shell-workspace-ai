@@ -34,3 +34,6 @@ Source-of-truth staged plan (7 November 2026). Stable core must not be modified 
 
 0: audited against ELF//SHELL 0.5.4 feature branch; 1/3/4: working source prototype; named Workspace profiles and core bridge PRs implemented, field verification pending.
 2: companion-side bridge implemented and awaiting core integration; 5/6/7/8/9/10/11/12: not implemented.
+
+### v0.4 progress
+The editable personality layer is implemented as a local-only module with three modes and validation. Actual AI-provider adapters, credential storage and model orchestration remain pending in Phase 5. This does not constitute BYOK inference.
