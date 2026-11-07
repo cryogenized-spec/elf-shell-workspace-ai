@@ -41,3 +41,11 @@ The native suite verifies: extension page loads; default six Workspace links; pi
 The `integrated-firefox` GitHub Actions job installs an unsigned core build from `cryogenized-spec/elf-shell-ayarime` and this companion in the **same disposable Firefox session**. It tests the actual phrase “Ayarime, please bring up my workspace” entered in the core command palette. It then checks cross-extension HELLO/OPEN_WORKSPACE, the pinned Super Tab, the native Google group, and zero duplicates on a second invocation.
 
 This test passed in the November 7, 2026 GitHub Actions run. It does not access or process authenticated Google data, nor does it replace manual checks of the installed sidebar and Mozilla signing.
+
+## Personality settings
+
+16. In the Hub, choose Professional and save; confirm the sidebar reflects that selection and it persists after reopening the Hub.
+17. Choose Custom, enter multiline instructions and save; confirm the text persists locally, without network requests.
+18. Reset to Ayarime; confirm default mode and empty custom instructions.
+19. Enter an empty Custom prompt, an unsupported mode and an oversized prompt; confirm validation errors and no unexpected changes.
+20. Confirm the companion still works with no AI provider configured and its external core bridge cannot edit persona settings.
