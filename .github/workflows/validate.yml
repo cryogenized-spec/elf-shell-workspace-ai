@@ -17,6 +17,11 @@ jobs:
         run: npm run package
       - name: Check XPI contents and manifest
         run: python3 -c "import json,zipfile; z=zipfile.ZipFile('dist/workspace-ai-alpha-unsigned.xpi'); m=json.loads(z.read('manifest.json')); assert m['manifest_version']==3; assert 'hub.html' in z.namelist(); print('Package integrity OK')"
+      - name: Candidate integrity and release gate tests
+        run: |
+          TAG="v$(node -p 'require("./package.json").version')"
+          python3 scripts/release_preflight.py --tag "$TAG"
+          python3 -m unittest discover -s tests -p 'test_release_preflight.py'
       - uses: actions/upload-artifact@v4
         with:
           name: workspace-ai-alpha-unsigned
