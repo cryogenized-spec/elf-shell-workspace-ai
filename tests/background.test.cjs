@@ -4,8 +4,8 @@ const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 
-function createHarness() {
-  const tabs = [], groups = [], settings = {};
+function createHarness(seed={}) {
+  const tabs = [], groups = [], settings = {...seed};
   let tabId = 1, groupId = 1, onMessage = null, onExternal = null;
   const browser = {
     runtime: {
@@ -15,7 +15,9 @@ function createHarness() {
       onMessageExternal: { addListener: callback => { onExternal = callback; } }
     },
     storage: { local: {
-      get: async key => ({ [key]: settings[key] }),
+      get: async key => Array.isArray(key)
+        ? Object.fromEntries(key.map(item=>[item,settings[item]]))
+        : ({[key]:settings[key]}),
       set: async values => { Object.assign(settings, values); }
     } },
     tabs: {
@@ -55,7 +57,7 @@ function createHarness() {
     vm.runInContext(fs.readFileSync(path.resolve(__dirname,"..",file),"utf8"),context,{filename:file});
   }
   return {
-    tabs, groups,
+    tabs, groups, settings,
     dispatch: async (message, sender={id:browser.runtime.id}) => onMessage(message,sender),
     external: async (message, sender={id:"elf-shell-ayarime@local.theme"}) => onExternal(message,sender)
   };
@@ -131,4 +133,81 @@ test("trusted ELF//SHELL command restores tabs without duplicate writes",async()
   assert.equal(list.ok,true);assert.equal(list.resources.length,6);
   assert.equal(list.resources[0].url,undefined);
   assert.equal(h.tabs.length,7);
+});
+
+test("new named profile is independent of default workspace and produces a separate group",async()=>{
+  const h=createHarness();
+  const base=await h.dispatch({type:"OPEN_WORKSPACE"});
+  assert.equal(base.ok,true);assert.equal(base.result.opened,6);
+  const created=await h.dispatch({type:"CREATE_PROFILE",name:"Workshop"});
+  assert.equal(created.ok,true);assert.equal(created.resources.length,0);
+  assert.equal(created.profiles.length,2);
+  const id=created.activeProfileId;
+  const doc=await h.dispatch({type:"SAVE_RESOURCE",name:"Workshop Stock Register",url:"https://docs.google.com/spreadsheets/d/WORKSHOP123456/edit"});
+  assert.equal(doc.ok,true);
+  const launched=await h.dispatch({type:"OPEN_WORKSPACE"});
+  assert.equal(launched.ok,true);assert.equal(launched.result.opened,1);
+  assert.equal(launched.result.profileName,"Workshop");
+  assert.equal(h.groups.length,2);
+  assert.equal(h.groups[1].title,"ELF//SHELL · WORKSHOP");
+  const previous=await h.dispatch({type:"SELECT_PROFILE",id:"default"});
+  assert.equal(previous.ok,true);assert.equal(previous.resources.length,6);
+  const restored=await h.dispatch({type:"SELECT_PROFILE",id});
+  assert.equal(restored.ok,true);assert.equal(restored.resources.length,1);
+});
+test("profiles do not steal tabs already grouped under another profile",async()=>{
+  const h=createHarness();
+  await h.dispatch({type:"OPEN_WORKSPACE"});
+  const original=h.tabs.find(t=>t.url.includes("mail.google.com"));
+  const previousGroup=original.groupId;
+  await h.dispatch({type:"CREATE_PROFILE",name:"Personal"});
+  await h.dispatch({type:"SAVE_RESOURCE",name:"Gmail",url:"https://mail.google.com/mail/u/0/#inbox"});
+  const launched=await h.dispatch({type:"OPEN_WORKSPACE"});
+  assert.equal(launched.ok,true);
+  assert.equal(launched.result.opened,0);
+  assert.equal(launched.result.outsideProfile.includes("Gmail"),true);
+  assert.equal(original.groupId,previousGroup);
+  assert.equal(h.groups.length,1);
+});
+test("renaming and deleting a profile preserves all open Firefox tabs",async()=>{
+  const h=createHarness();
+  const a=await h.dispatch({type:"CREATE_PROFILE",name:"Research"});
+  assert.equal(a.ok,true);
+  const id=a.activeProfileId;
+  await h.dispatch({type:"SAVE_RESOURCE",name:"Document",url:"https://docs.google.com/document/d/RESEARCH12345/edit"});
+  await h.dispatch({type:"OPEN_WORKSPACE"});
+  const before=h.tabs.length;
+  const renamed=await h.dispatch({type:"RENAME_PROFILE",name:"Research Archive"});
+  assert.equal(renamed.ok,true);
+  assert.equal(renamed.profiles.find(p=>p.id===id).name,"Research Archive");
+  const removed=await h.dispatch({type:"DELETE_PROFILE",id});
+  assert.equal(removed.ok,true);
+  assert.equal(removed.activeProfileId,"default");
+  assert.equal(removed.profiles.length,1);
+  assert.equal(h.tabs.length,before);
+  assert.equal((await h.dispatch({type:"DELETE_PROFILE",id:"default"})).ok,false);
+});
+test("legacy single-profile resource list migrates without losing saved links",async()=>{
+  const legacy=[{name:"Legacy Register",url:"https://docs.google.com/spreadsheets/d/LEGACY123456/edit"}];
+  const h=createHarness({"elfshell.workspace.resources.v1":legacy});
+  const state=await h.dispatch({type:"GET_STATE"});
+  assert.equal(state.ok,true);
+  assert.equal(state.profiles.length,1);
+  assert.equal(state.resources.length,1);
+  assert.equal(state.resources[0].name,"Legacy Register");
+  assert.equal(h.settings["elfshell.workspace.profiles.v1"].version,1);
+  const second=await h.dispatch({type:"GET_STATE"});
+  assert.equal(second.resources.length,1);
+});
+test("profile creation validates names and enforces a maximum of 10",async()=>{
+  const h=createHarness();
+  assert.equal((await h.dispatch({type:"CREATE_PROFILE",name:"\n\r"})).ok,false);
+  assert.equal((await h.dispatch({type:"CREATE_PROFILE",name:"A"})).ok,true);
+  assert.equal((await h.dispatch({type:"CREATE_PROFILE",name:"a"})).ok,false);
+  for(let i=2;i<=9;i++){
+    assert.equal((await h.dispatch({type:"CREATE_PROFILE",name:"Workspace "+i})).ok,true);
+  }
+  const state=await h.dispatch({type:"GET_STATE"});
+  assert.equal(state.profiles.length,10);
+  assert.equal((await h.dispatch({type:"CREATE_PROFILE",name:"Extra"})).ok,false);
 });
