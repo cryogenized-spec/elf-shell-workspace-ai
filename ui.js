@@ -578,6 +578,107 @@ if(coffeeButton)coffeeButton.addEventListener("click",async()=>{
   }catch(error){coffeeStatus(error.message,true);}
   finally{coffeeButton.disabled=false;}
 });
+let updaterState=null;
+const updateToggle=document.querySelector("#update-toggle");
+function updateMessage(value,failed=false){
+  const el=document.querySelector("#update-status");
+  if(!el)return;
+  el.textContent=value;
+  el.classList.toggle("error",failed);
+}
+function renderUpdater(state){
+  if(!updateToggle)return;
+  updaterState=state;
+  document.querySelector("#update-channel").value=state.channel;
+  updateToggle.textContent=state.enabled
+    ? "Turn off daily release alerts" : "Enable daily release alerts";
+  const check=document.querySelector("#update-check");
+  check.disabled=!state.permissionGranted;
+  const pane=document.querySelector("#update-available");
+  const dismiss=document.querySelector("#update-dismiss");
+  const available=state.notice && state.latest;
+  pane.hidden=!available;
+  dismiss.hidden=!available;
+  if(available){
+    document.querySelector("#update-title").textContent=
+      "Workspace AI "+state.latest.version+" is published (installed: "+state.current+")";
+    document.querySelector("#update-notes").textContent=
+      (state.latest.title?state.latest.title+" · ":"")+
+      (state.latest.notes||"Read the official GitHub release notes before installing.");
+    // The background accepts only links within this exact trusted repository.
+    document.querySelector("#update-release-link").href=state.latest.url;
+  }
+  const latest=state.latest?.version;
+  if(state.error)updateMessage("Installed "+state.current+" · "+state.error,true);
+  else if(state.notice)updateMessage("New published release "+latest+
+    " · Notification only; Firefox manages signed installation.");
+  else if(state.available)updateMessage("Release "+latest+" dismissed · Installed "+state.current);
+  else if(state.checkedAt)updateMessage("Installed "+state.current+
+    " · No newer published GitHub Release in this channel.");
+  else updateMessage("Installed "+state.current+
+    " · "+(state.enabled?"Daily release checks enabled.":"Daily release checks off."));
+}
+async function refreshUpdater(){
+  if(!updateToggle)return;
+  try {
+    const result=await request({type:"UPDATE_STATUS"});
+    renderUpdater(result.update);
+  }catch(error){updateMessage(error.message,true);}
+}
+if(updateToggle){
+  updateToggle.addEventListener("click",async()=>{
+    if(!updaterState)return;
+    const enable=!updaterState.enabled;
+    if(enable && !updaterState.permissionGranted){
+      let consent;
+      try{
+        // The Firefox permission request must happen directly from the click.
+        consent=browser.permissions.request({origins:["https://api.github.com/*"]});
+      }catch(error){updateMessage("Firefox could not request release metadata permission.",true);return;}
+      updateMessage("Review Firefox's one-time GitHub release permission prompt…");
+      try{
+        if(!await consent){updateMessage("Release alerts were not enabled.",true);return;}
+      }catch(error){updateMessage("Permission request failed: "+error.message,true);return;}
+    }
+    updateToggle.disabled=true;
+    try{
+      const channel=document.querySelector("#update-channel").value;
+      const result=await request({type:"UPDATE_CONFIG",enabled:enable,channel});
+      renderUpdater(result.update);
+      if(enable){
+        const fresh=await request({type:"UPDATE_CHECK"});
+        renderUpdater(fresh.update);
+      }
+    }catch(error){updateMessage(error.message,true);}
+    finally{updateToggle.disabled=false;}
+  });
+  document.querySelector("#update-check").addEventListener("click",async event=>{
+    const button=event.currentTarget;button.disabled=true;
+    updateMessage("Checking lightweight GitHub release metadata…");
+    try{
+      const result=await request({type:"UPDATE_CHECK"});
+      renderUpdater(result.update);
+    }catch(error){updateMessage(error.message,true);}
+    finally{button.disabled=false;}
+  });
+  document.querySelector("#update-channel").addEventListener("change",async event=>{
+    if(!updaterState)return;
+    const choice=event.currentTarget.value;
+    try{
+      const result=await request({type:"UPDATE_CONFIG",
+        enabled:updaterState.enabled,channel:choice});
+      renderUpdater(result.update);
+    }catch(error){updateMessage(error.message,true);await refreshUpdater();}
+  });
+  document.querySelector("#update-dismiss").addEventListener("click",async()=>{
+    if(!updaterState?.latest)return;
+    try{
+      const result=await request({type:"UPDATE_IGNORE",version:updaterState.latest.version});
+      renderUpdater(result.update);
+    }catch(error){updateMessage(error.message,true);}
+  });
+}
+refreshUpdater();
 refreshAI();
 refreshGoogle();
 refresh();
