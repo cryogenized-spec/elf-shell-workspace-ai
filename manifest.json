@@ -15,6 +15,7 @@
       "shared/persona.js",
       "google/oauth.js",
       "google/read.js",
+      "google/session.js",
       "background.js"
     ]
   },
