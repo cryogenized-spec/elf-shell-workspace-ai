@@ -184,6 +184,12 @@ try:
     check("BYOK defaults to disconnected without provider permission or a key",
           lambda:require(ai["ok"] and not ai["ai"]["hasSessionKey"] and
             not ai["ai"]["hostGranted"] and not ai["ai"]["googleDataIncluded"],str(ai)))
+    check("AI metadata verification is unavailable without permission or a session key",
+          lambda:require(not driver.find_element(By.ID,"ai-check-model").is_enabled(),
+            "Model metadata check unexpectedly enabled"))
+    check("Google API diagnostics cannot run before OAuth consent",
+          lambda:require(not driver.find_element(By.ID,"google-check").is_enabled(),
+            "Google scope check unexpectedly enabled"))
     check("Ask Ayarime is disabled until user explicitly configures the provider",
           lambda:require(not driver.find_element(By.ID,"ai-send").is_enabled(),
             "AI prompt unexpectedly enabled"))
@@ -224,7 +230,7 @@ try:
 
     updater=extension_call({"type":"UPDATE_STATUS"})
     check("release notifications start opt-in and do not claim an installed update",
-          lambda:require(updater["ok"] and updater["update"]["current"]=="0.10.0" and
+          lambda:require(updater["ok"] and updater["update"]["current"]=="0.11.0" and
             not updater["update"]["enabled"] and
             updater["update"]["behavior"]=="notification-only",str(updater)))
     check("release check is disabled before optional GitHub permission",
