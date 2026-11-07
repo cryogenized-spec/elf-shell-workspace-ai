@@ -211,9 +211,15 @@ async function handle(message) {
       case "GOOGLE_AUTH_COMPLETE":
       case "GOOGLE_AUTH_DISCONNECT":
       case "GOOGLE_READ_OVERVIEW":
+      case "GOOGLE_READ_FILE":
         // Only same-extension callers enter this switch; the external ELF//SHELL
         // bridge deliberately cannot invoke Google authorization or data reads.
-        return await serialise(()=>globalThis.WorkspaceGoogleSession.handle(message,browser,fetch,crypto));
+        return await serialise(async()=>{
+          const safe=message.type==="GOOGLE_READ_FILE"
+            ? {...message,resource:(await resources()).find(item=>item.key===message.key)}
+            : message;
+          return globalThis.WorkspaceGoogleSession.handle(safe,browser,fetch,crypto);
+        });
       case "GET_PERSONA":
         return {ok:true,persona:await serialise(readPersona)};
       case "SET_PERSONA":

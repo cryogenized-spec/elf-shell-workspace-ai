@@ -8,8 +8,19 @@
   const HOSTS=Object.freeze([
     "https://oauth2.googleapis.com/*",
     "https://www.googleapis.com/*",
-    "https://tasks.googleapis.com/*"
+    "https://tasks.googleapis.com/*",
+    "https://docs.googleapis.com/*",
+    "https://sheets.googleapis.com/*"
   ]);
+  function requiredHosts(scopes) {
+    const requested=OAUTH.scopes(scopes);
+    const result=[HOSTS[0]];
+    if(requested.includes(OAUTH.CALENDAR_READ))result.push(HOSTS[1]);
+    if(requested.includes(OAUTH.TASKS_READ))result.push(HOSTS[2]);
+    if(requested.includes(OAUTH.DOCS_READ))result.push(HOSTS[3]);
+    if(requested.includes(OAUTH.SHEETS_READ))result.push(HOSTS[4]);
+    return result;
+  }
   const configDefault=()=>({clientId:"",scopes:[OAUTH.CALENDAR_READ]});
   async function config(browserApi) {
     const raw=(await browserApi.storage.local.get(CONFIG_KEY))[CONFIG_KEY];
@@ -17,8 +28,9 @@
     try{return {clientId:OAUTH.clientId(raw.clientId),scopes:OAUTH.scopes(raw.scopes)};}
     catch{return configDefault();}
   }
-  async function permitted(browserApi) {
-    return Boolean(await browserApi.permissions.contains({origins:[...HOSTS]}));
+  async function permitted(browserApi,requested) {
+    const selected=requested || (await config(browserApi)).scopes;
+    return Boolean(await browserApi.permissions.contains({origins:requiredHosts(selected)}));
   }
   function safePending(value,now) {
     return value && typeof value==="object" &&
@@ -116,6 +128,16 @@
     }
     return output;
   }
+  async function readSaved(browserApi,fetchImpl,message,now=Date.now()) {
+    const resource=message.resource;
+    const files=root.WorkspaceGoogleFiles;
+    const selection=files.validatedResource(resource);
+    const needed=selection.kind==="docs"?OAUTH.DOCS_READ:OAUTH.SHEETS_READ;
+    if(!await permitted(browserApi,[needed])) throw Error("Grant the matching Google file API host permission");
+    const token=(await browserApi.storage.session.get(TOKEN_KEY))[TOKEN_KEY];
+    if(selection.kind==="docs")return files.readDoc(resource,token,fetchImpl,now);
+    return files.readSheet(resource,message.range,token,fetchImpl,now);
+  }
   async function handle(message,browserApi,fetchImpl,cryptoApi) {
     switch(message.type) {
       case "GOOGLE_AUTH_STATUS":return {ok:true,auth:await status(browserApi)};
@@ -124,10 +146,11 @@
       case "GOOGLE_AUTH_COMPLETE":return {ok:true,auth:await complete(browserApi,fetchImpl,message)};
       case "GOOGLE_AUTH_DISCONNECT":return {ok:true,result:await disconnect(browserApi,fetchImpl)};
       case "GOOGLE_READ_OVERVIEW":return {ok:true,result:await overview(browserApi,fetchImpl)};
+      case "GOOGLE_READ_FILE":return {ok:true,result:await readSaved(browserApi,fetchImpl,message)};
       default:throw new Error("Unknown Google connector request");
     }
   }
-  root.WorkspaceGoogleSession={HOSTS,CONFIG_KEY,PENDING_KEY,TOKEN_KEY,handle,
+  root.WorkspaceGoogleSession={HOSTS,requiredHosts,CONFIG_KEY,PENDING_KEY,TOKEN_KEY,handle,
     status,prepare,complete,disconnect,overview};
   if(typeof module!=="undefined"&&module.exports) module.exports=root.WorkspaceGoogleSession;
 })(globalThis);

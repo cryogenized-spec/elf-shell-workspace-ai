@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "ELF//SHELL — Workspace AI",
-  "version": "0.5.0",
-  "description": "Optional Ayarime Workspace Hub, native Firefox tab orchestration and opt-in Google Calendar/Tasks developer preview.",
+  "version": "0.6.0",
+  "description": "Optional Ayarime Workspace Hub and opt-in developer-preview read-only Google Calendar, Tasks, Docs and Sheets connectors.",
   "permissions": [
     "tabs",
     "tabGroups",
@@ -15,6 +15,7 @@
       "shared/persona.js",
       "google/oauth.js",
       "google/read.js",
+      "google/files.js",
       "google/session.js",
       "background.js"
     ]
@@ -43,7 +44,7 @@
     }
   },
   "content_security_policy": {
-    "extension_pages": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'; connect-src 'self' https://oauth2.googleapis.com https://www.googleapis.com https://tasks.googleapis.com"
+    "extension_pages": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'; connect-src 'self' https://oauth2.googleapis.com https://www.googleapis.com https://tasks.googleapis.com https://docs.googleapis.com https://sheets.googleapis.com"
   },
   "externally_connectable": {
     "ids": [
@@ -53,6 +54,8 @@
   "optional_host_permissions": [
     "https://oauth2.googleapis.com/*",
     "https://www.googleapis.com/*",
-    "https://tasks.googleapis.com/*"
+    "https://tasks.googleapis.com/*",
+    "https://docs.googleapis.com/*",
+    "https://sheets.googleapis.com/*"
   ]
 }
