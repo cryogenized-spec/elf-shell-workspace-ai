@@ -75,8 +75,11 @@ try:
     # Firefox's extension UUID mapping; it never reads real user profile data.
     with driver.context(driver.CONTEXT_CHROME):
         uuid=driver.execute_script("""
-          const Services=ChromeUtils.importESModule("resource://gre/modules/Services.sys.mjs").Services;
-          const ids=JSON.parse(Services.prefs.getStringPref("extensions.webextensions.uuids","{}"));
+          // Browser chrome provides Services on Firefox's main window.
+          // Do not import privileged parent-process modules in Marionette.
+          const service=(typeof Services!=="undefined" ? Services : window.Services);
+          if (!service?.prefs) throw new Error("Firefox browser-chrome Services not available");
+          const ids=JSON.parse(service.prefs.getStringPref("extensions.webextensions.uuids","{}"));
           return ids["workspace-ai@elf-shell.local"] || null;
         """)
     require(isinstance(uuid,str) and uuid,"Firefox did not assign a companion extension origin")
