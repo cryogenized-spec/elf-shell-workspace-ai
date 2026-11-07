@@ -6,6 +6,42 @@ const PROFILES_KEY = "elfshell.workspace.profiles.v1";
 const GROUP_TITLE = "ELF//SHELL · GOOGLE WORKSPACE";
 const MAX_PROFILES = 10;
 const MAX_RESOURCES = 80;
+const REGISTRY_KEY = "elfshell.workspace.tabRegistry.v1";
+let ephemeralRegistry = Object.create(null);
+// Firefox can initially report a newly opened Google tab as about:blank.
+// Keep a session-scoped mapping from saved resource IDs to actual Firefox tab IDs.
+async function readRegistry() {
+  if (!browser.storage.session) return {...ephemeralRegistry};
+  try {
+    const stored=(await browser.storage.session.get(REGISTRY_KEY))[REGISTRY_KEY];
+    return stored && typeof stored==="object" && !Array.isArray(stored)
+      ? {...stored} : {...ephemeralRegistry};
+  } catch {
+    return {...ephemeralRegistry};
+  }
+}
+async function saveRegistry(entries) {
+  ephemeralRegistry={...entries};
+  if (browser.storage.session) {
+    try {await browser.storage.session.set({[REGISTRY_KEY]:entries});}
+    catch(error){console.warn("Session tab index unavailable",error);}
+  }
+}
+function isTrackedTab(resource, tab) {
+  if(!tab || tab.incognito || !Number.isInteger(tab.id)) return false;
+  if(matchesTab(resource,tab)) return true;
+  if(tab.url==="about:blank" || !tab.url) return true; // pre-navigation tab
+  try {
+    const url=new URL(tab.url);
+    return url.protocol==="https:" && url.hostname==="accounts.google.com";
+  } catch {return false;}
+}
+function findTab(resource, tabs, registry) {
+  const existing=registry[resource.key];
+  const tracked=tabs.find(tab=>tab.id===existing);
+  if(isTrackedTab(resource,tracked)) return tracked;
+  return tabs.find(tab=>!tab.incognito && matchesTab(resource,tab)) || null;
+}
 let operation = Promise.resolve();
 
 function serialise(action) {
@@ -104,17 +140,19 @@ async function launchWorkspace() {
   const hub = await ensureHub(win.id);
   const targetWindowId = hub.windowId;
   const all = await browser.tabs.query({});
+  const registry = await readRegistry();
   const childIds = [], outsideWindow = [], outsideProfile = [];
   const title = groupTitle(profile);
   const existingGroups = await browser.tabGroups.query({windowId:targetWindowId});
   const ownGroup = existingGroups.find(group=>group.title===title);
   let opened=0,reused=0;
   for (const item of selection) {
-    let tab = all.find(candidate=>!candidate.incognito && candidate.id!==hub.id && matchesTab(item,candidate));
+    let tab = findTab(item,all.filter(candidate=>candidate.id!==hub.id),registry);
     if (!tab) {
       tab=await browser.tabs.create({windowId:targetWindowId,url:item.url,active:false});
       all.push(tab);opened++;
     } else reused++;
+    registry[item.key]=tab.id;
     if (tab.windowId!==targetWindowId || tab.pinned) {
       outsideWindow.push(item.name);
     } else if (Number.isInteger(tab.groupId) && tab.groupId>=0 &&
@@ -123,6 +161,7 @@ async function launchWorkspace() {
       outsideProfile.push(item.name);
     } else childIds.push(tab.id);
   }
+  await saveRegistry(registry);
   const groupId = await ensureGroup(targetWindowId,childIds,title);
   await browser.tabs.update(hub.id,{active:true});
   await browser.windows.update(hub.windowId,{focused:true});
@@ -134,7 +173,8 @@ async function activateResource(key) {
   const wanted = allResources.find(item => item.key === key);
   if (!wanted) throw new Error("This resource is no longer in your workspace");
   const tabs = await browser.tabs.query({});
-  let tab = tabs.find(item => !item.incognito && matchesTab(wanted,item));
+  const registry = await readRegistry();
+  let tab = findTab(wanted,tabs,registry);
   let reused = true;
   if (!tab) {
     const hub = tabs.find(item => item.url === browser.runtime.getURL("hub.html"));
@@ -146,6 +186,8 @@ async function activateResource(key) {
   } else {
     await browser.tabs.update(tab.id,{active:true});
   }
+  registry[wanted.key]=tab.id;
+  await saveRegistry(registry);
   await browser.windows.update(tab.windowId,{focused:true});
   return {reused,tabId:tab.id};
 }
