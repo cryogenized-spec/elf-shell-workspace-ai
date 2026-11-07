@@ -403,3 +403,61 @@ test("external ELF//SHELL core cannot read Google account information",async()=>
   assert.equal((await h.external(request)).ok,false);
   assert.equal(h.fetchCalls.length,0);
 });
+
+test("saved Docs and Sheets previews require correct scope and read-only permission",async()=>{
+  const docUrl="https://docs.google.com/document/d/DOC9876543210/edit";
+  const fileUrl="https://docs.google.com/spreadsheets/d/SHEET9876543210/edit#gid=42";
+  const h=createHarness({}, {googlePermission:true,mockFetch:async(url,opts)=>{
+    assert.equal(opts.method,"GET");
+    if(url.includes("docs.googleapis.com")) return {ok:true,status:200,json:async()=>({
+      title:"Supplier Notes",tabs:[{documentTab:{body:{content:[{
+        paragraph:{elements:[{textRun:{content:"Follow up with supplier."}}]}
+      }]}}}]})};
+    if(url.includes("sheets.googleapis.com") && url.includes("/values/"))
+      return {ok:true,status:200,json:async()=>({values:[["Product","Qty"],["P-50","8"]]})};
+    if(url.includes("sheets.googleapis.com"))return {ok:true,status:200,json:async()=>({
+      properties:{title:"Stock"},sheets:[{properties:{sheetId:42,title:"Main"}}]})};
+    throw Error("Unexpected network call");
+  }});
+  const doc=await h.dispatch({type:"SAVE_RESOURCE",name:"Supplier Notes",url:docUrl});
+  const sheet=await h.dispatch({type:"SAVE_RESOURCE",name:"Stock Register",url:fileUrl});
+  assert.equal(doc.ok,true);assert.equal(sheet.ok,true);
+  const id="file:document:DOC9876543210",sid="file:spreadsheets:SHEET9876543210";
+  const noToken=await h.dispatch({type:"GOOGLE_READ_FILE",key:id});
+  assert.equal(noToken.ok,false);assert.equal(h.fetchCalls.length,0);
+  h.sessionSettings["elfshell.google.sessionToken.v1"]={
+    accessToken:"test_access_token",expiresAt:Date.now()+300000,
+    scopes:["https://www.googleapis.com/auth/documents.readonly",
+            "https://www.googleapis.com/auth/spreadsheets.readonly"]
+  };
+  const docRead=await h.dispatch({type:"GOOGLE_READ_FILE",key:id});
+  assert.equal(docRead.ok,true,docRead.error);
+  assert.equal(docRead.result.title,"Supplier Notes");
+  assert(docRead.result.text.includes("Follow up"));
+  const sheetRead=await h.dispatch({type:"GOOGLE_READ_FILE",key:sid,range:"A1:B2"});
+  assert.equal(sheetRead.ok,true,sheetRead.error);
+  assert.equal(sheetRead.result.sheet,"Main");
+  assert.equal(sheetRead.result.rows[1][1],"8");
+  assert.equal(h.fetchCalls.length,3);
+  const notSaved=await h.dispatch({type:"GOOGLE_READ_FILE",key:"file:document:UNSAVED123456"});
+  assert.equal(notSaved.ok,false);
+  assert.equal(h.fetchCalls.length,3);
+  const invalidRange=await h.dispatch({type:"GOOGLE_READ_FILE",key:sid,range:"A1:ZZ9999"});
+  assert.equal(invalidRange.ok,false);
+  assert.equal(h.fetchCalls.length,3);
+  const outside=await h.external({kind:"elfshell.workspace.bridge",version:1,command:"GOOGLE_READ_FILE",key:id});
+  assert.equal(outside.ok,false);assert.equal(h.fetchCalls.length,3);
+});
+test("Google file scopes are optional and rejected if API origin was not approved",async()=>{
+  const h=createHarness({}, {googlePermission:false});
+  const client="123456789-abcdefabcdef.apps.googleusercontent.com";
+  const scope="https://www.googleapis.com/auth/documents.readonly";
+  const saved=await h.dispatch({type:"GOOGLE_AUTH_CONFIG",clientId:client,scopes:[scope]});
+  assert.equal(saved.ok,true,saved.error);
+  assert.equal(saved.auth.permissionsGranted,false);
+  assert.equal((await h.dispatch({type:"GOOGLE_AUTH_PREPARE"})).ok,false);
+  await h.dispatch({type:"SAVE_RESOURCE",name:"Document",url:"https://docs.google.com/document/d/DOC9876543210/edit"});
+  h.sessionSettings["elfshell.google.sessionToken.v1"]={accessToken:"test",expiresAt:Date.now()+300000,scopes:[scope]};
+  assert.equal((await h.dispatch({type:"GOOGLE_READ_FILE",key:"file:document:DOC9876543210"})).ok,false);
+  assert.equal(h.fetchCalls.length,0);
+});
