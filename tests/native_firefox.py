@@ -172,9 +172,13 @@ try:
     check("OAuth configuration persists without contacting Google",
           lambda:require(not driver.find_element(By.ID,"google-connect").is_enabled(),
             "Connection enabled without Firefox host consent"))
-    blocked=extension_call({"type":"GOOGLE_AUTH_PREPARE"})
+    blocked=driver.execute_async_script("""
+      const done=arguments[arguments.length-1];
+      browser.runtime.sendMessage({type:"GOOGLE_AUTH_PREPARE"})
+        .then(done,error=>done({ok:false,error:String(error)}));
+    """)
     check("OAuth preparation is blocked until Google API origins are granted",
-          lambda:require(not blocked["ok"],str(blocked)))
+          lambda:require(not blocked["ok"] and "Grant" in blocked.get("error",""),str(blocked)))
 
     driver.save_screenshot(str(ARTIFACTS/"workspace-hub.png"))
     results["status"]="PASS"
