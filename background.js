@@ -197,6 +197,20 @@ async function activateResource(key) {
   await browser.windows.update(tab.windowId,{focused:true});
   return {reused,tabId:tab.id};
 }
+async function openBriefingSource(kind,rawUrl) {
+  const url=globalThis.WorkspaceMorningCoffee.safeSourceLink(rawUrl,kind);
+  if(!url)throw Error("Unsupported Calendar/Tasks source link");
+  const tabs=await browser.tabs.query({});
+  const found=tabs.find(tab=>!tab.incognito && tab.url===url);
+  if(found) {
+    await browser.tabs.update(found.id,{active:true});
+    await browser.windows.update(found.windowId,{focused:true});
+    return {reused:true};
+  }
+  const win=await currentWindow();
+  await browser.tabs.create({windowId:win.id,url,active:true});
+  return {reused:false};
+}
 async function handle(message) {
   try {
     if (!message || typeof message !== "object" || typeof message.type !== "string") {
@@ -220,6 +234,7 @@ async function handle(message) {
       case "GOOGLE_AUTH_DISCONNECT":
       case "GOOGLE_READ_OVERVIEW":
       case "GOOGLE_READ_FILE":
+      case "MORNING_COFFEE_PREPARE":
         // Only same-extension callers enter this switch; the external ELF//SHELL
         // bridge deliberately cannot invoke Google authorization or data reads.
         return await serialise(async()=>{
@@ -287,6 +302,8 @@ async function handle(message) {
         return {ok:true,result:await serialise(launchWorkspace)};
       case "OPEN_RESOURCE":
         return {ok:true,result:await serialise(() => activateResource(message.key))};
+      case "OPEN_BRIEFING_SOURCE":
+        return {ok:true,result:await serialise(() => openBriefingSource(message.source,message.url))};
       case "SAVE_RESOURCE":
         return {ok:true,resources:await serialise(async () => {
           const item = normalizeResource(message.name,message.url);
