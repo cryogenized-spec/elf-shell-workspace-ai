@@ -106,3 +106,17 @@ footer{display:flex;justify-content:space-between;gap:18px;margin-top:35px;paddi
 .google-preview-text{white-space:pre-wrap;overflow-wrap:anywhere;max-height:360px;overflow:auto;font:12px/1.65 ui-monospace,monospace;color:var(--ivory)}
 .google-preview-table{display:block;max-width:100%;max-height:360px;overflow:auto;border-collapse:collapse}
 .google-preview-table td{border:1px solid #7894a066;padding:5px 8px;max-width:220px;white-space:pre-wrap;overflow-wrap:anywhere;font:11px ui-monospace,monospace}
+
+.ai-console{margin-top:20px;display:grid;gap:12px}
+.ai-console h2{font:italic 30px Georgia,serif;margin:0 0 9px}
+.ai-form,.ai-key-controls{display:grid;gap:8px}
+.ai-form label,.ai-key-controls label{font:11px ui-monospace,monospace;color:var(--cyan)}
+.ai-form select,.ai-form input,.ai-key-controls input,.ai-console textarea{width:100%;border:1px solid #7894a0;background:#0b1424;color:var(--ivory);padding:11px;font:12px/1.5 ui-monospace,monospace}
+.ai-console textarea{resize:vertical;min-height:85px}
+.ai-form button,.ai-key-controls button{width:100%;max-width:350px}
+.ai-console button:disabled{opacity:.5}
+.ai-output{white-space:pre-wrap;overflow-wrap:anywhere;max-height:440px;overflow:auto;padding:14px 0;font:13px/1.7 ui-monospace,monospace;color:var(--ivory)}
+.ai-output:empty{padding:0}
+.side-shell .ai-console{margin-top:0;padding:17px}
+.side-shell .ai-console h2{font-size:24px}
+.side-shell .ai-form input,.side-shell .ai-key-controls input{min-width:0}
