@@ -241,6 +241,7 @@ function showGoogleState(auth) {
   document.querySelector("#google-prepare").disabled=!auth.permissionsGranted || !auth.config.clientId;
   document.querySelector("#google-connect").disabled=!googlePreparedUrl;
   document.querySelector("#google-read").disabled=!auth.connected;
+  document.querySelector("#google-check").disabled=!auth.connected;
   document.querySelector("#google-disconnect").disabled=!auth.connected;
   googleMessage(auth.connected
     ? "Connected until "+new Date(auth.expiresAt).toLocaleTimeString()+
@@ -384,6 +385,28 @@ if(googleForm) {
     }catch(error){googleMessage(error.message,true);}
     finally{await refreshGoogle();}
   });
+  document.querySelector("#google-check").addEventListener("click",async()=>{
+    const button=document.querySelector("#google-check");
+    const output=document.querySelector("#google-check-result");
+    const sources={
+      calendar:document.querySelector("#google-scope-calendar").checked,
+      tasks:document.querySelector("#google-scope-tasks").checked
+    };
+    if(!sources.calendar&&!sources.tasks){
+      output.textContent="Select Calendar and/or Tasks to verify. Docs/Sheets are not probed here.";
+      return;
+    }
+    button.disabled=true;
+    output.textContent="Checking minimal Google API access. No item contents are displayed…";
+    try {
+      const response=await request({type:"GOOGLE_TEST_ACCESS",sources});
+      const data=response.result;
+      output.textContent=data.sources.map(item=>
+        (item.ok?"PASS":"FAILED")+" · "+item.source+": "+item.message).join("\n")+
+        "\n"+data.note;
+    }catch(error){output.textContent="Connection check could not run: "+error.message;}
+    finally{await refreshGoogle();}
+  });
   document.querySelector("#google-read").addEventListener("click",async()=>{
     const button=document.querySelector("#google-read");button.disabled=true;
     googleMessage("Reading authorized Calendar / Tasks information directly from Google…");
@@ -415,6 +438,7 @@ function showAIState(ai){
   provider.value=ai.provider;model.value=ai.model;
   aiSavedProvider=ai.provider;
   document.querySelector("#ai-send").disabled=!ai.hasSessionKey||!ai.hostGranted;
+  document.querySelector("#ai-check-model").disabled=!ai.hasSessionKey||!ai.hostGranted;
   document.querySelector("#ai-clear-key").disabled=!ai.hasSessionKey;
   aiMessage(ai.hasSessionKey
     ? "Session key ready · "+ai.provider+" / "+ai.model+" · manual prompts only"
@@ -470,6 +494,19 @@ if(aiForm){
       document.querySelector("#ai-key").value="";
       showAIState(result.ai);aiMessage("Session key cleared.");
     }catch(error){aiMessage(error.message,true);}
+  });
+  document.querySelector("#ai-check-model").addEventListener("click",async()=>{
+    const button=document.querySelector("#ai-check-model");
+    const output=document.querySelector("#ai-check-result");
+    button.disabled=true;
+    output.textContent="Checking the saved model ID through provider metadata; no inference request…";
+    try {
+      const {result}=await request({type:"AI_CHECK_MODEL"});
+      output.textContent=(result.ok?"PASS":"FAILED")+" · "+result.provider+" / "+result.model+
+        ": "+result.message+(result.lifecycle?" · lifecycle: "+result.lifecycle:"")+
+        (result.generationSupported===false?" · generateContent not supported":"");
+    }catch(error){output.textContent="Model check unavailable: "+error.message;}
+    finally{await refreshAI();}
   });
   document.querySelector("#ai-send").addEventListener("click",async()=>{
     const button=document.querySelector("#ai-send");

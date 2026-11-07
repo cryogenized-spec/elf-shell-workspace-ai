@@ -2,7 +2,7 @@
 
 An optional **Firefox Desktop** companion to [ELF//SHELL — Ayarime](https://github.com/cryogenized-spec/elf-shell-ayarime).
 
-**Status: v0.10.0 developer preview, unsigned and not released publicly.** Native Firefox CI, two-extension command integration and strict Mozilla lint have passed; signed installation and user-profile acceptance are still pending.
+**Status: v0.11.0 developer preview, unsigned and not released publicly.** Native Firefox CI, two-extension command integration and strict Mozilla lint have passed; signed installation and user-profile acceptance are still pending.
 
 This companion is independent of the existing Firefox new-tab extension and does not replace its interface. The first alpha implements a native pinned **Super Tab**, a sidebar styled after the original ELF//SHELL palette, and user-initiated restoration of real Google Workspace tabs.
 
@@ -16,6 +16,7 @@ This companion is independent of the existing Firefox new-tab extension and does
 - Use the optional standalone BYOK text console from the Hub or sidebar with an explicit provider API key kept only in Firefox session storage. No Google data is automatically sent.
 - Prepare a manual **Morning Coffee** briefing from authorized Calendar/Tasks only, with local priority heuristics and links back to the original Google items.
 - Opt into GitHub Release notices (daily or manual), with a toolbar badge, release notes and no silent code downloads.
+- Check Google Calendar/Tasks authorization and selected BYOK model metadata on demand, without provider generation or copying account records.
 - Reuse open Google Workspace tabs (Gmail, Calendar, Drive, Docs, Sheets and Tasks) and create only missing tabs.
 - Group Workspace tabs in Firefox and focus the master Hub.
 - Create, rename and switch between up to 10 local Workspace profiles. Each has its own saved Google links and named tab group. Switching/deleting a profile never closes your tabs.
@@ -80,3 +81,5 @@ Read [OAuth setup, scope and privacy constraints](docs/google-oauth.md) before c
 **Updates:** [Read the release-notification and Firefox signing policy](docs/release-notifications.md). The check fetches small metadata, but Firefox code updates still use complete Mozilla-signed packages; unsigned development XPIs are not installed by this feature.
 
 **Release candidates:** [Review the unsigned QA workflow and publishing gates](docs/release-publishing.md). No CI job currently signs or publishes an add-on. Real Google OAuth and BYOK acceptance, Mozilla data/privacy review and signed installation checks remain blockers.
+
+**Connection diagnostics (v0.11):** [Read about manual Google scope and provider model metadata checks](docs/connection-diagnostics.md). These are privacy-safe probes, not evidence of completed live OAuth or inference acceptance.

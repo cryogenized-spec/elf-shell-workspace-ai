@@ -8,7 +8,7 @@
 <main class="shell">
 <header class="masthead">
   <div class="slashes" aria-hidden="true">///</div>
-  <div><h1>ELF<span>//</span>SHELL</h1><p>AYARIME / WORKSPACE CONTROL MODULE · ALPHA 0.10</p></div>
+  <div><h1>ELF<span>//</span>SHELL</h1><p>AYARIME / WORKSPACE CONTROL MODULE · ALPHA 0.11</p></div>
   <div class="status-pill">LOCAL / READY</div>
 </header>
 <section class="frame profile-manager" aria-label="Workspace profiles">
@@ -90,9 +90,11 @@
     <button type="button" id="google-prepare" class="mini">2 · Prepare sign-in</button>
     <button type="button" id="google-connect" class="secondary" disabled>3 · Connect Google</button>
     <button type="button" id="google-read" class="mini" disabled>Read today's Calendar / Tasks</button>
+    <button type="button" id="google-check" class="mini" disabled>Verify Calendar / Tasks API access</button>
     <button type="button" id="google-disconnect" class="mini danger" disabled>Disconnect</button>
   </div>
   <p id="google-auth-status" class="status" role="status" aria-live="polite">Google is not connected.</p>
+  <p id="google-check-result" class="quiet" role="status" aria-live="polite">Google access verification not run. It checks selected Calendar/Tasks API access without displaying item contents.</p>
   <div id="google-results" class="google-results" aria-live="polite"></div>
   <div class="google-file-preview">
     <p class="eyebrow">// 06 · SAVED FILE PREVIEW</p>
@@ -140,6 +142,8 @@
   <label for="ai-prompt" class="eyebrow">SEND AN EXPLICIT PROMPT</label>
   <textarea id="ai-prompt" rows="4" maxlength="6000" placeholder="Ayarime, help me organize my work…"></textarea>
   <button id="ai-send" type="button" class="secondary">Ask Ayarime ↗</button>
+  <button id="ai-check-model" type="button" class="mini" disabled>Verify model access · no generation</button>
+  <p class="quiet" id="ai-check-result" role="status" aria-live="polite">Model verification not run. This uses a provider metadata GET, not an inference request.</p>
   <p id="ai-status" class="status" role="status" aria-live="polite">AI not configured.</p>
   <div id="ai-output" class="ai-output" aria-live="polite"></div>
   <p class="quiet">Only the text you explicitly submit and the active persona are sent to your chosen provider, after Firefox's optional data-sharing consent. Provider API usage may incur charges. The response is not saved or forwarded to Google.</p>

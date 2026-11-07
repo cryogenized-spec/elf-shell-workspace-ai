@@ -61,3 +61,7 @@ Optional metadata-only GitHub Release checks, stable/preview filtering, badges a
 ### v0.10 release-readiness and privacy progress
 
 The release-candidate QA workflow produces an unsigned artifact plus source-equivalence/SHA-256 evidence; publication is explicitly disabled until live Google OAuth, live provider inference, Mozilla privacy review, signed installation and distribution-channel gates pass. Firefox's optional data collection categories are now declared and checked for Google/BYOK calls. See [release governance](release-publishing.md). No signed release has been published.
+
+### v0.11 connection-diagnostics milestone
+
+The Hub/sidebar can now manually verify a selected provider's model metadata without generating text, and the Hub can check Calendar/Tasks API authorization without parsing returned account contents. A failed check gives a safe error category; success is **not** equivalent to live inference, complete Google OAuth onboarding or public release sign-off. See [connection diagnostics](connection-diagnostics.md).
