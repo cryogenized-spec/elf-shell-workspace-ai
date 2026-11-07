@@ -81,7 +81,7 @@ function createHarness(seed={},options={}) {
     browser,URL,URLSearchParams,console,fetch:mockFetch,crypto:cryptoApi,TextEncoder,TextDecoder,btoa
   });
   for (const file of ["shared/workspace.js","shared/persona.js",
-    "google/oauth.js","google/read.js","google/files.js","google/session.js",
+    "google/oauth.js","google/read.js","google/files.js","briefing/engine.js","google/session.js",
     "ai/providers.js","ai/session.js","background.js"]) {
     vm.runInContext(fs.readFileSync(path.resolve(__dirname,"..",file),"utf8"),context,{filename:file});
   }
@@ -511,4 +511,80 @@ test("switching BYOK provider removes old key and external core cannot invoke mo
   const external=await h.external({kind:"elfshell.workspace.bridge",version:1,command:"AI_SEND_PROMPT",text:"secret"});
   assert.equal(external.ok,false);
   assert.equal(h.fetchCalls.length,0);
+});
+
+test("Morning Coffee never reads sources until explicitly requested",async()=>{
+  const h=createHarness({}, {googlePermission:true,mockFetch:async()=>{throw Error("No implicit requests permitted");}});
+  await h.dispatch({type:"GET_STATE"});
+  await h.dispatch({type:"GOOGLE_AUTH_STATUS"});
+  await h.dispatch({type:"AI_STATUS"});
+  assert.equal(h.fetchCalls.length,0);
+  assert.equal((await h.dispatch({type:"MORNING_COFFEE_PREPARE",sources:{}})).ok,false);
+  assert.equal((await h.dispatch({type:"MORNING_COFFEE_PREPARE",sources:{calendar:true}})).ok,false);
+  assert.equal(h.fetchCalls.length,0);
+});
+test("Morning Coffee reads only Calendar when explicitly selected, no AI calls",async()=>{
+  const calendar="https://www.googleapis.com/auth/calendar.events.readonly";
+  const tasks="https://www.googleapis.com/auth/tasks.readonly";
+  const h=createHarness({}, {googlePermission:true,mockFetch:async(url,init)=>{
+    assert(url.includes("/calendar/v3/calendars/primary/events"),"Wrong endpoint "+url);
+    assert.equal(init.method,"GET");
+    return {ok:true,status:200,json:async()=>({items:[
+      {id:"evt1",summary:"Supplier coordination",description:
+       "Reference https://docs.google.com/document/d/DOC123456789/edit",
+       htmlLink:"https://www.google.com/calendar/event?eid=test",
+       start:{dateTime:"2026-11-07T10:00:00+02:00"},status:"confirmed"}
+    ]})};
+  }});
+  h.sessionSettings["elfshell.google.sessionToken.v1"]={
+    accessToken:"session_test_token",expiresAt:Date.now()+300000,scopes:[calendar,tasks]
+  };
+  const r=await h.dispatch({type:"MORNING_COFFEE_PREPARE",sources:{calendar:true,tasks:false}});
+  assert.equal(r.ok,true,r.error);
+  assert.equal(h.fetchCalls.length,1);
+  assert.equal(r.result.sources.length,1);
+  assert.equal(r.result.sources[0],"Calendar");
+  assert.equal(r.result.attention[0].sourceUrl,"https://www.google.com/calendar/event?eid=test");
+  assert.equal(r.result.aiUsed,false);
+  assert.equal(r.result.gmailIncluded,false);
+  assert(!JSON.stringify(r.result).includes("session_test_token"));
+  assert(!JSON.stringify(h.settings).includes("Supplier coordination"));
+  assert(!JSON.stringify(h.sessionSettings).includes("Supplier coordination"));
+});
+test("Morning Coffee gracefully identifies missing Tasks scope without fetching",async()=>{
+  const calendar="https://www.googleapis.com/auth/calendar.events.readonly";
+  const h=createHarness({}, {googlePermission:true,mockFetch:async()=>{throw Error("No calls permitted");}});
+  h.sessionSettings["elfshell.google.sessionToken.v1"]={
+    accessToken:"session_test_token",expiresAt:Date.now()+300000,scopes:[calendar]
+  };
+  const result=await h.dispatch({type:"MORNING_COFFEE_PREPARE",sources:{calendar:false,tasks:true}});
+  assert.equal(result.ok,true,result.error);
+  assert.equal(result.result.partial,true);
+  assert.equal(result.result.sources.length,0);
+  assert.equal(result.result.errors[0].service,"Tasks");
+  assert.equal(h.fetchCalls.length,0);
+});
+test("external ELF//SHELL bridge cannot prepare Morning Coffee or open arbitrary evidence links",async()=>{
+  const h=createHarness();
+  const envelope={kind:"elfshell.workspace.bridge",version:1};
+  assert.equal((await h.external({...envelope,command:"MORNING_COFFEE_PREPARE",
+    sources:{calendar:true,tasks:true}})).ok,false);
+  assert.equal((await h.external({...envelope,command:"OPEN_BRIEFING_SOURCE",
+    source:"calendar",url:"https://www.google.com/calendar/event?eid=1"})).ok,false);
+  assert.equal(h.fetchCalls.length,0);
+  assert.equal(h.tabs.length,0);
+});
+test("same-extension source navigation reuses safe Calendar URL and blocks hostile links",async()=>{
+  const h=createHarness();
+  const url="https://www.google.com/calendar/event?eid=sample";
+  const first=await h.dispatch({type:"OPEN_BRIEFING_SOURCE",source:"calendar",url});
+  assert.equal(first.ok,true,first.error);
+  assert.equal(first.result.reused,false);
+  const second=await h.dispatch({type:"OPEN_BRIEFING_SOURCE",source:"calendar",url});
+  assert.equal(second.ok,true);assert.equal(second.result.reused,true);
+  assert.equal(h.tabs.length,1);
+  const evil=await h.dispatch({type:"OPEN_BRIEFING_SOURCE",source:"calendar",
+    url:"https://www.google.com.evil.invalid/calendar/event?eid=hack"});
+  assert.equal(evil.ok,false);
+  assert.equal(h.tabs.length,1);
 });
