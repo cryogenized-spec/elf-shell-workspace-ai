@@ -33,7 +33,14 @@ function createHarness(seed={},options={}) {
       }
     },
     permissions: {
-      contains: async ({origins}) => origins.some(x=>x.includes("api.github.com")) ? Boolean(options.releasePermission) : origins.some(x=>/api\.openai\.com|api\.anthropic\.com|generativelanguage\.googleapis\.com/.test(x)) ? Boolean(options.aiPermission) : Boolean(options.googlePermission)
+      contains: async ({origins=[],data_collection=[]}) => {
+        const isRelease=origins.some(x=>x.includes("api.github.com"));
+        const isAi=origins.some(x=>/api\.openai\.com|api\.anthropic\.com|generativelanguage\.googleapis\.com/.test(x));
+        const granted=isRelease ? options.releasePermission : isAi ? options.aiPermission : options.googlePermission;
+        const consent=isAi ? (options.aiDataConsent ?? options.aiPermission)
+          : (options.googleDataConsent ?? options.googlePermission);
+        return Boolean(granted) && (!data_collection.length || Boolean(consent));
+      }
     },
     identity: {
       getRedirectURL: () => "https://devredirect.extensions.allizom.org/"
@@ -667,4 +674,26 @@ test("private or unpublished releases return an honest status, never a phantom d
   assert.equal(result.ok,true);
   assert.equal(result.update.available,false);
   assert.match(result.update.error,/No public GitHub release/);
+});
+
+test("Google account access is blocked if data-sharing consent is missing despite API host permission",async()=>{
+  const h=createHarness({}, {googlePermission:true,googleDataConsent:false});
+  const scope="https://www.googleapis.com/auth/calendar.events.readonly";
+  const client="123456789-abcdefabcdef.apps.googleusercontent.com";
+  const config=await h.dispatch({type:"GOOGLE_AUTH_CONFIG",clientId:client,scopes:[scope]});
+  assert.equal(config.ok,true);
+  assert.equal(config.auth.permissionsGranted,false);
+  const refused=await h.dispatch({type:"GOOGLE_AUTH_PREPARE"});
+  assert.equal(refused.ok,false);
+  assert.equal(h.fetchCalls.length,0);
+});
+test("BYOK model calls are blocked when optional data permission is revoked",async()=>{
+  const h=createHarness({}, {aiPermission:true,aiDataConsent:false});
+  const s=await h.dispatch({type:"AI_STATUS"});
+  assert.equal(s.ok,true);
+  assert.equal(s.ai.hostGranted,false);
+  assert.equal((await h.dispatch({type:"AI_SET_SESSION_KEY",key:"sk-TEST123456"})).ok,false);
+  h.sessionSettings["elfshell.byok.apiKey.v1"]={provider:"openai",key:"sk-TEST123456"};
+  assert.equal((await h.dispatch({type:"AI_SEND_PROMPT",text:"Hello"})).ok,false);
+  assert.equal(h.fetchCalls.length,0);
 });
