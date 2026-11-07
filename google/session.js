@@ -170,6 +170,13 @@
     }
     return root.WorkspaceMorningCoffee.compile(snapshot,now);
   }
+  async function checkGoogle(browserApi,fetchImpl,sources){
+    const token=(await browserApi.storage.session.get(TOKEN_KEY))[TOKEN_KEY];
+    return root.WorkspaceConnectionDiagnostics.googleProbe({
+      sources,token,fetchImpl,
+      permitted:scopes=>permitted(browserApi,scopes)
+    });
+  }
   async function handle(message,browserApi,fetchImpl,cryptoApi) {
     switch(message.type) {
       case "GOOGLE_AUTH_STATUS":return {ok:true,auth:await status(browserApi)};
@@ -177,6 +184,7 @@
       case "GOOGLE_AUTH_PREPARE":return {ok:true,auth:await prepare(browserApi,cryptoApi)};
       case "GOOGLE_AUTH_COMPLETE":return {ok:true,auth:await complete(browserApi,fetchImpl,message)};
       case "GOOGLE_AUTH_DISCONNECT":return {ok:true,result:await disconnect(browserApi,fetchImpl)};
+      case "GOOGLE_TEST_ACCESS":return {ok:true,result:await checkGoogle(browserApi,fetchImpl,message.sources)};
       case "GOOGLE_READ_OVERVIEW":return {ok:true,result:await overview(browserApi,fetchImpl)};
       case "GOOGLE_READ_FILE":return {ok:true,result:await readSaved(browserApi,fetchImpl,message)};
       case "MORNING_COFFEE_PREPARE":return {ok:true,result:await morningCoffee(
