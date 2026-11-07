@@ -4,13 +4,14 @@
   const PROVIDERS=root.WorkspaceBYOKProviders;
   const SETTINGS_KEY="elfshell.byok.settings.v1";
   const KEY_SESSION="elfshell.byok.apiKey.v1";
+  const DATA_TYPES=Object.freeze(["authenticationInfo","personalCommunications","websiteContent","personallyIdentifyingInfo"]);
   async function settings(browserApi){
     const saved=(await browserApi.storage.local.get(SETTINGS_KEY))[SETTINGS_KEY];
     return PROVIDERS.normalizedSettings(saved);
   }
   async function allowed(browserApi,provider){
     return Boolean(await browserApi.permissions.contains({
-      origins:[PROVIDERS.PROVIDERS[provider].host]
+      origins:[PROVIDERS.PROVIDERS[provider].host],data_collection:[...DATA_TYPES]
     }));
   }
   async function status(browserApi){
@@ -19,6 +20,7 @@
     return {provider:config.provider,model:config.model,
       hasSessionKey:Boolean(saved&&saved.provider===config.provider&&saved.key),
       hostGranted:await allowed(browserApi,config.provider),
+      dataConsentRequired:[...DATA_TYPES],
       maxPrompt:PROVIDERS.MAX_PROMPT,
       googleDataIncluded:false};
   }
@@ -33,7 +35,7 @@
   async function setKey(browserApi,message){
     const cfg=await settings(browserApi);
     if(!await allowed(browserApi,cfg.provider))
-      throw Error("Allow the selected AI provider's network permission first");
+      throw Error("Allow this provider and optional data-sharing consent in Firefox first");
     const key=PROVIDERS.keyText(message.key);
     await browserApi.storage.session.set({[KEY_SESSION]:{provider:cfg.provider,key}});
     return status(browserApi);
@@ -45,7 +47,7 @@
   async function send(browserApi,fetchImpl,personaLoader,message){
     const config=await settings(browserApi);
     if(!await allowed(browserApi,config.provider))
-      throw Error("The selected AI provider host permission is not granted");
+      throw Error("AI provider network or data-sharing permission is not granted");
     const saved=(await browserApi.storage.session.get(KEY_SESSION))[KEY_SESSION];
     if(!saved || saved.provider!==config.provider)
       throw Error("Enter your provider API key for this Firefox session");
@@ -70,6 +72,6 @@
       default:throw Error("Unknown BYOK request");
     }
   }
-  root.WorkspaceBYOKSession={SETTINGS_KEY,KEY_SESSION,handle,settings,status};
+  root.WorkspaceBYOKSession={SETTINGS_KEY,KEY_SESSION,DATA_TYPES,handle,settings,status};
   if(typeof module!=="undefined"&&module.exports)module.exports=root.WorkspaceBYOKSession;
 })(globalThis);

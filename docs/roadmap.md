@@ -57,3 +57,7 @@ Manual Morning Coffee is implemented as a local, no-AI deterministic briefing fo
 ### v0.9 update notification milestone
 
 Optional metadata-only GitHub Release checks, stable/preview filtering, badges and release notes are implemented; 24-hour polling is opt-in. The XPI builder uses maximum ZIP compression and prints the package size. Native signed AMO distribution and actual published release acceptance remain separate. Code update patches are not supported by Firefox; optional large non-executable content assets may eventually support individually verified transfers. See [release notifications](release-notifications.md).
+
+### v0.10 release-readiness and privacy progress
+
+The release-candidate QA workflow produces an unsigned artifact plus source-equivalence/SHA-256 evidence; publication is explicitly disabled until live Google OAuth, live provider inference, Mozilla privacy review, signed installation and distribution-channel gates pass. Firefox's optional data collection categories are now declared and checked for Google/BYOK calls. See [release governance](release-publishing.md). No signed release has been published.

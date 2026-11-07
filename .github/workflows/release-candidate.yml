@@ -1,0 +1,48 @@
+name: Build release candidate (QA only)
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Tag to validate, e.g. v0.10.0. Must match the current manifest."
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: workspace-candidate-qa
+  cancel-in-progress: false
+
+jobs:
+  candidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run all local tests
+        run: npm test
+      - name: Build fully self-contained unsigned development XPI
+        run: npm run package
+      - name: Mozilla strict source lint
+        run: npx --yes web-ext@10.8.0 lint --source-dir dist/extension --warnings-as-errors
+      - name: Validate candidate XPI against source and requested version
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          python3 scripts/release_preflight.py --tag "$RELEASE_VERSION"
+          python3 -m unittest discover -s tests -p 'test_release_preflight.py'
+      - name: Upload QA evidence — NOT signed or publishable
+        uses: actions/upload-artifact@v4
+        with:
+          name: workspace-ai-UNSIGNED-QA-candidate
+          path: |
+            dist/workspace-ai-alpha-unsigned.xpi
+            dist/release-candidate-report.json
+          if-no-files-found: error
+          retention-days: 7

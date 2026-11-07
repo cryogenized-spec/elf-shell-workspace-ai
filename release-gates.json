@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "google_oauth_live_test": {
+    "approved": false,
+    "evidence_url": null
+  },
+  "byok_provider_live_test": {
+    "approved": false,
+    "evidence_url": null
+  },
+  "mozilla_privacy_and_consent_review": {
+    "approved": false,
+    "evidence_url": null
+  },
+  "firefox_signed_install_and_upgrade": {
+    "approved": false,
+    "evidence_url": null
+  },
+  "distribution_channel_decision": {
+    "approved": false,
+    "evidence_url": null
+  }
+}
