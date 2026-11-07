@@ -138,6 +138,48 @@ browser.runtime.onMessage.addListener((message,sender) => {
   if (sender.id !== browser.runtime.id) return {ok:false,error:"Unauthorized sender"};
   return handle(message);
 });
+// Versioned, tightly scoped communication with the independently installed ELF//SHELL core.
+const CORE_EXTENSION_ID = "elf-shell-ayarime@local.theme";
+const BRIDGE_KIND = "elfshell.workspace.bridge";
+const BRIDGE_PROTOCOL_VERSION = 1;
+
+async function handleCoreMessage(message, sender) {
+  // Manifest restrictions are defense in depth; do not rely on them alone.
+  if (!sender || sender.id !== CORE_EXTENSION_ID) {
+    return {ok:false, error:"Unauthorized extension sender"};
+  }
+  if (!message || typeof message !== "object" ||
+      message.kind !== BRIDGE_KIND || message.version !== BRIDGE_PROTOCOL_VERSION ||
+      typeof message.command !== "string") {
+    return {ok:false, error:"Unsupported or malformed bridge protocol"};
+  }
+  switch (message.command) {
+    case "HELLO":
+      return {
+        ok:true,
+        kind:BRIDGE_KIND,
+        version:BRIDGE_PROTOCOL_VERSION,
+        companionId:browser.runtime.id,
+        capabilities:["OPEN_WORKSPACE","LIST_RESOURCES","OPEN_RESOURCE"],
+        dataAccess:"browser-tabs-only"
+      };
+    case "LIST_RESOURCES":
+      return {ok:true, resources:(await resources()).map(item => ({name:item.name,key:item.key}))};
+    case "OPEN_WORKSPACE":
+      return handle({type:"OPEN_WORKSPACE"});
+    case "OPEN_RESOURCE":
+      if (typeof message.key !== "string" || message.key.length > 250) {
+        return {ok:false,error:"Invalid resource identifier"};
+      }
+      return handle({type:"OPEN_RESOURCE", key:message.key});
+    default:
+      return {ok:false,error:"Unknown bridge command"};
+  }
+}
+browser.runtime.onMessageExternal.addListener((message, sender) =>
+  handleCoreMessage(message, sender).catch(() => ({ok:false,error:"Bridge request failed"}))
+);
+
 browser.action.onClicked.addListener(() => {
   // This must be called immediately within the user gesture, before awaiting anything.
   if (browser.sidebarAction && browser.sidebarAction.open) {
