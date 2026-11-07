@@ -75,3 +75,7 @@ Read [Google OAuth developer preview](google-oauth.md). The Hub can request opti
 ## Morning Coffee local engine (v0.8)
 
 `briefing/engine.js` deterministically ranks and correlates authorized, bounded Calendar and Tasks records. The same-extension `MORNING_COFFEE_PREPARE` command requires explicit source selection and an active Google session; it invokes no BYOK adapter. It labels partial coverage and only correlates shared, exact Google document references. `OPEN_BRIEFING_SOURCE` validates application-specific HTTPS URLs before activating/reusing a browser tab. No local persistence, background polling, Gmail, AI provider transmission or external core access. See [Morning Coffee](morning-coffee.md).
+
+## Release metadata notification (v0.9)
+
+`updater/release.js` validates versioned GitHub Releases for this exact repository. `updater/checker.js` stores a small, revalidated release-status cache in local extension storage, polls the allowlisted GitHub JSON API only after opt-in host consent via Firefox's daily alarms, and sets the toolbar badge when a new release is published. The Hub/sidebar show a sanitized release title, summary and trusted release-notes URL. No XPI or executable script is downloaded or installed. We intentionally avoid registering `runtime.onUpdateAvailable`, which can defer Firefox's native update installation. See [release notifications](release-notifications.md).
