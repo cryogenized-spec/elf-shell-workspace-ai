@@ -69,3 +69,13 @@ This test passed in the November 7, 2026 GitHub Actions run. It does not access 
 32. Reject unbounded A1 ranges, invalid file IDs, unsaved file keys, disallowed hosts and missing API host permissions.
 33. Verify no Google document or spreadsheet data reaches the ELF//SHELL core extension, an AI service, or persistent storage.
 34. Confirm no sensitive Docs/Sheets scopes are requested unless selected in the Hub, and that Google warns appropriately about any account-wide read permission. Live Google OAuth remains an outstanding release gate.
+
+## Manual BYOK text console (v0.7)
+
+35. In the Firefox Hub and sidebar, verify the three provider choices and editable model ID.
+36. Check that AI requests are blocked without explicit provider host permission and an API key.
+37. Save a dummy key, verify only session storage contains it and that changing providers or pressing Forget key clears it.
+38. Verify malformed model IDs, prompts longer than 6000 characters and keys with line breaks are rejected.
+39. With fake provider responses, verify OpenAI/Anthropic/Gemini text extraction and HTML rendered as plain text, without executing markup.
+40. Verify provider errors reveal only status categories, not the raw response body or secrets.
+41. Confirm Google Workspace content is never attached to an AI prompt without separately designed explicit sharing controls. Real API-key inference and costs have **not** been tested.
