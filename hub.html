@@ -8,7 +8,7 @@
 <main class="shell">
 <header class="masthead">
   <div class="slashes" aria-hidden="true">///</div>
-  <div><h1>ELF<span>//</span>SHELL</h1><p>AYARIME / WORKSPACE CONTROL MODULE · ALPHA 0.3</p></div>
+  <div><h1>ELF<span>//</span>SHELL</h1><p>AYARIME / WORKSPACE CONTROL MODULE · ALPHA 0.5</p></div>
   <div class="status-pill">LOCAL / READY</div>
 </header>
 <section class="frame profile-manager" aria-label="Workspace profiles">
@@ -66,6 +66,33 @@
     </div>
     <p class="quiet">These instructions are stored locally without encryption. Do not include API keys, passwords or private correspondence.</p>
   </form>
+</section>
+<section class="frame google-section" aria-label="Google account connection">
+  <div class="section-head"><div>
+    <p class="eyebrow">// 05 · GOOGLE WORKSPACE / DEVELOPER PREVIEW</p>
+    <h2>Account Access</h2>
+  </div></div>
+  <p class="quiet">Optional Google OAuth authorization, separate from your AI API key. This preview uses a Google OAuth <strong>Desktop app client ID</strong> from your own Google Cloud project. No Google account connection is active until you consent.</p>
+  <form id="google-config-form" class="google-form">
+    <label for="google-client-id">Google OAuth Desktop client ID (public identifier, never a client secret)</label>
+    <input id="google-client-id" type="text" maxlength="180" spellcheck="false" autocomplete="off" placeholder="123456789-xxxx.apps.googleusercontent.com" />
+    <fieldset>
+      <legend>Request these read-only scopes</legend>
+      <label><input type="checkbox" id="google-scope-calendar" checked /> Calendar events — read only</label>
+      <label><input type="checkbox" id="google-scope-tasks" /> Google Tasks — read only</label>
+    </fieldset>
+    <button type="submit" class="secondary">Save OAuth configuration</button>
+  </form>
+  <div class="google-controls">
+    <button type="button" id="google-grant" class="mini">1 · Allow Google API connections</button>
+    <button type="button" id="google-prepare" class="mini">2 · Prepare sign-in</button>
+    <button type="button" id="google-connect" class="secondary" disabled>3 · Connect Google</button>
+    <button type="button" id="google-read" class="mini" disabled>Read today's Calendar / Tasks</button>
+    <button type="button" id="google-disconnect" class="mini danger" disabled>Disconnect</button>
+  </div>
+  <p id="google-auth-status" class="status" role="status" aria-live="polite">Google is not connected.</p>
+  <div id="google-results" class="google-results" aria-live="polite"></div>
+  <p class="quiet">This prototype discards refresh tokens and stores only a temporary access token in Firefox session storage. It does not persist account contents. Sign-in may require Google OAuth app verification and is not yet validated against a live Google account.</p>
 </section>
 <footer><span>あやりめ · THE STATION REMAINS ONLINE</span><span>FIREFOX DESKTOP · NO AI KEY REQUIRED</span></footer>
 </main></body></html>
