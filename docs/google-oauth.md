@@ -1,4 +1,4 @@
-# Google OAuth — developer preview (v0.5)
+# Google OAuth — developer preview (v0.6)
 
 **Current status:** Code-complete implementation for local test harnesses; no live Google OAuth client has been provisioned or tested. It is **not publicly authorized** or ready for general release.
 
@@ -31,7 +31,7 @@ References:
 
 ## Consent & storage
 
-The app asks for optional Firefox permissions to three Google API origins: `oauth2.googleapis.com`, `www.googleapis.com`, and `tasks.googleapis.com`. The extension's `identity` permission enables the OAuth browser flow. The app does **not** request Gmail scopes, generic Drive scopes or account-wide searches in this milestone.
+The app requests optional Firefox permissions for `oauth2.googleapis.com` and only the selected Google service API origins (`www.googleapis.com`, `tasks.googleapis.com`, `docs.googleapis.com`, `sheets.googleapis.com`). The extension's `identity` permission enables the OAuth browser flow. The app does **not** request Gmail scopes, generic Drive scopes or account-wide searches. Optional Docs and Sheets read-only scopes are available, but Google classifies these as **sensitive**, granting broader access than the UI's saved-file-only selection policy. See [Docs/Sheets previews](google-files.md).
 
 The client ID and chosen scopes are stored in Firefox `storage.local`, and they are **not confidential**. A short-lived access token and pending authorization challenge are stored in Firefox `storage.session`. **No refresh token is retained.** No access token is returned in status messages or passed to ELF//SHELL's separate extension. Session storage isn't a secure vault; future persistent access will need a proper credential design.
 
