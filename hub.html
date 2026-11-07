@@ -8,7 +8,7 @@
 <main class="shell">
 <header class="masthead">
   <div class="slashes" aria-hidden="true">///</div>
-  <div><h1>ELF<span>//</span>SHELL</h1><p>AYARIME / WORKSPACE CONTROL MODULE · ALPHA 0.5</p></div>
+  <div><h1>ELF<span>//</span>SHELL</h1><p>AYARIME / WORKSPACE CONTROL MODULE · ALPHA 0.6</p></div>
   <div class="status-pill">LOCAL / READY</div>
 </header>
 <section class="frame profile-manager" aria-label="Workspace profiles">
@@ -80,6 +80,8 @@
       <legend>Request these read-only scopes</legend>
       <label><input type="checkbox" id="google-scope-calendar" checked /> Calendar events — read only</label>
       <label><input type="checkbox" id="google-scope-tasks" /> Google Tasks — read only</label>
+      <label><input type="checkbox" id="google-scope-docs" /> Google Docs — read only (sensitive scope)</label>
+      <label><input type="checkbox" id="google-scope-sheets" /> Google Sheets — read only (sensitive scope)</label>
     </fieldset>
     <button type="submit" class="secondary">Save OAuth configuration</button>
   </form>
@@ -92,6 +94,13 @@
   </div>
   <p id="google-auth-status" class="status" role="status" aria-live="polite">Google is not connected.</p>
   <div id="google-results" class="google-results" aria-live="polite"></div>
+  <div class="google-file-preview">
+    <p class="eyebrow">// 06 · SAVED FILE PREVIEW</p>
+    <p class="quiet">Use “Read preview” beside a specifically saved Google Doc or spreadsheet above. Sheets previews use a bounded A1 range and respect the saved link's sheet ID (gid). Google Drive-wide discovery and editing are not enabled.</p>
+    <label for="google-sheet-range">Sheet range (maximum 100 rows × 26 columns)</label>
+    <input id="google-sheet-range" value="A1:Z50" placeholder="A1:Z50" maxlength="24" />
+    <div id="google-file-results" class="google-results" aria-live="polite"></div>
+  </div>
   <p class="quiet">This prototype discards refresh tokens and stores only a temporary access token in Firefox session storage. It does not persist account contents. Sign-in may require Google OAuth app verification and is not yet validated against a live Google account.</p>
 </section>
 <footer><span>あやりめ · THE STATION REMAINS ONLINE</span><span>FIREFOX DESKTOP · NO AI KEY REQUIRED</span></footer>
