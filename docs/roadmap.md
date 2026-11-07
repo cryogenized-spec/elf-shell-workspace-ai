@@ -53,3 +53,7 @@ The first manual BYOK text inference adapter now supports OpenAI Responses, Anth
 ### v0.8 developer-preview progress
 
 Manual Morning Coffee is implemented as a local, no-AI deterministic briefing for authorized Calendar/Tasks only. Source links open/reuse actual Firefox tabs. Task dates are labelled as scheduled dates rather than asserted deadlines; cross-links require identical Google file IDs. Gmail, broader source coverage, AI synthesis and live Google authorization testing remain pending. See [Morning Coffee](morning-coffee.md).
+
+### v0.9 update notification milestone
+
+Optional metadata-only GitHub Release checks, stable/preview filtering, badges and release notes are implemented; 24-hour polling is opt-in. The XPI builder uses maximum ZIP compression and prints the package size. Native signed AMO distribution and actual published release acceptance remain separate. Code update patches are not supported by Firefox; optional large non-executable content assets may eventually support individually verified transfers. See [release notifications](release-notifications.md).
