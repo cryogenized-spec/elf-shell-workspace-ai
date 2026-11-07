@@ -180,6 +180,29 @@ try:
     check("OAuth preparation is blocked until Google API origins are granted",
           lambda:require(not blocked["ok"] and "Grant" in blocked.get("error",""),str(blocked)))
 
+    ai=extension_call({"type":"AI_STATUS"})
+    check("BYOK defaults to disconnected without provider permission or a key",
+          lambda:require(ai["ok"] and not ai["ai"]["hasSessionKey"] and
+            not ai["ai"]["hostGranted"] and not ai["ai"]["googleDataIncluded"],str(ai)))
+    check("Ask Ayarime is disabled until user explicitly configures the provider",
+          lambda:require(not driver.find_element(By.ID,"ai-send").is_enabled(),
+            "AI prompt unexpectedly enabled"))
+    Select(driver.find_element(By.ID,"ai-provider")).select_by_value("gemini")
+    driver.find_element(By.CSS_SELECTOR,'#ai-settings-form button[type="submit"]').click()
+    WebDriverWait(driver,10).until(
+        lambda d:extension_call({"type":"AI_STATUS"})["ai"]["provider"]=="gemini")
+    check("switching provider changes only local model preferences",
+          lambda:require(not extension_call({"type":"AI_STATUS"})["ai"]["hasSessionKey"],
+            "Provider switch retained credentials"))
+    keyfield=driver.find_element(By.ID,"ai-key")
+    keyfield.send_keys("TESTKEY123456")
+    driver.find_element(By.ID,"ai-set-key").click()
+    WebDriverWait(driver,10).until(
+        lambda d:"Allow the selected AI provider" in d.find_element(By.ID,"ai-status").text)
+    check("BYOK session key cannot be stored without provider permission",
+          lambda:require(not extension_call({"type":"AI_STATUS"})["ai"]["hasSessionKey"],
+            "Key accepted without permission"))
+
     driver.save_screenshot(str(ARTIFACTS/"workspace-hub.png"))
     results["status"]="PASS"
 except Exception as error:

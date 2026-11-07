@@ -45,3 +45,7 @@ Google OAuth PKCE and opt-in Firefox host permissions have been implemented in s
 ### v0.6 developer-preview progress
 
 Read-only Docs and Sheets preview adapters are implemented behind explicit Google OAuth scopes and saved-file IDs. No Drive-wide discovery or Docs/Sheets editing. The read-only Docs/Sheets scopes are sensitive and require Google verification before broad public use. The proposed per-file `drive.file` path needs a genuine file picker, not just URL pasting. See [Google files](google-files.md).
+
+### v0.7 developer-preview progress
+
+The first manual BYOK text inference adapter now supports OpenAI Responses, Anthropic Messages and Gemini generateContent. Session-only API keys, host permissions and the editable Ayarime persona are wired into the sidebar/Hub. Multi-turn chat, streaming, tool use, optional Google context selection, model-cost budgeting and live provider-key testing remain pending. See [BYOK mode](byok.md).

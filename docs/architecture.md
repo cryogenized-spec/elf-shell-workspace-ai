@@ -67,3 +67,7 @@ Read [Google OAuth developer preview](google-oauth.md). The Hub can request opti
 ## Saved Docs/Sheets previews (v0.6)
 
 `google/files.js` provides bounded read-only Docs/Sheets API adapters. `GOOGLE_READ_FILE` is accepted only via same-extension messaging, resolves the resource key against the active saved profile and validates its Google Docs/Sheets editor URL. It never receives a raw caller-controlled API URL. Output is plain text or a bounded value grid and is only rendered by the Hub using DOM `textContent`, not injected HTML. The external core extension cannot request file contents. Additional API host permission requirements are derived from the user's selected OAuth scopes. See [Docs/Sheets preview caveats](google-files.md).
+
+## Manual BYOK inference (v0.7)
+
+`ai/providers.js` implements provider-specific OpenAI, Anthropic and Gemini single-turn text API requests with fixed HTTPS destinations. `ai/session.js` accepts only same-extension commands and checks the selected optional host permission and session API key before a request. The provider/model preference is kept in local storage; the key is kept in session storage and dropped on provider switch or explicit clear. Only the user-supplied prompt and currently selected Ayarime persona are sent. Provider response text is rendered with DOM `textContent`. There is no automatic Workspace context retrieval, tool calling, Google data transmission or external-core BYOK command. See [BYOK privacy and setup](byok.md).

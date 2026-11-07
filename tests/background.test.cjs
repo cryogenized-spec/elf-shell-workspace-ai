@@ -32,7 +32,7 @@ function createHarness(seed={},options={}) {
       }
     },
     permissions: {
-      contains: async () => Boolean(options.googlePermission)
+      contains: async ({origins}) => origins.some(x=>/api\.openai\.com|api\.anthropic\.com|generativelanguage\.googleapis\.com/.test(x)) ? Boolean(options.aiPermission) : Boolean(options.googlePermission)
     },
     identity: {
       getRedirectURL: () => "https://devredirect.extensions.allizom.org/"
@@ -81,7 +81,8 @@ function createHarness(seed={},options={}) {
     browser,URL,URLSearchParams,console,fetch:mockFetch,crypto:cryptoApi,TextEncoder,TextDecoder,btoa
   });
   for (const file of ["shared/workspace.js","shared/persona.js",
-    "google/oauth.js","google/read.js","google/files.js","google/session.js","background.js"]) {
+    "google/oauth.js","google/read.js","google/files.js","google/session.js",
+    "ai/providers.js","ai/session.js","background.js"]) {
     vm.runInContext(fs.readFileSync(path.resolve(__dirname,"..",file),"utf8"),context,{filename:file});
   }
   return {
@@ -459,5 +460,55 @@ test("Google file scopes are optional and rejected if API origin was not approve
   await h.dispatch({type:"SAVE_RESOURCE",name:"Document",url:"https://docs.google.com/document/d/DOC9876543210/edit"});
   h.sessionSettings["elfshell.google.sessionToken.v1"]={accessToken:"test",expiresAt:Date.now()+300000,scopes:[scope]};
   assert.equal((await h.dispatch({type:"GOOGLE_READ_FILE",key:"file:document:DOC9876543210"})).ok,false);
+  assert.equal(h.fetchCalls.length,0);
+});
+
+test("BYOK requires explicit host consent and a session key",async()=>{
+  const h=createHarness();
+  const state=await h.dispatch({type:"AI_STATUS"});
+  assert.equal(state.ok,true);
+  assert.equal(state.ai.provider,"openai");
+  assert.equal(state.ai.hasSessionKey,false);
+  assert.equal(state.ai.hostGranted,false);
+  assert.equal(state.ai.googleDataIncluded,false);
+  assert.equal((await h.dispatch({type:"AI_SEND_PROMPT",text:"Hello"})).ok,false);
+  assert.equal((await h.dispatch({type:"AI_SET_SESSION_KEY",key:"sk-TEST123456"})).ok,false);
+  assert.equal(h.fetchCalls.length,0);
+});
+test("BYOK sends only the submitted text and persona, with key in session only",async()=>{
+  const h=createHarness({}, {aiPermission:true,mockFetch:async(url,opts)=>{
+    assert.equal(url,"https://api.openai.com/v1/responses");
+    assert.equal(opts.method,"POST");
+    assert.equal(opts.credentials,"omit");
+    const body=JSON.parse(opts.body);
+    assert.equal(body.input,"Ayarime, hello");
+    assert.equal(body.store,false);
+    assert.equal(body.tools,undefined);
+    assert(body.instructions.includes("Ayarime"));
+    return {ok:true,status:200,json:async()=>({output:[{content:[{type:"output_text",text:"Ready to assist."}]}]})};
+  }});
+  const save=await h.dispatch({type:"AI_SET_SESSION_KEY",key:"sk-TEST123456"});
+  assert.equal(save.ok,true,save.error);
+  assert.equal(save.ai.hasSessionKey,true);
+  assert.equal(JSON.stringify(save).includes("sk-TEST"),false);
+  assert.equal(JSON.stringify(h.settings).includes("sk-TEST"),false);
+  assert.equal(h.sessionSettings["elfshell.byok.apiKey.v1"].key,"sk-TEST123456");
+  const output=await h.dispatch({type:"AI_SEND_PROMPT",text:"Ayarime, hello"});
+  assert.equal(output.ok,true,output.error);
+  assert.equal(output.result.text,"Ready to assist.");
+  assert.equal(h.fetchCalls.length,1);
+  const removed=await h.dispatch({type:"AI_CLEAR_SESSION_KEY"});
+  assert.equal(removed.ok,true);
+  assert.equal(h.sessionSettings["elfshell.byok.apiKey.v1"],undefined);
+});
+test("switching BYOK provider removes old key and external core cannot invoke models",async()=>{
+  const h=createHarness({}, {aiPermission:true});
+  await h.dispatch({type:"AI_SET_SESSION_KEY",key:"sk-TEST123456"});
+  const changed=await h.dispatch({type:"AI_SAVE_SETTINGS",provider:"gemini",model:"gemini-3.8-flash"});
+  assert.equal(changed.ok,true);
+  assert.equal(changed.ai.hasSessionKey,false);
+  assert.equal(h.sessionSettings["elfshell.byok.apiKey.v1"],undefined);
+  const external=await h.external({kind:"elfshell.workspace.bridge",version:1,command:"AI_SEND_PROMPT",text:"secret"});
+  assert.equal(external.ok,false);
   assert.equal(h.fetchCalls.length,0);
 });
