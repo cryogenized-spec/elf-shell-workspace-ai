@@ -1,17 +1,20 @@
 {
   "manifest_version": 3,
   "name": "ELF//SHELL — Workspace AI",
-  "version": "0.4.0",
-  "description": "Optional Ayarime Firefox Workspace Hub, named profiles, grouped tabs and sidebar. No Google account access or AI calls in this alpha.",
+  "version": "0.5.0",
+  "description": "Optional Ayarime Workspace Hub, native Firefox tab orchestration and opt-in Google Calendar/Tasks developer preview.",
   "permissions": [
     "tabs",
     "tabGroups",
-    "storage"
+    "storage",
+    "identity"
   ],
   "background": {
     "scripts": [
       "shared/workspace.js",
       "shared/persona.js",
+      "google/oauth.js",
+      "google/read.js",
       "background.js"
     ]
   },
@@ -39,11 +42,16 @@
     }
   },
   "content_security_policy": {
-    "extension_pages": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'; connect-src 'self'"
+    "extension_pages": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'; connect-src 'self' https://oauth2.googleapis.com https://www.googleapis.com https://tasks.googleapis.com"
   },
   "externally_connectable": {
     "ids": [
       "elf-shell-ayarime@local.theme"
     ]
-  }
+  },
+  "optional_host_permissions": [
+    "https://oauth2.googleapis.com/*",
+    "https://www.googleapis.com/*",
+    "https://tasks.googleapis.com/*"
+  ]
 }
