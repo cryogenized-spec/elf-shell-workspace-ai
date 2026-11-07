@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ELF//SHELL — Workspace AI",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "description": "Ayarime Workspace Hub, optional Google read-only connectors, BYOK text and local Morning Coffee briefing.",
   "permissions": [
     "tabs",
@@ -45,6 +45,12 @@
       "data_collection_permissions": {
         "required": [
           "none"
+        ],
+        "optional": [
+          "authenticationInfo",
+          "personalCommunications",
+          "websiteContent",
+          "personallyIdentifyingInfo"
         ]
       }
     }
