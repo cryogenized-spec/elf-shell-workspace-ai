@@ -91,3 +91,13 @@ This test passed in the November 7, 2026 GitHub Actions run. It does not access 
 48. Check an exact shared Google Docs/Sheets link is labelled as a matching **reference**, not conclusive business context.
 49. Verify the external core bridge cannot start Morning Coffee or access its contents.
 50. Do not claim coverage of Gmail, other calendars or all tasks. A real OAuth account has not yet been used in acceptance.
+
+## Update Watch (v0.9)
+
+51. Confirm no GitHub network calls occur merely by opening ELF//SHELL or the Workspace Hub; update alerts are off by default.
+52. Test that enabling alerts requests the optional GitHub API host permission directly from a user gesture; denying the request keeps polling off.
+53. Check daily alarms are scheduled when alerts are enabled and cancelled when disabled.
+54. Verify version comparisons, stable versus preview filtering, untrusted release URL rejection, missing/private release handling and rate-limit errors.
+55. Verify a newer *published* release shows badge “1” and an in-app changelog; dismiss hides only that release and preserves the saved preference across a browser reload.
+56. Verify check/download are distinct: **no code/XPI download or self-install** occurs; a GitHub commit alone does not create an alert.
+57. Test the compressed XPI size output and strict Mozilla lint; real AMO signing and an actual tagged release remain an external acceptance gate.
