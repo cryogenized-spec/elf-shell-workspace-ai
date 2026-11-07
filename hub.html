@@ -8,7 +8,7 @@
 <main class="shell">
 <header class="masthead">
   <div class="slashes" aria-hidden="true">///</div>
-  <div><h1>ELF<span>//</span>SHELL</h1><p>AYARIME / WORKSPACE CONTROL MODULE · ALPHA 0.6</p></div>
+  <div><h1>ELF<span>//</span>SHELL</h1><p>AYARIME / WORKSPACE CONTROL MODULE · ALPHA 0.7</p></div>
   <div class="status-pill">LOCAL / READY</div>
 </header>
 <section class="frame profile-manager" aria-label="Workspace profiles">
@@ -102,6 +102,34 @@
     <div id="google-file-results" class="google-results" aria-live="polite"></div>
   </div>
   <p class="quiet">This prototype discards refresh tokens and stores only a temporary access token in Firefox session storage. It does not persist account contents. Sign-in may require Google OAuth app verification and is not yet validated against a live Google account.</p>
+</section>
+<section class="frame ai-console" aria-label="Ayarime BYOK text assistant">
+  <div class="section-head"><div><p class="eyebrow">// 07 · AYARIME / BYOK</p><h2>AI Console</h2></div></div>
+  <p class="quiet">Choose your own AI provider and model. The API key lasts only for this Firefox session. ChatGPT and Claude app subscriptions are not interchangeable with API access.</p>
+  <form id="ai-settings-form" class="ai-form">
+    <label for="ai-provider">Provider</label>
+    <select id="ai-provider">
+      <option value="openai">OpenAI</option>
+      <option value="anthropic">Anthropic / Claude</option>
+      <option value="gemini">Google Gemini</option>
+    </select>
+    <label for="ai-model">Model ID</label>
+    <input id="ai-model" type="text" maxlength="90" spellcheck="false" required placeholder="Choose a supported model ID" />
+    <button type="submit" class="mini">Save provider and model</button>
+  </form>
+  <div class="ai-key-controls">
+    <button id="ai-grant" type="button" class="mini">Allow provider connection</button>
+    <label for="ai-key">API key · Firefox session only</label>
+    <input id="ai-key" type="password" autocomplete="off" spellcheck="false" placeholder="Paste your own provider API key" />
+    <button id="ai-set-key" type="button" class="mini">Use key this session</button>
+    <button id="ai-clear-key" type="button" class="mini danger">Forget session key</button>
+  </div>
+  <label for="ai-prompt" class="eyebrow">SEND AN EXPLICIT PROMPT</label>
+  <textarea id="ai-prompt" rows="4" maxlength="6000" placeholder="Ayarime, help me organize my work…"></textarea>
+  <button id="ai-send" type="button" class="secondary">Ask Ayarime ↗</button>
+  <p id="ai-status" class="status" role="status" aria-live="polite">AI not configured.</p>
+  <div id="ai-output" class="ai-output" aria-live="polite"></div>
+  <p class="quiet">Only the text you submit and the active persona are sent to your chosen provider. Provider API usage may incur charges. The response is not saved or forwarded to Google.</p>
 </section>
 <footer><span>あやりめ · THE STATION REMAINS ONLINE</span><span>FIREFOX DESKTOP · NO AI KEY REQUIRED</span></footer>
 </main></body></html>
