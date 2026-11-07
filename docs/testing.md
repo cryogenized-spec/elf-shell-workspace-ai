@@ -29,3 +29,9 @@ Use a fresh Firefox Desktop profile (Firefox 142+):
 13. Rename the profile, switch back and forth, delete the non-default profile; confirm no open tabs are closed.
 14. Verify a previous alpha's saved `elfshell.workspace.resources.v1` resources migrate to the default profile.
 15. Check long profile names, duplicate names and the ten-profile limit give readable errors.
+
+## Real Firefox CI acceptance
+
+Run `npm test`, `npm run package`, `npx --yes web-ext@10.8.0 lint --source-dir dist/extension --warnings-as-errors`, and `python3 tests/native_firefox.py` in an isolated Firefox Desktop 142+ profile with Selenium. The CI workflow `.github/workflows/native-firefox.yml` installs a temporary unsigned extension; no real Google account or external AI key is required.
+
+The native suite verifies: extension page loads; default six Workspace links; pinned Super Tab; named Firefox group; repeated launch creates no duplicate tabs even during `about:blank` navigation; named profile isolation; and non-destructive profile deletion. It uploads an isolated screenshot and JSON report for inspection. It does **not** replace user acceptance of visual design, popup/sidebar gesture behavior, or signed-extension installation.
