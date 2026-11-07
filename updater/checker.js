@@ -16,7 +16,12 @@
     base.channel=raw.channel==="preview"?"preview":"stable";
     base.ignoredVersion=U.parseVersion(raw.ignoredVersion)?raw.ignoredVersion:null;
     base.checkedAt=Number.isFinite(raw.checkedAt)&&raw.checkedAt>0?raw.checkedAt:null;
-    base.latest=U.validateRelease(raw.latest);
+    base.latest=raw.latest && U.validateRelease({
+      tag_name:raw.latest.version,html_url:raw.latest.url,
+      name:raw.latest.title,body:raw.latest.notes,
+      published_at:raw.latest.publishedAt,
+      prerelease:raw.latest.prerelease,draft:false
+    });
     base.error=typeof raw.error==="string"?raw.error.slice(0,140):null;
     return base;
   }
