@@ -39,3 +39,11 @@ This does **not** yet expose a command in ELF//SHELL 0.5.4, nor does it imply th
 `elfshell.workspace.profiles.v1` stores a collection of named local profiles and the active profile ID. The older `elfshell.workspace.resources.v1` list is automatically read once when the newer structure is missing, so existing saved links are retained. Profiles can be created, renamed and selected. Deleting a profile removes only the saved profile definition; it never closes Firefox tabs or alters Google files.
 
 Each profile has its own named Firefox tab group; the default uses `ELF//SHELL · GOOGLE WORKSPACE`. Tabs already grouped under another profile are intentionally not stolen. If the same Google application belongs to two profiles, Ayarime reuses its tab without duplicating it, but leaves it in the original group. A pinned master Hub remains outside the groups.
+
+## Real Firefox navigation identity (QA)
+
+Firefox may return `about:blank` from `tabs.query()` immediately after a new Google application tab is created, before the pending HTTPS navigation commits. Matching only a URL will then create duplicate tabs on repeated commands.
+
+The background controller therefore maintains a **session-scoped** resource-key-to-tab-ID registry in `browser.storage.session`, with an in-memory fallback. The mapping is used only when the tab still exists and its URL matches the saved resource, is initially blank, or is at Google's account sign-in origin. Tabs deliberately navigated to unrelated sites are not reused. The index expires with the browser session and stores no emails, document bodies, OAuth credentials or API keys.
+
+This behavior is covered by mocked pre-navigation/redirect tests and isolated real Firefox acceptance via `tests/native_firefox.py`.
