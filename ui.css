@@ -137,3 +137,17 @@ footer{display:flex;justify-content:space-between;gap:18px;margin-top:35px;paddi
 .coffee-results .coffee-link{margin-top:5px}
 .side-shell .coffee-panel{padding:17px}
 .side-shell .coffee-panel h2{font-size:24px}
+
+/* Compact update watch: no misleading install controls or external code. */
+.updater-panel{display:grid;gap:11px;margin-top:20px}
+.updater-panel h2{margin:0;font:italic 28px Georgia,serif}
+.updater-panel>label{font:11px ui-monospace,monospace;color:var(--cyan)}
+.updater-panel select{width:100%;max-width:340px;background:#0b1424;border:1px solid #7894a0;color:var(--ivory);padding:11px;font:12px ui-monospace,monospace}
+.updater-actions{display:flex;flex-wrap:wrap;gap:9px}
+.updater-actions button{width:auto;flex:1;min-width:150px}
+.update-available{padding:12px 15px;background:#1b2339;border:1px solid var(--cyan);overflow-wrap:anywhere}
+.update-available[hidden]{display:none}
+.update-available strong{display:block;color:var(--ivory);margin-bottom:8px}
+.update-available a{color:var(--cyan);font:12px ui-monospace,monospace;text-decoration:underline}
+.side-shell .updater-panel{margin-top:0;padding:17px}
+.side-shell .updater-actions button{width:100%}
