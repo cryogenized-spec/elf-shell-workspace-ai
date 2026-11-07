@@ -36,6 +36,25 @@ function makeResourceCard(item) {
     finally{open.disabled=false;}
   });
   actions.append(open);
+  if(document.body.dataset.view==="hub" && /^file:(document|spreadsheets):/.test(item.key)) {
+    const preview=node("button","mini","Read preview");
+    preview.type="button";
+    preview.title="Read only the selected saved file, after Google consent";
+    preview.addEventListener("click",async()=>{
+      preview.disabled=true;
+      const destination=document.querySelector("#google-file-results");
+      if(destination)destination.replaceChildren();
+      googleMessage("Reading only the selected saved Google file…");
+      try {
+        const range=document.querySelector("#google-sheet-range")?.value || "A1:Z50";
+        const response=await request({type:"GOOGLE_READ_FILE",key:item.key,range});
+        renderFilePreview(response.result);
+        googleMessage("File preview prepared locally. No AI provider received the file.");
+      }catch(error){googleMessage(error.message,true);}
+      finally{preview.disabled=false;}
+    });
+    actions.append(preview);
+  }
   if(document.body.dataset.view==="hub") {
     const remove=node("button","mini danger","×");
     remove.type="button";remove.title="Remove from workspace list (does not close tabs)";
@@ -183,11 +202,24 @@ if(personaForm) {
 }
 const GOOGLE_CALENDAR_SCOPE="https://www.googleapis.com/auth/calendar.events.readonly";
 const GOOGLE_TASKS_SCOPE="https://www.googleapis.com/auth/tasks.readonly";
-const GOOGLE_HOST_PERMISSIONS=[
-  "https://oauth2.googleapis.com/*",
-  "https://www.googleapis.com/*",
-  "https://tasks.googleapis.com/*"
-];
+const GOOGLE_DOCS_SCOPE="https://www.googleapis.com/auth/documents.readonly";
+const GOOGLE_SHEETS_SCOPE="https://www.googleapis.com/auth/spreadsheets.readonly";
+const GOOGLE_HOST_PERMISSIONS={
+  oauth:"https://oauth2.googleapis.com/*",
+  calendar:"https://www.googleapis.com/*",
+  tasks:"https://tasks.googleapis.com/*",
+  docs:"https://docs.googleapis.com/*",
+  sheets:"https://sheets.googleapis.com/*"
+};
+let googleCurrentScopes=[GOOGLE_CALENDAR_SCOPE];
+function googleHostsForScopes(scopes) {
+  const hosts=[GOOGLE_HOST_PERMISSIONS.oauth];
+  if(scopes.includes(GOOGLE_CALENDAR_SCOPE))hosts.push(GOOGLE_HOST_PERMISSIONS.calendar);
+  if(scopes.includes(GOOGLE_TASKS_SCOPE))hosts.push(GOOGLE_HOST_PERMISSIONS.tasks);
+  if(scopes.includes(GOOGLE_DOCS_SCOPE))hosts.push(GOOGLE_HOST_PERMISSIONS.docs);
+  if(scopes.includes(GOOGLE_SHEETS_SCOPE))hosts.push(GOOGLE_HOST_PERMISSIONS.sheets);
+  return hosts;
+}
 let googlePreparedUrl=null;
 const googleForm=document.querySelector("#google-config-form");
 function googleMessage(value,error=false) {
@@ -202,6 +234,9 @@ function showGoogleState(auth) {
   field.value=auth.config.clientId;
   googleForm.querySelector("#google-scope-calendar").checked=auth.config.scopes.includes(GOOGLE_CALENDAR_SCOPE);
   googleForm.querySelector("#google-scope-tasks").checked=auth.config.scopes.includes(GOOGLE_TASKS_SCOPE);
+  googleForm.querySelector("#google-scope-docs").checked=auth.config.scopes.includes(GOOGLE_DOCS_SCOPE);
+  googleForm.querySelector("#google-scope-sheets").checked=auth.config.scopes.includes(GOOGLE_SHEETS_SCOPE);
+  googleCurrentScopes=[...auth.config.scopes];
   googlePreparedUrl=auth.prepared?.url || null;
   document.querySelector("#google-prepare").disabled=!auth.permissionsGranted || !auth.config.clientId;
   document.querySelector("#google-connect").disabled=!googlePreparedUrl;
@@ -209,7 +244,9 @@ function showGoogleState(auth) {
   document.querySelector("#google-disconnect").disabled=!auth.connected;
   googleMessage(auth.connected
     ? "Connected until "+new Date(auth.expiresAt).toLocaleTimeString()+
-       " · Granted: "+auth.grantedScopes.map(s=>s.includes("tasks")?"Tasks":"Calendar").join(", ")
+       " · Granted: "+auth.grantedScopes.map(scope=>
+         scope===GOOGLE_DOCS_SCOPE?"Docs":scope===GOOGLE_SHEETS_SCOPE?"Sheets":
+         scope===GOOGLE_TASKS_SCOPE?"Tasks":"Calendar").join(", ")
     : auth.prepared
       ? "Authorization prepared. Select Connect Google to open Firefox's sign-in."
       : auth.permissionsGranted
@@ -222,6 +259,31 @@ async function refreshGoogle() {
     const result=await request({type:"GOOGLE_AUTH_STATUS"});
     showGoogleState(result.auth);
   }catch(error){googleMessage(error.message,true);}
+}
+function renderFilePreview(preview) {
+  const host=document.querySelector("#google-file-results");
+  if(!host)return;
+  host.replaceChildren();
+  const article=node("article","");
+  article.append(node("h3","",preview.title||"Google file"));
+  article.append(node("p","",preview.kind==="docs"
+    ? "Google Docs · text preview capped at 12,000 characters"
+    : "Google Sheets · tab "+preview.sheet+" · "+preview.range+" · max 100 rows × 26 columns"));
+  if(preview.kind==="docs") {
+    article.append(node("div","google-preview-text",preview.text||"(No readable text in this preview)"));
+  }else if(preview.kind==="sheets") {
+    const table=node("table","google-preview-table");
+    const body=node("tbody","");
+    for(const row of preview.rows||[]){
+      const tr=node("tr","");
+      for(const value of row)tr.append(node("td","",String(value)));
+      body.append(tr);
+    }
+    table.append(body);
+    article.append(table);
+  }
+  if(preview.truncated) article.append(node("p","", "This is a truncated preview, not the entire file."));
+  host.append(article);
 }
 function renderGoogleResults(data) {
   const host=document.querySelector("#google-results");
@@ -263,6 +325,8 @@ if(googleForm) {
     const scopes=[];
     if(googleForm.querySelector("#google-scope-calendar").checked)scopes.push(GOOGLE_CALENDAR_SCOPE);
     if(googleForm.querySelector("#google-scope-tasks").checked)scopes.push(GOOGLE_TASKS_SCOPE);
+    if(googleForm.querySelector("#google-scope-docs").checked)scopes.push(GOOGLE_DOCS_SCOPE);
+    if(googleForm.querySelector("#google-scope-sheets").checked)scopes.push(GOOGLE_SHEETS_SCOPE);
     try {
       const r=await request({type:"GOOGLE_AUTH_CONFIG",
         clientId:googleForm.querySelector("#google-client-id").value,scopes});
@@ -274,7 +338,7 @@ if(googleForm) {
   document.querySelector("#google-grant").addEventListener("click",async()=>{
     // Permission must originate from this direct click, before async work.
     let grant;
-    try {grant=browser.permissions.request({origins:GOOGLE_HOST_PERMISSIONS});}
+    try {grant=browser.permissions.request({origins:googleHostsForScopes(googleCurrentScopes)});}
     catch(error){googleMessage("Firefox could not request API host permission.",true);return;}
     googleMessage("Choose Allow or Deny in Firefox's permission dialog…");
     try{
