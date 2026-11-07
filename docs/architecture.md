@@ -71,3 +71,7 @@ Read [Google OAuth developer preview](google-oauth.md). The Hub can request opti
 ## Manual BYOK inference (v0.7)
 
 `ai/providers.js` implements provider-specific OpenAI, Anthropic and Gemini single-turn text API requests with fixed HTTPS destinations. `ai/session.js` accepts only same-extension commands and checks the selected optional host permission and session API key before a request. The provider/model preference is kept in local storage; the key is kept in session storage and dropped on provider switch or explicit clear. Only the user-supplied prompt and currently selected Ayarime persona are sent. Provider response text is rendered with DOM `textContent`. There is no automatic Workspace context retrieval, tool calling, Google data transmission or external-core BYOK command. See [BYOK privacy and setup](byok.md).
+
+## Morning Coffee local engine (v0.8)
+
+`briefing/engine.js` deterministically ranks and correlates authorized, bounded Calendar and Tasks records. The same-extension `MORNING_COFFEE_PREPARE` command requires explicit source selection and an active Google session; it invokes no BYOK adapter. It labels partial coverage and only correlates shared, exact Google document references. `OPEN_BRIEFING_SOURCE` validates application-specific HTTPS URLs before activating/reusing a browser tab. No local persistence, background polling, Gmail, AI provider transmission or external core access. See [Morning Coffee](morning-coffee.md).
