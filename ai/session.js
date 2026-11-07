@@ -35,7 +35,7 @@
   async function setKey(browserApi,message){
     const cfg=await settings(browserApi);
     if(!await allowed(browserApi,cfg.provider))
-      throw Error("Allow the selected AI provider's network permission first");
+      throw Error("Allow this provider and optional data-sharing consent in Firefox first");
     const key=PROVIDERS.keyText(message.key);
     await browserApi.storage.session.set({[KEY_SESSION]:{provider:cfg.provider,key}});
     return status(browserApi);
