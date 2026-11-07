@@ -9,7 +9,7 @@ This is an independent Firefox MV3 extension. The base ELF//SHELL 0.5.4 source r
 - Resource matching prioritizes stable Google file IDs; default app landing pages are matched by application URL.
 - Existing matching tabs are reused across normal windows, but tabs from another window are **not moved automatically**.
 - Stored resource links are visible and editable, not secret; the browser storage API is not an encryption system.
-- No Google REST API, OAuth token, AI model endpoint, MCP bridge, user email, or hidden network access is present in this alpha.
+- Google OAuth is now implemented behind explicit optional host permission grants and a developer-supplied OAuth Desktop client ID. Only Calendar/Tasks GET requests are available; no AI provider endpoint, Gmail permission or automatic Google access exists.
 
 ## Messaging contract
 
@@ -59,3 +59,7 @@ The isolated dual-extension test in `tests/native_bridge.py` checks the real ELF
 `shared/persona.js` defines an original Ayarime preset, a neutral professional style and a user-written custom style capped at 6000 characters. `elfshell.workspace.persona.v1` stores the selected settings in Firefox local extension storage, not encrypted. The Hub offers edit, save and reset controls; the sidebar displays the active mode. No provider endpoint is called in this phase.
 
 Persona settings are a presentation/communication layer. Future AI orchestration must keep authorization, tool availability, user approvals and data-sharing restrictions in code rather than placing them under the user's editable prompt. The external bridge cannot modify persona settings.
+
+## Optional Google account connector (v0.5 preview)
+
+Read [Google OAuth developer preview](google-oauth.md). The Hub can request optional `oauth2.googleapis.com`, `www.googleapis.com` and `tasks.googleapis.com` host permissions. The user then explicitly prepares a PKCE OAuth request and activates Firefox `identity.launchWebAuthFlow()` directly from a click. A validated short-lived access token is kept only in `browser.storage.session`. Credentials and source data are not returned through the external ELF//SHELL bridge. Only allowlisted Calendar and Tasks GET endpoints are implemented, with no model calls, writes or background polling.
