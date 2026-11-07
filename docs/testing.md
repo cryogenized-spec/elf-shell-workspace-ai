@@ -111,3 +111,12 @@ This test passed in the November 7, 2026 GitHub Actions run. It does not access 
 62. Run the preflight with a mismatched tag and `--require-publish-ready`; both must fail until version and release gates are correct.
 63. Run manual `Build release candidate (QA only)` in GitHub Actions; ensure it produces only an unsigned QA artifact, not a GitHub Release or AMO submission.
 64. Independently verify Mozilla's optional privacy consent disclosures and real signed install/update before enabling publication. See `release-gates.json`.
+
+## v0.11 manual connection diagnostics
+
+65. Verify the model check is disabled without a saved session key and provider host/data consent. No GET should be sent without both permissions.
+66. Use the mocked OpenAI, Anthropic and Gemini model metadata fixtures; ensure each sends exactly one GET to its fixed host and never sends an inference POST or prompt.
+67. Verify 401, 403, 404, 429 and offline conditions return safe errors without logging provider response bodies or credentials.
+68. Verify Calendar/Tasks diagnostic GETs request only the selected authorized service, with maxResults=1 and a fields filter. Do not parse or return event/list IDs.
+69. Deny OAuth scope or revoke Firefox data permission and confirm the diagnostic fails without a network request.
+70. In real Firefox with no keys/accounts, verify the Google test and model check buttons are disabled. Do not claim a real external connection has been tested based on the simulated suite.
