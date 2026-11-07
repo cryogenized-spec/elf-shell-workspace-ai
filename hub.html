@@ -8,9 +8,25 @@
 <main class="shell">
 <header class="masthead">
   <div class="slashes" aria-hidden="true">///</div>
-  <div><h1>ELF<span>//</span>SHELL</h1><p>AYARIME / WORKSPACE CONTROL MODULE · ALPHA 0.1</p></div>
+  <div><h1>ELF<span>//</span>SHELL</h1><p>AYARIME / WORKSPACE CONTROL MODULE · ALPHA 0.3</p></div>
   <div class="status-pill">LOCAL / READY</div>
 </header>
+<section class="frame profile-manager" aria-label="Workspace profiles">
+  <div class="profile-selector">
+    <label for="profile-select" class="eyebrow">// ACTIVE WORKSPACE PROFILE</label>
+    <select id="profile-select" aria-label="Choose Workspace profile"></select>
+  </div>
+  <form id="profile-form" class="profile-create">
+    <label for="profile-name">Profile name</label>
+    <input id="profile-name" maxlength="45" placeholder="Work / Personal / Research" required>
+    <div class="profile-actions">
+      <button id="profile-create" type="submit" class="secondary">+ New profile</button>
+      <button id="profile-rename" type="button" class="mini">Rename selected</button>
+      <button id="profile-delete" type="button" class="mini danger">Delete selected</button>
+    </div>
+  </form>
+  <p class="quiet">Profiles change which resources Ayarime restores; switching does not close or move open tabs.</p>
+</section>
 <div class="columns">
 <section class="frame hero">
   <p class="eyebrow">// 01 · COMMAND CONSOLE</p>
