@@ -61,7 +61,7 @@ function createHarness(seed={},options={}) {
     action: { onClicked: {addListener:()=>{}} }
   };
   const context = vm.createContext({browser, URL, console});
-  for (const file of ["shared/workspace.js","background.js"]) {
+  for (const file of ["shared/workspace.js","shared/persona.js","background.js"]) {
     vm.runInContext(fs.readFileSync(path.resolve(__dirname,"..",file),"utf8"),context,{filename:file});
   }
   return {
@@ -267,4 +267,41 @@ test("tracked Gmail and Calendar marketing redirects do not spawn duplicate tabs
   assert.equal(repeat.result.opened,0);
   assert.equal(repeat.result.reused,6);
   assert.equal(h.tabs.length,7);
+});
+
+test("Ayarime is the default personality and settings remain local",async()=>{
+  const h=createHarness();
+  const state=await h.dispatch({type:"GET_PERSONA"});
+  assert.equal(state.ok,true);
+  assert.equal(state.persona.mode,"ayarime");
+  assert.equal(state.persona.customPrompt,"");
+  assert.equal(h.tabs.length,0);
+});
+test("professional and custom personas can be stored and reset",async()=>{
+  const h=createHarness();
+  const neutral=await h.dispatch({type:"SET_PERSONA",mode:"professional",customPrompt:""});
+  assert.equal(neutral.ok,true);
+  assert.equal((await h.dispatch({type:"GET_PERSONA"})).persona.mode,"professional");
+  const custom=await h.dispatch({type:"SET_PERSONA",mode:"custom",customPrompt:"Speak in my usual concise technical style."});
+  assert.equal(custom.ok,true);
+  assert.equal(custom.persona.customPrompt,"Speak in my usual concise technical style.");
+  assert.deepEqual(Object.keys(h.settings["elfshell.workspace.persona.v1"]).sort(),["customPrompt","mode"]);
+  const reset=await h.dispatch({type:"RESET_PERSONA"});
+  assert.equal(reset.ok,true);
+  assert.equal(reset.persona.mode,"ayarime");
+  assert.equal(reset.persona.customPrompt,"");
+});
+test("invalid modes and oversized instructions are rejected without changing settings",async()=>{
+  const h=createHarness();
+  assert.equal((await h.dispatch({type:"SET_PERSONA",mode:"unrestricted",customPrompt:""})).ok,false);
+  assert.equal((await h.dispatch({type:"SET_PERSONA",mode:"custom",customPrompt:" " })).ok,false);
+  assert.equal((await h.dispatch({type:"SET_PERSONA",mode:"custom",customPrompt:"X".repeat(6001)})).ok,false);
+  assert.equal((await h.dispatch({type:"GET_PERSONA"})).persona.mode,"ayarime");
+});
+test("external ELF//SHELL bridge cannot modify personality",async()=>{
+  const h=createHarness();
+  const request={kind:"elfshell.workspace.bridge",version:1,command:"SET_PERSONA",mode:"custom",customPrompt:"Override"};
+  const response=await h.external(request);
+  assert.equal(response.ok,false);
+  assert.equal(h.settings["elfshell.workspace.persona.v1"],undefined);
 });
