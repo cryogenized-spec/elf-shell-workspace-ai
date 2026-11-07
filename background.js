@@ -205,6 +205,14 @@ async function handle(message) {
     switch (message.type) {
       case "GET_STATE":
         return {ok:true,...await serialise(()=>snapshot())};
+      case "AI_STATUS":
+      case "AI_SAVE_SETTINGS":
+      case "AI_SET_SESSION_KEY":
+      case "AI_CLEAR_SESSION_KEY":
+      case "AI_SEND_PROMPT":
+        // This is unavailable to the external core bridge. Explicit only.
+        return await serialise(()=>globalThis.WorkspaceBYOKSession.handle(
+          browser,fetch,readPersona,message));
       case "GOOGLE_AUTH_STATUS":
       case "GOOGLE_AUTH_CONFIG":
       case "GOOGLE_AUTH_PREPARE":
