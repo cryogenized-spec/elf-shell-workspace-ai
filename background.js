@@ -2,7 +2,10 @@
 "use strict";
 const { DEFAULT_RESOURCES, normalizeResource, matchesTab } = globalThis.WorkspaceUtils;
 const STORAGE_KEY = "elfshell.workspace.resources.v1";
+const PROFILES_KEY = "elfshell.workspace.profiles.v1";
 const GROUP_TITLE = "ELF//SHELL · GOOGLE WORKSPACE";
+const MAX_PROFILES = 10;
+const MAX_RESOURCES = 80;
 let operation = Promise.resolve();
 
 function serialise(action) {
@@ -10,21 +13,62 @@ function serialise(action) {
   operation = next.catch(() => {});
   return next;
 }
-async function resources() {
-  const stored = (await browser.storage.local.get(STORAGE_KEY))[STORAGE_KEY];
-  if (!Array.isArray(stored)) return DEFAULT_RESOURCES.map(item => normalizeResource(item.name, item.url));
-  const result = [];
-  const seen = new Set();
-  for (const item of stored.slice(0, 80)) {
+function cleanResources(items) {
+  const result = [], seen = new Set();
+  for (const item of (Array.isArray(items) ? items : []).slice(0,MAX_RESOURCES)) {
     try {
-      const valid = normalizeResource(item.name, item.url);
-      if (!seen.has(valid.key)) { result.push(valid); seen.add(valid.key); }
-    } catch { /* Ignore corrupt imported settings. */ }
+      const valid = normalizeResource(item.name,item.url);
+      if (!seen.has(valid.key)) {result.push(valid);seen.add(valid.key);}
+    } catch { /* Corrupt settings must never become arbitrary URLs. */ }
   }
   return result;
 }
+function profileName(raw) {
+  const name = String(raw || "").replace(/[\\x00-\\x1f\\x7f]/g,"").trim().replace(/\\s+/g," ");
+  if (name.length < 1 || name.length > 45) throw new Error("Profile name must contain 1–45 characters");
+  return name;
+}
+async function readProfiles() {
+  const saved = await browser.storage.local.get([PROFILES_KEY,STORAGE_KEY]);
+  const state = saved[PROFILES_KEY];
+  if (state && state.version===1 && Array.isArray(state.profiles) &&
+      state.profiles.length>=1 && state.profiles.length<=MAX_PROFILES &&
+      state.profiles.some(p=>p.id===state.activeId) &&
+      Number.isSafeInteger(state.nextId) && state.nextId>=1)
+    return state;
+  const legacy = saved[STORAGE_KEY];
+  const initial = Array.isArray(legacy) ? legacy : DEFAULT_RESOURCES;
+  const migrated = {version:1,activeId:"default",nextId:1,profiles:[
+    {id:"default",name:"Google Workspace",resources:cleanResources(initial)}
+  ]};
+  await browser.storage.local.set({[PROFILES_KEY]:migrated});
+  return migrated;
+}
+function activeProfile(state) {
+  const profile = state.profiles.find(item=>item.id===state.activeId);
+  if (!profile) throw new Error("Active Workspace profile is unavailable");
+  return profile;
+}
+async function snapshot(state) {
+  const value = state || await readProfiles();
+  return {
+    resources:cleanResources(activeProfile(value).resources),
+    activeProfileId:value.activeId,
+    profiles:value.profiles.map(item=>({id:item.id,name:item.name,count:item.resources.length})),
+    features:{googleApi:false,byok:false,morningCoffee:false,bridge:true}
+  };
+}
+async function resources() {
+  const state = await readProfiles();
+  return cleanResources(activeProfile(state).resources);
+}
 async function saveResources(items) {
-  await browser.storage.local.set({[STORAGE_KEY]:items});
+  const state=await readProfiles();
+  activeProfile(state).resources=cleanResources(items);
+  await browser.storage.local.set({[PROFILES_KEY]:state});
+}
+function groupTitle(profile) {
+  return profile.id==="default" ? GROUP_TITLE : "ELF//SHELL · " + profile.name.toUpperCase();
 }
 async function currentWindow() {
   const win = await browser.windows.getLastFocused({windowTypes:["normal"]});
@@ -42,41 +86,48 @@ async function ensureHub(windowId) {
   }
   return hub;
 }
-async function ensureGroup(windowId, ids) {
-  const unique = [...new Set(ids)].filter(id => Number.isInteger(id));
+async function ensureGroup(windowId, ids, title=GROUP_TITLE) {
+  const unique = [...new Set(ids)].filter(id=>Number.isInteger(id));
   if (!unique.length) return null;
   const groups = await browser.tabGroups.query({windowId});
-  const existing = groups.find(group => group.title === GROUP_TITLE);
+  const existing = groups.find(group=>group.title===title);
   const groupId = existing
-    ? await browser.tabs.group({tabIds:unique, groupId:existing.id})
-    : await browser.tabs.group({tabIds:unique, createProperties:{windowId}});
-  await browser.tabGroups.update(groupId, {title:GROUP_TITLE, color:"purple", collapsed:false});
+    ? await browser.tabs.group({tabIds:unique,groupId:existing.id})
+    : await browser.tabs.group({tabIds:unique,createProperties:{windowId}});
+  await browser.tabGroups.update(groupId,{title,color:"purple",collapsed:false});
   return groupId;
 }
 async function launchWorkspace() {
-  const selection = await resources();
+  const state = await readProfiles(), profile = activeProfile(state);
+  const selection = cleanResources(profile.resources);
   const win = await currentWindow();
   const hub = await ensureHub(win.id);
   const targetWindowId = hub.windowId;
   const all = await browser.tabs.query({});
-  const childIds = [];
-  const outsideWindow = [];
-  let opened = 0, reused = 0;
+  const childIds = [], outsideWindow = [], outsideProfile = [];
+  const title = groupTitle(profile);
+  const existingGroups = await browser.tabGroups.query({windowId:targetWindowId});
+  const ownGroup = existingGroups.find(group=>group.title===title);
+  let opened=0,reused=0;
   for (const item of selection) {
-    let tab = all.find(candidate => !candidate.incognito && candidate.id !== hub.id && matchesTab(item,candidate));
+    let tab = all.find(candidate=>!candidate.incognito && candidate.id!==hub.id && matchesTab(item,candidate));
     if (!tab) {
-      tab = await browser.tabs.create({windowId:targetWindowId,url:item.url,active:false});
-      all.push(tab); opened += 1;
-    } else {
-      reused += 1;
-    }
-    if (tab.windowId === targetWindowId && !tab.pinned) childIds.push(tab.id);
-    else outsideWindow.push(item.name);
+      tab=await browser.tabs.create({windowId:targetWindowId,url:item.url,active:false});
+      all.push(tab);opened++;
+    } else reused++;
+    if (tab.windowId!==targetWindowId || tab.pinned) {
+      outsideWindow.push(item.name);
+    } else if (Number.isInteger(tab.groupId) && tab.groupId>=0 &&
+               (!ownGroup || tab.groupId!==ownGroup.id)) {
+      // A Firefox tab belongs to one group. Never steal a tab from a different profile.
+      outsideProfile.push(item.name);
+    } else childIds.push(tab.id);
   }
-  const groupId = await ensureGroup(targetWindowId, childIds);
+  const groupId = await ensureGroup(targetWindowId,childIds,title);
   await browser.tabs.update(hub.id,{active:true});
   await browser.windows.update(hub.windowId,{focused:true});
-  return {opened,reused,groupId,hubTabId:hub.id,outsideWindow,resources:selection.length};
+  return {opened,reused,groupId,hubTabId:hub.id,outsideWindow,outsideProfile,
+    resources:selection.length,profileName:profile.name};
 }
 async function activateResource(key) {
   const allResources = await resources();
@@ -89,7 +140,8 @@ async function activateResource(key) {
     const hub = tabs.find(item => item.url === browser.runtime.getURL("hub.html"));
     const win = hub ? {id:hub.windowId} : await currentWindow();
     tab = await browser.tabs.create({windowId:win.id,url:wanted.url,active:true});
-    await ensureGroup(win.id,[tab.id]);
+    const state=await readProfiles();
+    await ensureGroup(win.id,[tab.id],groupTitle(activeProfile(state)));
     reused = false;
   } else {
     await browser.tabs.update(tab.id,{active:true});
@@ -104,7 +156,48 @@ async function handle(message) {
     }
     switch (message.type) {
       case "GET_STATE":
-        return {ok:true,resources:await resources(),features:{googleApi:false,byok:false,morningCoffee:false,bridge:false}};
+        return {ok:true,...await serialise(()=>snapshot())};
+      case "CREATE_PROFILE":
+        return {ok:true,...await serialise(async()=>{
+          const state=await readProfiles(),name=profileName(message.name);
+          if (state.profiles.length>=MAX_PROFILES) throw new Error("Maximum 10 Workspace profiles");
+          if (state.profiles.some(p=>p.name.toLowerCase()===name.toLowerCase()))
+            throw new Error("A Workspace profile with that name already exists");
+          const profile={id:"workspace-"+state.nextId++,name,resources:[]};
+          state.profiles.push(profile);state.activeId=profile.id;
+          await browser.storage.local.set({[PROFILES_KEY]:state});
+          return snapshot(state);
+        })};
+      case "SELECT_PROFILE":
+        return {ok:true,...await serialise(async()=>{
+          const state=await readProfiles();
+          if (!state.profiles.some(p=>p.id===message.id)) throw new Error("Profile not found");
+          state.activeId=message.id;
+          await browser.storage.local.set({[PROFILES_KEY]:state});
+          return snapshot(state);
+        })};
+      case "RENAME_PROFILE":
+        return {ok:true,...await serialise(async()=>{
+          const state=await readProfiles(),name=profileName(message.name);
+          if (state.profiles.some(p=>p.id!==state.activeId && p.name.toLowerCase()===name.toLowerCase()))
+            throw new Error("A Workspace profile with that name already exists");
+          activeProfile(state).name=name;
+          await browser.storage.local.set({[PROFILES_KEY]:state});
+          return snapshot(state);
+        })};
+      case "DELETE_PROFILE":
+        return {ok:true,...await serialise(async()=>{
+          const state=await readProfiles();
+          if (state.profiles.length===1) throw new Error("At least one Workspace profile is required");
+          if (message.id==="default") throw new Error("Default profile cannot be deleted");
+          const next=state.profiles.filter(item=>item.id!==message.id);
+          if (next.length===state.profiles.length) throw new Error("Profile not found");
+          state.profiles=next;
+          if (state.activeId===message.id) state.activeId=state.profiles[0].id;
+          await browser.storage.local.set({[PROFILES_KEY]:state});
+          // Never close tabs or delete Google documents when deleting a saved profile.
+          return snapshot(state);
+        })};
       case "OPEN_WORKSPACE":
         return {ok:true,result:await serialise(launchWorkspace)};
       case "OPEN_RESOURCE":
@@ -114,7 +207,7 @@ async function handle(message) {
           const item = normalizeResource(message.name,message.url);
           const current = await resources();
           if (current.some(existing => existing.key === item.key)) throw new Error("This Google resource is already saved");
-          if (current.length >= 80) throw new Error("Maximum 80 saved resources");
+          if (current.length >= MAX_RESOURCES) throw new Error("Maximum 80 saved resources");
           current.push(item);
           await saveResources(current);
           return current;
