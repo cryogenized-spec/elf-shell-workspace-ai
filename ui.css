@@ -67,3 +67,14 @@ footer{display:flex;justify-content:space-between;gap:18px;margin-top:35px;paddi
 .profile-actions button{width:auto;flex:1;min-width:110px}
 .profile-manager .quiet{grid-column:1 / -1;margin:0}
 @media(max-width:820px){.profile-manager{grid-template-columns:1fr}.profile-actions button{min-width:100px}}
+
+/* Ayarime personality configuration, consistent with the original station aesthetic. */
+.persona-section{margin-top:20px}
+.persona-section h2{font:italic 32px Georgia,serif;margin:0 0 18px}
+.persona-form{display:grid;gap:11px;max-width:780px}
+.persona-form label{font:10px ui-monospace,monospace;color:var(--cyan);letter-spacing:.12em}
+.persona-form select,.persona-form textarea{width:100%;background:#0b1424;color:var(--ivory);border:1px solid #7894a0;padding:12px;font:13px/1.55 ui-monospace,monospace}
+.persona-form textarea{resize:vertical;min-height:115px}
+.persona-form textarea:disabled{opacity:.5}
+.persona-actions{display:flex;flex-wrap:wrap;gap:9px}
+.persona-actions button{width:auto;min-width:150px}
