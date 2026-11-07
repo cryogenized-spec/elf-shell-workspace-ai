@@ -222,6 +222,23 @@ try:
           lambda:require(not driver.find_element(By.ID,"coffee-results").text.strip(),
             "Briefing should not have been prepared"))
 
+    updater=extension_call({"type":"UPDATE_STATUS"})
+    check("release notifications start opt-in and do not claim an installed update",
+          lambda:require(updater["ok"] and updater["update"]["current"]=="0.9.0" and
+            not updater["update"]["enabled"] and
+            updater["update"]["behavior"]=="notification-only",str(updater)))
+    check("release check is disabled before optional GitHub permission",
+          lambda:require(not driver.find_element(By.ID,"update-check").is_enabled(),
+            "Release checks unexpectedly enabled"))
+    Select(driver.find_element(By.ID,"update-channel")).select_by_value("preview")
+    WebDriverWait(driver,10).until(
+        lambda d:extension_call({"type":"UPDATE_STATUS"})["update"]["channel"]=="preview")
+    driver.refresh()
+    WebDriverWait(driver,10).until(
+        lambda d:d.find_element(By.ID,"update-channel").get_attribute("value")=="preview")
+    check("release-channel preference persists without network permission",
+          lambda:require(not extension_call({"type":"UPDATE_STATUS"})["update"]["enabled"],
+            "Daily update polling was turned on unexpectedly"))
     driver.save_screenshot(str(ARTIFACTS/"workspace-hub.png"))
     results["status"]="PASS"
 except Exception as error:

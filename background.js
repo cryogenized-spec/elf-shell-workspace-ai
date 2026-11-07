@@ -217,6 +217,11 @@ async function handle(message) {
       throw new Error("Malformed request");
     }
     switch (message.type) {
+      case "UPDATE_STATUS":
+      case "UPDATE_CONFIG":
+      case "UPDATE_CHECK":
+      case "UPDATE_IGNORE":
+        return await serialise(()=>globalThis.WorkspaceReleaseChecker.handle(browser,fetch,message));
       case "GET_STATE":
         return {ok:true,...await serialise(()=>snapshot())};
       case "AI_STATUS":
@@ -375,6 +380,29 @@ browser.runtime.onMessageExternal.addListener((message, sender) =>
   handleCoreMessage(message, sender).catch(() => ({ok:false,error:"Bridge request failed"}))
 );
 
+// Metadata checks are opt-in. Do not register runtime.onUpdateAvailable:
+// doing so would defer Firefox's normal signed add-on update installation.
+if(browser.alarms?.onAlarm?.addListener){
+  browser.alarms.onAlarm.addListener(alarm=>{
+    if(alarm.name!==globalThis.WorkspaceReleaseChecker.ALARM)return;
+    globalThis.WorkspaceReleaseChecker.status(browser).then(state=>{
+      if(state.enabled && state.permissionGranted)
+        return globalThis.WorkspaceReleaseChecker.check(browser,fetch);
+    }).catch(()=>{});
+  });
+}
+if(browser.runtime.onStartup?.addListener){
+  browser.runtime.onStartup.addListener(()=>{
+    globalThis.WorkspaceReleaseChecker.syncAlarm(browser).then(()=>
+      globalThis.WorkspaceReleaseChecker.badge(browser)).catch(()=>{});
+  });
+}
+if(browser.runtime.onInstalled?.addListener){
+  browser.runtime.onInstalled.addListener(()=>{
+    globalThis.WorkspaceReleaseChecker.syncAlarm(browser).then(()=>
+      globalThis.WorkspaceReleaseChecker.badge(browser)).catch(()=>{});
+  });
+}
 browser.action.onClicked.addListener(() => {
   // This must be called immediately within the user gesture, before awaiting anything.
   if (browser.sidebarAction && browser.sidebarAction.open) {
