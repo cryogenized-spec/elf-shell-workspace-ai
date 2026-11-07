@@ -48,5 +48,24 @@
   </form>
 </section>
 </div>
+<section class="frame persona-section" aria-label="Ayarime personality">
+  <div class="section-head"><div><p class="eyebrow">// 04 · PERSONALITY SETTINGS</p><h2>Ayarime / Presence</h2></div></div>
+  <p class="quiet">Ayarime has a default character, but you control her communication style. This does not change permissions or enable Google account access.</p>
+  <form id="persona-form" class="persona-form">
+    <label for="persona-mode">Personality</label>
+    <select id="persona-mode">
+      <option value="ayarime">Ayarime — Original</option>
+      <option value="professional">Professional — Neutral</option>
+      <option value="custom">Custom personality</option>
+    </select>
+    <label for="persona-custom">Custom instructions (communication style only)</label>
+    <textarea id="persona-custom" maxlength="6000" rows="5" placeholder="Describe the assistant personality you would like…"></textarea>
+    <div class="persona-actions">
+      <button class="secondary" type="submit">Save personality</button>
+      <button class="mini" id="persona-reset" type="button">Reset to Ayarime</button>
+    </div>
+    <p class="quiet">These instructions are stored locally without encryption. Do not include API keys, passwords or private correspondence.</p>
+  </form>
+</section>
 <footer><span>あやりめ · THE STATION REMAINS ONLINE</span><span>FIREFOX DESKTOP · NO AI KEY REQUIRED</span></footer>
 </main></body></html>
