@@ -101,3 +101,13 @@ This test passed in the November 7, 2026 GitHub Actions run. It does not access 
 55. Verify a newer *published* release shows badge “1” and an in-app changelog; dismiss hides only that release and preserves the saved preference across a browser reload.
 56. Verify check/download are distinct: **no code/XPI download or self-install** occurs; a GitHub commit alone does not create an alert.
 57. Test the compressed XPI size output and strict Mozilla lint; real AMO signing and an actual tagged release remain an external acceptance gate.
+
+## v0.10 release and privacy acceptance
+
+58. In a real Firefox 142+ browser, verify Google and BYOK authorization prompts include both optional API origins and explicit Mozilla data collection consent.
+59. Deny the data collection component while granting the host; confirm OAuth token exchange, key storage, AI inference and Google reading are rejected.
+60. Revoke optional data consent in about:addons and confirm requests fail closed even if session keys remain in memory.
+61. Run `npm test`, `npm run package`, then `python3 scripts/release_preflight.py --tag v0.10.0`; confirm exact source/XPI matching, SHA-256 and `signed:false`.
+62. Run the preflight with a mismatched tag and `--require-publish-ready`; both must fail until version and release gates are correct.
+63. Run manual `Build release candidate (QA only)` in GitHub Actions; ensure it produces only an unsigned QA artifact, not a GitHub Release or AMO submission.
+64. Independently verify Mozilla's optional privacy consent disclosures and real signed install/update before enabling publication. See `release-gates.json`.
