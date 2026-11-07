@@ -8,7 +8,7 @@
 <main class="shell">
 <header class="masthead">
   <div class="slashes" aria-hidden="true">///</div>
-  <div><h1>ELF<span>//</span>SHELL</h1><p>AYARIME / WORKSPACE CONTROL MODULE · ALPHA 0.8</p></div>
+  <div><h1>ELF<span>//</span>SHELL</h1><p>AYARIME / WORKSPACE CONTROL MODULE · ALPHA 0.9</p></div>
   <div class="status-pill">LOCAL / READY</div>
 </header>
 <section class="frame profile-manager" aria-label="Workspace profiles">
@@ -143,6 +143,28 @@
   <p id="ai-status" class="status" role="status" aria-live="polite">AI not configured.</p>
   <div id="ai-output" class="ai-output" aria-live="polite"></div>
   <p class="quiet">Only the text you submit and the active persona are sent to your chosen provider. Provider API usage may incur charges. The response is not saved or forwarded to Google.</p>
+</section>
+<section class="frame updater-panel" aria-label="Extension release notifications">
+  <p class="eyebrow">// 09 · SOFTWARE RELEASES</p>
+  <h2>Update Watch</h2>
+  <p class="quiet">Get a toolbar badge and a notice when a newer published GitHub Release appears. No automatic downloads or installations. Firefox handles signed extension updates.</p>
+  <label for="update-channel">Release channel</label>
+  <select id="update-channel">
+    <option value="stable">Stable releases only</option>
+    <option value="preview">Include development previews</option>
+  </select>
+  <div class="updater-actions">
+    <button id="update-toggle" class="secondary" type="button">Enable daily release alerts</button>
+    <button id="update-check" class="mini" type="button">Check releases now</button>
+    <button id="update-dismiss" class="mini" type="button" hidden>Dismiss this notice</button>
+  </div>
+  <p id="update-status" class="status" aria-live="polite" role="status">Release checks are not enabled.</p>
+  <div id="update-available" class="update-available" hidden>
+    <strong id="update-title">New release available</strong>
+    <p id="update-notes" class="quiet"></p>
+    <a id="update-release-link" href="#" target="_blank" rel="noopener noreferrer">View verified GitHub release notes ↗</a>
+  </div>
+  <p class="quiet">The release check downloads only small JSON metadata. Firefox code updates still require a complete, Mozilla-signed XPI. There is no unsupported hot-patching or remote code execution.</p>
 </section>
 <footer><span>あやりめ · THE STATION REMAINS ONLINE</span><span>FIREFOX DESKTOP · NO AI KEY REQUIRED</span></footer>
 </main></body></html>
