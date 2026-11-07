@@ -33,3 +33,9 @@ Example HELLO message:
 The companion replies with a capability list and protocol number. The other supported commands are `LIST_RESOURCES` (names and stable keys only, not URLs), `OPEN_RESOURCE` with a saved resource key, and `OPEN_WORKSPACE`. External requests cannot invoke arbitrary Google URLs, access document contents or ask for email sending. All actual tab operations are serialized. The sender check is repeated in the background handler even though the manifest allowlists the same ID.
 
 This does **not** yet expose a command in ELF//SHELL 0.5.4, nor does it imply that `sidebarAction.open()` is available from an asynchronous cross-extension request. The user's toolbar or sidebar gesture remains the reliable native sidebar entry point.
+
+## Named workspace profiles (v0.3 alpha)
+
+`elfshell.workspace.profiles.v1` stores a collection of named local profiles and the active profile ID. The older `elfshell.workspace.resources.v1` list is automatically read once when the newer structure is missing, so existing saved links are retained. Profiles can be created, renamed and selected. Deleting a profile removes only the saved profile definition; it never closes Firefox tabs or alters Google files.
+
+Each profile has its own named Firefox tab group; the default uses `ELF//SHELL · GOOGLE WORKSPACE`. Tabs already grouped under another profile are intentionally not stolen. If the same Google application belongs to two profiles, Ayarime reuses its tab without duplicating it, but leaves it in the original group. A pinned master Hub remains outside the groups.
