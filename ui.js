@@ -338,11 +338,11 @@ if(googleForm) {
   document.querySelector("#google-grant").addEventListener("click",async()=>{
     // Permission must originate from this direct click, before async work.
     let grant;
-    try {grant=browser.permissions.request({origins:googleHostsForScopes(googleCurrentScopes)});}
+    try {grant=browser.permissions.request({origins:googleHostsForScopes(googleCurrentScopes),data_collection:["authenticationInfo","websiteContent"]});}
     catch(error){googleMessage("Firefox could not request API host permission.",true);return;}
     googleMessage("Choose Allow or Deny in Firefox's permission dialog…");
     try{
-      if(!await grant){googleMessage("Google API permission declined. Nothing was connected.",true);return;}
+      if(!await grant){googleMessage("Google connection or data-sharing permission declined. Nothing was connected.",true);return;}
       await refreshGoogle();
     }catch(error){googleMessage("Permission request failed: "+error.message,true);}
   });
@@ -446,11 +446,11 @@ if(aiForm){
     const host=AI_HOSTS[aiSavedProvider];
     if(!host)return;
     let grant;
-    try{grant=browser.permissions.request({origins:[host]});}
+    try{grant=browser.permissions.request({origins:[host],data_collection:["authenticationInfo","personalCommunications","websiteContent","personallyIdentifyingInfo"]});}
     catch{aiMessage("Firefox rejected the provider permission request.",true);return;}
     aiMessage("Review Firefox's provider connection permission prompt…");
     try{
-      if(!await grant){aiMessage("AI provider permission declined.",true);return;}
+      if(!await grant){aiMessage("AI provider connection or data-sharing permission declined.",true);return;}
       await refreshAI();
     }catch(error){aiMessage("Permission request failed: "+error.message,true);}
   });
