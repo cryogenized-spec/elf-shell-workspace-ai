@@ -1,1 +1,12 @@
-{"name":"elf-shell-workspace-ai","version":"0.1.0","private":true,"license":"MPL-2.0","description":"Firefox-first ELF//SHELL Workspace AI companion alpha","scripts":{"test":"node --check background.js && node --check ui.js && node --check shared/workspace.js && node --test tests/*.test.cjs","package":"python3 scripts/package.py","lint:firefox":"web-ext lint --source-dir dist/extension --warnings-as-errors"}}
+{
+  "name": "elf-shell-workspace-ai",
+  "version": "0.2.0",
+  "private": true,
+  "license": "MPL-2.0",
+  "description": "Firefox-first ELF//SHELL Workspace AI companion alpha",
+  "scripts": {
+    "test": "node --check background.js && node --check ui.js && node --check shared/workspace.js && node --test tests/*.test.cjs",
+    "package": "python3 scripts/package.py",
+    "lint:firefox": "web-ext lint --source-dir dist/extension --warnings-as-errors"
+  }
+}
