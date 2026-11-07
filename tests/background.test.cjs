@@ -78,7 +78,7 @@ function createHarness(seed={},options={}) {
     throw new Error("No Google network request expected in this test");
   };
   const context = vm.createContext({
-    browser,URL,console,fetch:mockFetch,crypto:cryptoApi,TextEncoder,btoa
+    browser,URL,URLSearchParams,console,fetch:mockFetch,crypto:cryptoApi,TextEncoder,btoa
   });
   for (const file of ["shared/workspace.js","shared/persona.js",
     "google/oauth.js","google/read.js","google/session.js","background.js"]) {
