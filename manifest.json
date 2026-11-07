@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "ELF//SHELL — Workspace AI",
-  "version": "0.6.0",
-  "description": "Optional Ayarime Workspace Hub and opt-in developer-preview read-only Google Calendar, Tasks, Docs and Sheets connectors.",
+  "version": "0.7.0",
+  "description": "Optional Ayarime Workspace Hub, Google read-only developer previews and standalone BYOK text assistant.",
   "permissions": [
     "tabs",
     "tabGroups",
@@ -17,6 +17,8 @@
       "google/read.js",
       "google/files.js",
       "google/session.js",
+      "ai/providers.js",
+      "ai/session.js",
       "background.js"
     ]
   },
@@ -44,7 +46,7 @@
     }
   },
   "content_security_policy": {
-    "extension_pages": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'; connect-src 'self' https://oauth2.googleapis.com https://www.googleapis.com https://tasks.googleapis.com https://docs.googleapis.com https://sheets.googleapis.com"
+    "extension_pages": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'; connect-src 'self' https://oauth2.googleapis.com https://www.googleapis.com https://tasks.googleapis.com https://docs.googleapis.com https://sheets.googleapis.com https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com"
   },
   "externally_connectable": {
     "ids": [
@@ -56,6 +58,9 @@
     "https://www.googleapis.com/*",
     "https://tasks.googleapis.com/*",
     "https://docs.googleapis.com/*",
-    "https://sheets.googleapis.com/*"
+    "https://sheets.googleapis.com/*",
+    "https://api.openai.com/*",
+    "https://api.anthropic.com/*",
+    "https://generativelanguage.googleapis.com/*"
   ]
 }
