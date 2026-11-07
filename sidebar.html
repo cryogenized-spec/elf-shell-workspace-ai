@@ -15,7 +15,19 @@
 <p class="quiet">Connect read-only Calendar or Tasks access from the pinned Workspace Hub. No automatic account reads.</p>
 <a class="mini companion-link" href="hub.html" target="_blank" rel="noopener noreferrer">Configure Google in Hub ↗</a>
 </section>
-<section class="frame side-panel"><p class="eyebrow">// MORNING COFFEE</p><p class="quiet">Scheduled for a later release, after explicit OAuth permissions and evidence-linked briefing tests.</p></section>
+<section class="frame coffee-panel" aria-label="Morning Coffee daily briefing">
+  <p class="eyebrow">// 08 · AYARIME / MORNING COFFEE</p>
+  <h2>Morning Coffee <span aria-hidden="true">☕</span></h2>
+  <p class="quiet">A source-linked briefing prepared only when you ask. Select which authorized Google sources to read. No Gmail access, no AI model submission and no changes to your account.</p>
+  <div class="coffee-sources" role="group" aria-label="Briefing sources">
+    <label><input id="coffee-calendar" type="checkbox" checked /> Calendar · today's events</label>
+    <label><input id="coffee-tasks" type="checkbox" checked /> Google Tasks · incomplete tasks</label>
+  </div>
+  <button id="coffee-run" class="secondary" type="button">✧ Ayarime, prepare my Morning Coffee</button>
+  <p id="coffee-status" class="status" role="status" aria-live="polite">Not prepared. Connect authorized Calendar/Tasks sources first.</p>
+  <div id="coffee-results" class="coffee-results" aria-live="polite"></div>
+  <p class="quiet">Google Tasks scheduled dates do not necessarily mean deadlines. Results are limited to today's primary calendar and the first few incomplete task lists; any incomplete coverage is labelled.</p>
+</section>
 <section class="frame ai-console" aria-label="Ayarime AI console">
   <p class="eyebrow">// AYARIME · BYOK</p>
   <h2>AI Console</h2>
@@ -40,5 +52,5 @@
   <div id="ai-output" class="ai-output" aria-live="polite"></div>
   <p class="quiet">Only your submitted text and persona go to the selected provider. API usage may incur charges. No Google file data is sent automatically.</p>
 </section>
-<footer>ELF//SHELL · ALPHA 0.7</footer>
+<footer>ELF//SHELL · ALPHA 0.8</footer>
 </main></body></html>
