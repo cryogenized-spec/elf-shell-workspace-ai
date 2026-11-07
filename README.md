@@ -2,7 +2,7 @@
 
 An optional **Firefox Desktop** companion to [ELF//SHELL — Ayarime](https://github.com/cryogenized-spec/elf-shell-ayarime).
 
-**Status: v0.1.0 prototype, unsigned and not released publicly.**
+**Status: v0.2.0 prototype, unsigned and not released publicly.**
 
 This companion is independent of the existing Firefox new-tab extension and does not replace its interface. The first alpha implements a native pinned **Super Tab**, a sidebar styled after the original ELF//SHELL palette, and user-initiated restoration of real Google Workspace tabs.
 
@@ -17,7 +17,7 @@ This companion is independent of the existing Firefox new-tab extension and does
 - Add and remove resources without automatically closing user's tabs.
 - Use the native Firefox sidebar as a companion to the real Google applications.
 
-**Not yet implemented:** OAuth, Google API data access, AI/BYOK models, Morning Coffee, versioned core bridge, ChatGPT/Claude MCP client support, tab migration between windows, or Android. The initial extension makes **no Google API requests**.
+**Not yet implemented:** OAuth, Google API data access, AI/BYOK models, Morning Coffee, **the core-side bridge UI**, ChatGPT/Claude MCP client support, tab migration between windows, or Android. The companion-side versioned bridge can now respond to a recognized ELF//SHELL core add-on, but core 0.5.4 has not been changed. The initial extension makes **no Google API requests**.
 
 ## Install for development
 
@@ -49,3 +49,7 @@ See [roadmap](docs/roadmap.md), [architecture](docs/architecture.md) and [manual
 The prototype stores only the Google resource names/URLs you explicitly register and the initial application shortcuts, in Firefox `storage.local` (not encrypted). Its required `tabs` access is used to find and activate existing browser tabs. No API keys, OAuth tokens, document contents or email messages are read or transmitted.
 
 Read the [MPL-2.0](LICENSE) before redistribution. Icons are authored for this companion; no ELF//SHELL font files or artwork have been copied into this repository.
+
+## Companion bridge v1 (developer preview)
+
+The companion accepts HELLO, LIST_RESOURCES, OPEN_RESOURCE and OPEN_WORKSPACE commands from the independently installed core extension ID `elf-shell-ayarime@local.theme`. The core's existing public release does not yet send these messages; see [architecture](docs/architecture.md). Messages from other extensions and unsupported versions are rejected.

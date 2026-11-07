@@ -13,10 +13,23 @@ This is an independent Firefox MV3 extension. The base ELF//SHELL 0.5.4 source r
 
 ## Messaging contract
 
-The internal extension accepts only: `GET_STATE`, `OPEN_WORKSPACE`, `OPEN_RESOURCE`, `SAVE_RESOURCE`, and `REMOVE_RESOURCE`. Requests are rejected unless sent from the same extension ID. The core ELF//SHELL companion bridge is intentionally **not enabled** yet; use Firefox toolbar/sidebar until a versioned external sender allowlist has been reviewed.
+The internal extension accepts only: `GET_STATE`, `OPEN_WORKSPACE`, `OPEN_RESOURCE`, `SAVE_RESOURCE`, and `REMOVE_RESOURCE`. Requests are rejected unless sent from the same extension ID. The companion also listens for **external** versioned bridge requests only from \`elf-shell-ayarime@local.theme\`. Requests with missing/unsupported protocol version or unknown operations are rejected. The core side of the bridge is not yet implemented; the existing ELF//SHELL release remains unchanged.
 
 ## Planned next steps
 
 Native UI accessibility and live Firefox acceptance, versioned bridge with ID `elf-shell-ayarime@local.theme`, editable workspace profiles, opt-in Google OAuth/PKCE, native REST connectors, BYOK providers, opt-in evidence-linked Morning Coffee, and optional remote/local MCP interoperability.
 
 Do not enable Gmail restricted scopes before completing the relevant Google app verification process.
+
+## External bridge protocol v1
+
+Only the installed ELF//SHELL core extension with ID `elf-shell-ayarime@local.theme` may send these messages to `workspace-ai@elf-shell.local` using `browser.runtime.sendMessage("workspace-ai@elf-shell.local", payload)`.
+
+Example HELLO message:
+```json
+{"kind":"elfshell.workspace.bridge","version":1,"command":"HELLO"}
+```
+
+The companion replies with a capability list and protocol number. The other supported commands are `LIST_RESOURCES` (names and stable keys only, not URLs), `OPEN_RESOURCE` with a saved resource key, and `OPEN_WORKSPACE`. External requests cannot invoke arbitrary Google URLs, access document contents or ask for email sending. All actual tab operations are serialized. The sender check is repeated in the background handler even though the manifest allowlists the same ID.
+
+This does **not** yet expose a command in ELF//SHELL 0.5.4, nor does it imply that `sidebarAction.open()` is available from an asynchronous cross-extension request. The user's toolbar or sidebar gesture remains the reliable native sidebar entry point.

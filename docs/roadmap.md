@@ -33,4 +33,4 @@ Source-of-truth staged plan (7 November 2026). Stable core must not be modified 
 ## Current status
 
 0: audited against ELF//SHELL 0.5.4 feature branch; 1/3/4: first functional prototype under development.
-2/5/6/7/8/9/10/11/12: not implemented.
+2: companion-side bridge implemented and awaiting core integration; 5/6/7/8/9/10/11/12: not implemented.
