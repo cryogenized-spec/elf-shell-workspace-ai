@@ -20,3 +20,12 @@ Use a fresh Firefox Desktop profile (Firefox 142+):
 9. Verify the underlying core ELF//SHELL new-tab page continues working with the companion installed and with it disabled.
 
 **Not yet tested on the user's Firefox installation.** CI validates syntax, key derivation and package integrity only. No Google account access is requested.
+
+## Named-profile acceptance (v0.3)
+
+10. Create a new empty "Workshop" profile, add a disposable Google document, then launch; confirm a second named Firefox group is created.
+11. Select "Google Workspace" again; confirm its six default resources are still configured.
+12. Add Gmail to another profile; launch and confirm the existing Gmail tab is reused without being moved from its original group.
+13. Rename the profile, switch back and forth, delete the non-default profile; confirm no open tabs are closed.
+14. Verify a previous alpha's saved `elfshell.workspace.resources.v1` resources migrate to the default profile.
+15. Check long profile names, duplicate names and the ten-profile limit give readable errors.
