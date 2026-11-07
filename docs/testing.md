@@ -59,3 +59,13 @@ This test passed in the November 7, 2026 GitHub Actions run. It does not access 
 25. Click the manual read action; confirm only Google Calendar/Tasks GETs are made, no Gmail scopes are requested, and partial/truncated results are labelled.
 26. Disconnect and verify local credentials are cleared regardless of whether Google confirms revocation.
 27. Verify no Google token reaches ELF//SHELL core extension, generic UI status messages, logs, or persistent `storage.local`.
+
+## Docs and Sheets preview (v0.6)
+
+28. Save a disposable Google Doc and Sheet URL; ensure only those saved resources show the **Read preview** action in the Hub.
+29. Without an authenticated Google session and matching Docs/Sheets scope, verify zero content requests occur and useful errors appear.
+30. Preview nested text in a disposable multi-tab Doc; confirm 12,000-character limit and no raw HTML rendering.
+31. Preview a Sheet whose saved URL includes `gid` and whose tab title contains spaces or apostrophes. Confirm correct sheet tab and quoted API range.
+32. Reject unbounded A1 ranges, invalid file IDs, unsaved file keys, disallowed hosts and missing API host permissions.
+33. Verify no Google document or spreadsheet data reaches the ELF//SHELL core extension, an AI service, or persistent storage.
+34. Confirm no sensitive Docs/Sheets scopes are requested unless selected in the Hub, and that Google warns appropriately about any account-wide read permission. Live Google OAuth remains an outstanding release gate.
