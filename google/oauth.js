@@ -6,7 +6,9 @@
   const REVOKE_URL = "https://oauth2.googleapis.com/revoke";
   const CALENDAR_READ = "https://www.googleapis.com/auth/calendar.events.readonly";
   const TASKS_READ = "https://www.googleapis.com/auth/tasks.readonly";
-  const ALLOWED_SCOPES = Object.freeze([CALENDAR_READ,TASKS_READ]);
+  const DOCS_READ = "https://www.googleapis.com/auth/documents.readonly";
+  const SHEETS_READ = "https://www.googleapis.com/auth/spreadsheets.readonly";
+  const ALLOWED_SCOPES = Object.freeze([CALENDAR_READ,TASKS_READ,DOCS_READ,SHEETS_READ]);
   const GOOGLE_CLIENT = /^[0-9]+-[a-z0-9_-]+\.apps\.googleusercontent\.com$/i;
   function clientId(raw) {
     const value = typeof raw==="string" ? raw.trim() : "";
@@ -19,7 +21,7 @@
       throw new Error("Choose at least one supported read-only Google scope");
     const unique=[...new Set(input)];
     if(unique.length!==input.length || unique.some(s=>!ALLOWED_SCOPES.includes(s)))
-      throw new Error("Only Calendar and Tasks read-only scopes are enabled in this preview");
+      throw new Error("Only Calendar, Tasks, Docs and Sheets read-only scopes are enabled in this preview");
     return unique;
   }
   function redirectUri(identityRedirect) {
@@ -92,7 +94,7 @@
     };
   }
   const api={AUTH_ORIGIN,TOKEN_URL,REVOKE_URL,CALENDAR_READ,TASKS_READ,
-    ALLOWED_SCOPES,clientId,scopes,redirectUri,prepare,validateCallback,validateToken};
+    DOCS_READ,SHEETS_READ,ALLOWED_SCOPES,clientId,scopes,redirectUri,prepare,validateCallback,validateToken};
   root.WorkspaceGoogleOAuth=api;
   if(typeof module!=="undefined" && module.exports) module.exports=api;
 })(globalThis);
