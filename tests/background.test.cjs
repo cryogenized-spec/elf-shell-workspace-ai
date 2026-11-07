@@ -253,3 +253,18 @@ test("manually navigated unrelated tab is not incorrectly reused",async()=>{
   assert.equal(next.result.opened,1);
   assert.equal(h.tabs.length,8);
 });
+
+test("tracked Gmail and Calendar marketing redirects do not spawn duplicate tabs",async()=>{
+  const h=createHarness();
+  const initial=await h.dispatch({type:"OPEN_WORKSPACE"});
+  assert.equal(initial.ok,true);
+  const gmail=h.tabs.find(t=>t.url.includes("mail.google.com"));
+  const calendar=h.tabs.find(t=>t.url.includes("calendar.google.com"));
+  gmail.url="https://workspace.google.com/intl/en-US/gmail/#inbox";
+  calendar.url="https://workspace.google.com/intl/en-US/products/calendar/";
+  const repeat=await h.dispatch({type:"OPEN_WORKSPACE"});
+  assert.equal(repeat.ok,true);
+  assert.equal(repeat.result.opened,0);
+  assert.equal(repeat.result.reused,6);
+  assert.equal(h.tabs.length,7);
+});

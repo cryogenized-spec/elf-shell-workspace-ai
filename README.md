@@ -2,7 +2,7 @@
 
 An optional **Firefox Desktop** companion to [ELF//SHELL — Ayarime](https://github.com/cryogenized-spec/elf-shell-ayarime).
 
-**Status: v0.3.0 prototype, unsigned and not released publicly.** Native Firefox CI and strict Mozilla lint have passed; signed installation and user-profile acceptance are still pending.
+**Status: v0.3.0 prototype, unsigned and not released publicly.** Native Firefox CI, two-extension command integration and strict Mozilla lint have passed; signed installation and user-profile acceptance are still pending.
 
 This companion is independent of the existing Firefox new-tab extension and does not replace its interface. The first alpha implements a native pinned **Super Tab**, a sidebar styled after the original ELF//SHELL palette, and user-initiated restoration of real Google Workspace tabs.
 
@@ -10,7 +10,7 @@ This companion is independent of the existing Firefox new-tab extension and does
 
 - Toolbar command **“Ayarime, please bring up my workspace.”**
 - Find or create a pinned Super Tab outside the subordinate tab group.
-- Maintain a transient Firefox session tab index so redirects and initial `about:blank` navigation do not create duplicate tabs.
+- Maintain a transient Firefox session tab index so redirects (including Google's sign-in and Workspace landing pages) and initial `about:blank` navigation do not create duplicate tabs.
 - Reuse open Google Workspace tabs (Gmail, Calendar, Drive, Docs, Sheets and Tasks) and create only missing tabs.
 - Group Workspace tabs in Firefox and focus the master Hub.
 - Create, rename and switch between up to 10 local Workspace profiles. Each has its own saved Google links and named tab group. Switching/deleting a profile never closes your tabs.
@@ -57,3 +57,5 @@ Read the [MPL-2.0](LICENSE) before redistribution. Icons are authored for this c
 The companion accepts HELLO, LIST_RESOURCES, OPEN_RESOURCE and OPEN_WORKSPACE commands from the independently installed core extension ID `elf-shell-ayarime@local.theme`. The core's existing public release does not yet send these messages; see [architecture](docs/architecture.md). Messages from other extensions and unsupported versions are rejected.
 
 Tab IDs are also cached in Firefox `storage.session` (cleared when the browser session ends) so Ayarime can recognize tabs before Google navigation finishes. No Google account contents are collected.
+
+The `integrated-firefox` workflow also verifies the command from ELF//SHELL's real palette into this companion, in a fresh Firefox profile with both unsigned add-ons installed. No real Google login is involved.

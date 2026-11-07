@@ -44,3 +44,41 @@ jobs:
           name: workspace-ai-firefox-qa
           path: dist/native-firefox/
           if-no-files-found: warn
+
+  integrated-firefox:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch ELF//SHELL core feature branch
+        uses: actions/checkout@v4
+        with:
+          repository: cryogenized-spec/elf-shell-ayarime
+          ref: feature/local-hardware-telemetry-memory-chatgpt
+          path: core
+      - name: Build independent unsigned add-on archives
+        run: |
+          npm test
+          npm run package
+          python3 core/scripts/package.py
+      - name: Install Firefox
+        id: firefox
+        uses: browser-actions/setup-firefox@v1
+        with:
+          firefox-version: latest
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Selenium
+        run: python -m pip install 'selenium>=4.30,<5'
+      - name: Run two-extension command acceptance
+        env:
+          FIREFOX_BINARY: ${{ steps.firefox.outputs.firefox-path }}
+        run: python3 tests/native_bridge.py
+      - name: Upload two-extension acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: workspace-core-integration-qa
+          path: dist/native-bridge/
+          if-no-files-found: warn
