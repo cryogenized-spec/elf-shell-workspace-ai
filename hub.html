@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ELF//SHELL — Workspace Hub</title><link rel="stylesheet" href="ui.css">
+<script defer src="ui.js"></script></head>
+<body data-view="hub">
+<div class="backdrop" aria-hidden="true"></div>
+<main class="shell">
+<header class="masthead">
+  <div class="slashes" aria-hidden="true">///</div>
+  <div><h1>ELF<span>//</span>SHELL</h1><p>AYARIME / WORKSPACE CONTROL MODULE · ALPHA 0.1</p></div>
+  <div class="status-pill">LOCAL / READY</div>
+</header>
+<div class="columns">
+<section class="frame hero">
+  <p class="eyebrow">// 01 · COMMAND CONSOLE</p>
+  <h2>Workspace<br><em>initialization.</em></h2>
+  <p class="lead">One command restores your pinned Super Tab and groups the Google applications you choose. Existing tabs are reused whenever possible.</p>
+  <button id="launch" class="primary" type="button">✧ Ayarime, please bring up my workspace</button>
+  <p id="status" class="status" role="status" aria-live="polite">Awaiting instruction.</p>
+  <div class="divider"></div>
+  <p class="eyebrow">// 02 · MORNING COFFEE</p>
+  <p class="quiet">Daily intelligence briefing, Google OAuth, BYOK models and MCP clients are planned. No account data is read in this alpha.</p>
+</section>
+<section class="frame resources">
+  <div class="section-head"><div><p class="eyebrow">// 03 · SUBORDINATE TABS</p><h2>Google Workspace</h2></div><span id="count" class="counter">—</span></div>
+  <div id="resource-list" class="resource-list" aria-live="polite"></div>
+  <form id="resource-form" class="add-form">
+    <label for="name">Resource name</label><input id="name" maxlength="90" required placeholder="Workshop Stock Register">
+    <label for="url">Google Workspace HTTPS URL</label><input id="url" type="url" required placeholder="https://docs.google.com/spreadsheets/d/…">
+    <button type="submit" class="secondary">+ Add Google resource</button>
+  </form>
+</section>
+</div>
+<footer><span>あやりめ · THE STATION REMAINS ONLINE</span><span>FIREFOX DESKTOP · NO AI KEY REQUIRED</span></footer>
+</main></body></html>

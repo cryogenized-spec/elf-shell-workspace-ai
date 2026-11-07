@@ -1,0 +1,23 @@
+name: Validate Firefox companion
+on:
+  pull_request:
+  push:
+    branches: [main, feature/workspace-hub-alpha]
+jobs:
+  test-and-package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Local tests and JavaScript syntax
+        run: npm test
+      - name: Build unsigned development extension
+        run: npm run package
+      - name: Check XPI contents and manifest
+        run: python3 -c "import json,zipfile; z=zipfile.ZipFile('dist/workspace-ai-alpha-unsigned.xpi'); m=json.loads(z.read('manifest.json')); assert m['manifest_version']==3; assert 'hub.html' in z.namelist(); print('Package integrity OK')"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: workspace-ai-alpha-unsigned
+          path: dist/workspace-ai-alpha-unsigned.xpi
