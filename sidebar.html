@@ -48,6 +48,8 @@
   <label for="ai-prompt" class="eyebrow">EXPLICIT TEXT PROMPT</label>
   <textarea id="ai-prompt" rows="4" maxlength="6000" placeholder="Ask Ayarime…"></textarea>
   <button id="ai-send" type="button" class="secondary">Ask Ayarime ↗</button>
+  <button id="ai-check-model" type="button" class="mini" disabled>Verify model access · no generation</button>
+  <p class="quiet" id="ai-check-result" role="status" aria-live="polite">Model verification not run. This uses a provider metadata GET, not an inference request.</p>
   <p id="ai-status" class="status" role="status" aria-live="polite">AI not configured.</p>
   <div id="ai-output" class="ai-output" aria-live="polite"></div>
   <p class="quiet">Only submitted text and persona go to the selected provider, after optional data-sharing consent. API usage may incur charges. No Google file data is sent automatically.</p>
@@ -74,5 +76,5 @@
   </div>
   <p class="quiet">The release check downloads only small JSON metadata. Firefox code updates still require a complete, Mozilla-signed XPI. There is no unsupported hot-patching or remote code execution.</p>
 </section>
-<footer>ELF//SHELL · ALPHA 0.10</footer>
+<footer>ELF//SHELL · ALPHA 0.11</footer>
 </main></body></html>
