@@ -33,7 +33,7 @@ function isTrackedTab(resource, tab) {
   if(tab.url==="about:blank" || !tab.url) return true; // pre-navigation tab
   try {
     const url=new URL(tab.url);
-    return url.protocol==="https:" && url.hostname==="accounts.google.com";
+    return url.protocol==="https:" && (url.hostname==="accounts.google.com" || url.hostname==="workspace.google.com");
   } catch {return false;}
 }
 function findTab(resource, tabs, registry) {
