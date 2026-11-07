@@ -35,3 +35,9 @@ Use a fresh Firefox Desktop profile (Firefox 142+):
 Run `npm test`, `npm run package`, `npx --yes web-ext@10.8.0 lint --source-dir dist/extension --warnings-as-errors`, and `python3 tests/native_firefox.py` in an isolated Firefox Desktop 142+ profile with Selenium. The CI workflow `.github/workflows/native-firefox.yml` installs a temporary unsigned extension; no real Google account or external AI key is required.
 
 The native suite verifies: extension page loads; default six Workspace links; pinned Super Tab; named Firefox group; repeated launch creates no duplicate tabs even during `about:blank` navigation; named profile isolation; and non-destructive profile deletion. It uploads an isolated screenshot and JSON report for inspection. It does **not** replace user acceptance of visual design, popup/sidebar gesture behavior, or signed-extension installation.
+
+## Core + companion integration acceptance
+
+The `integrated-firefox` GitHub Actions job installs an unsigned core build from `cryogenized-spec/elf-shell-ayarime` and this companion in the **same disposable Firefox session**. It tests the actual phrase “Ayarime, please bring up my workspace” entered in the core command palette. It then checks cross-extension HELLO/OPEN_WORKSPACE, the pinned Super Tab, the native Google group, and zero duplicates on a second invocation.
+
+This test passed in the November 7, 2026 GitHub Actions run. It does not access or process authenticated Google data, nor does it replace manual checks of the installed sidebar and Mozilla signing.
