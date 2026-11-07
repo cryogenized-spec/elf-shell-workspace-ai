@@ -36,3 +36,7 @@ For future large, **non-executable data** (e.g. optional wallpaper images or dow
 ## Verification
 
 Tests must cover untrusted release metadata, version comparison, stable versus preview channels, missing/hidden releases, unexpected network errors, opt-in host permissions, a dismissible badge, no automatic downloads, and daily alarm cancellation. Native Firefox tests check an initially disconnected checker and saved channel preference. **Actual AMO signing and first live GitHub Release notifications remain a separate publishing gate.**
+
+## v0.10 publishing gates
+
+A manually triggered unsigned candidate build and SHA-256 audit is available through `Build release candidate (QA only)`. This does not submit to Mozilla or publish a GitHub Release. See [Release publishing governance](release-publishing.md) for blocked live Google OAuth/BYOK tests and explicit privacy-review requirements. Mozilla's optional data collection categories now require additional user consent for Google/AI operations, separate from host access.
