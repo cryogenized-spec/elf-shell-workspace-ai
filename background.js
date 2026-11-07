@@ -24,7 +24,7 @@ function cleanResources(items) {
   return result;
 }
 function profileName(raw) {
-  const name = String(raw || "").replace(/[\\x00-\\x1f\\x7f]/g,"").trim().replace(/\\s+/g," ");
+  const name = String(raw || "").replace(/[\x00-\x1f\x7f]/g,"").trim().replace(/\s+/g," ");
   if (name.length < 1 || name.length > 45) throw new Error("Profile name must contain 1–45 characters");
   return name;
 }
