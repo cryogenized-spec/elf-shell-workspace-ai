@@ -123,6 +123,8 @@ try:
              any(g["title"]=="ELF//SHELL · GOOGLE WORKSPACE" for g in tab_data["groups"]),str(tab_data)))
 
     # A second natural-language invocation must not create duplicate Google tabs.
+    print("BEFORE_REPEAT_TABS:",json.dumps(tab_data["tabs"]),flush=True)
+    print("BEFORE_REPEAT_REGISTRY:",str(driver.current_url),flush=True)
     driver.switch_to.window(handle)
     again=driver.execute_async_script("""
       const done=arguments[arguments.length-1];
