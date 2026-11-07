@@ -198,7 +198,7 @@ try:
     keyfield.send_keys("TESTKEY123456")
     driver.find_element(By.ID,"ai-set-key").click()
     WebDriverWait(driver,10).until(
-        lambda d:"Allow the selected AI provider" in d.find_element(By.ID,"ai-status").text)
+        lambda d:"Allow this provider and optional data-sharing consent" in d.find_element(By.ID,"ai-status").text)
     check("BYOK session key cannot be stored without provider permission",
           lambda:require(not extension_call({"type":"AI_STATUS"})["ai"]["hasSessionKey"],
             "Key accepted without permission"))
@@ -224,7 +224,7 @@ try:
 
     updater=extension_call({"type":"UPDATE_STATUS"})
     check("release notifications start opt-in and do not claim an installed update",
-          lambda:require(updater["ok"] and updater["update"]["current"]=="0.9.0" and
+          lambda:require(updater["ok"] and updater["update"]["current"]=="0.10.0" and
             not updater["update"]["enabled"] and
             updater["update"]["behavior"]=="notification-only",str(updater)))
     check("release check is disabled before optional GitHub permission",
