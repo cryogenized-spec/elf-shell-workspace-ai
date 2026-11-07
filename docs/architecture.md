@@ -47,3 +47,9 @@ Firefox may return `about:blank` from `tabs.query()` immediately after a new Goo
 The background controller therefore maintains a **session-scoped** resource-key-to-tab-ID registry in `browser.storage.session`, with an in-memory fallback. The mapping is used only when the tab still exists and its URL matches the saved resource, is initially blank, or is at Google's account sign-in origin. Tabs deliberately navigated to unrelated sites are not reused. The index expires with the browser session and stores no emails, document bodies, OAuth credentials or API keys.
 
 This behavior is covered by mocked pre-navigation/redirect tests and isolated real Firefox acceptance via `tests/native_firefox.py`.
+
+## Signed-out Google redirects and integrated Firefox acceptance
+
+In addition to `accounts.google.com`, unauthenticated Gmail and Calendar launches can redirect to `workspace.google.com` product pages. Ayarime recognizes this origin **only for a tab previously identified by the session registry**, preventing the browser from repeatedly opening those applications while the user is signed out. Unrelated websites are not accepted as tracked Workspace destinations.
+
+The isolated dual-extension test in `tests/native_bridge.py` checks the real ELF//SHELL command palette invoking the Workspace AI external message protocol. It verifies the pinned Hub, Firefox native tab group and repeat-launch idempotence without real Workspace account credentials.
