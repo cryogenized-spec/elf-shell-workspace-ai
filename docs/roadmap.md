@@ -49,3 +49,7 @@ Read-only Docs and Sheets preview adapters are implemented behind explicit Googl
 ### v0.7 developer-preview progress
 
 The first manual BYOK text inference adapter now supports OpenAI Responses, Anthropic Messages and Gemini generateContent. Session-only API keys, host permissions and the editable Ayarime persona are wired into the sidebar/Hub. Multi-turn chat, streaming, tool use, optional Google context selection, model-cost budgeting and live provider-key testing remain pending. See [BYOK mode](byok.md).
+
+### v0.8 developer-preview progress
+
+Manual Morning Coffee is implemented as a local, no-AI deterministic briefing for authorized Calendar/Tasks only. Source links open/reuse actual Firefox tabs. Task dates are labelled as scheduled dates rather than asserted deadlines; cross-links require identical Google file IDs. Gmail, broader source coverage, AI synthesis and live Google authorization testing remain pending. See [Morning Coffee](morning-coffee.md).

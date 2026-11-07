@@ -203,6 +203,25 @@ try:
           lambda:require(not extension_call({"type":"AI_STATUS"})["ai"]["hasSessionKey"],
             "Key accepted without permission"))
 
+    check("Morning Coffee appears in Hub but has no cached briefing",
+          lambda:require(driver.find_element(By.ID,"coffee-run").is_displayed() and
+            not driver.find_element(By.ID,"coffee-results").text.strip(),
+            "Briefing appeared without an explicit request"))
+    driver.find_element(By.ID,"coffee-run").click()
+    WebDriverWait(driver,10).until(
+        lambda d:"session has expired" in d.find_element(By.ID,"coffee-status").text)
+    check("Morning Coffee cannot read before Google authorization",
+          lambda:require(not driver.find_element(By.ID,"coffee-results").text.strip(),
+            "Unauthorized Calendar/Tasks data rendered"))
+    driver.find_element(By.ID,"coffee-calendar").click()
+    driver.find_element(By.ID,"coffee-tasks").click()
+    driver.find_element(By.ID,"coffee-run").click()
+    WebDriverWait(driver,10).until(
+        lambda d:"Select Calendar and/or Tasks" in d.find_element(By.ID,"coffee-status").text)
+    check("Morning Coffee requires explicit selection of a data source",
+          lambda:require(not driver.find_element(By.ID,"coffee-results").text.strip(),
+            "Briefing should not have been prepared"))
+
     driver.save_screenshot(str(ARTIFACTS/"workspace-hub.png"))
     results["status"]="PASS"
 except Exception as error:

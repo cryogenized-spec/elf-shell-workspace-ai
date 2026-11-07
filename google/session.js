@@ -138,6 +138,36 @@
     if(selection.kind==="docs")return files.readDoc(resource,token,fetchImpl,now);
     return files.readSheet(resource,message.range,token,fetchImpl,now);
   }
+  async function morningCoffee(browserApi,fetchImpl,selection,now=Date.now()){
+    if(!selection||typeof selection!=="object"||Array.isArray(selection)||
+       (selection.calendar!==true && selection.tasks!==true) ||
+       ![undefined,true,false].includes(selection.calendar) ||
+       ![undefined,true,false].includes(selection.tasks))
+      throw Error("Select Calendar and/or Tasks to prepare your briefing");
+    const token=(await browserApi.storage.session.get(TOKEN_KEY))[TOKEN_KEY];
+    if(!token||!Array.isArray(token.scopes)||!Number.isFinite(token.expiresAt)||
+       token.expiresAt<=now)
+      throw Error("Google session has expired. Connect an authorized account first");
+    const snapshot={calendar:null,tasks:null,errors:[]};
+    const chosen=[
+      {include:selection.calendar,scope:OAUTH.CALENDAR_READ,label:"Calendar",read:READ.todayCalendar},
+      {include:selection.tasks,scope:OAUTH.TASKS_READ,label:"Tasks",read:READ.currentTasks}
+    ];
+    for(const source of chosen){
+      if(source.include!==true)continue;
+      if(!token.scopes.includes(source.scope)){
+        snapshot.errors.push({service:source.label,message:"This source has not been authorized"});
+        continue;
+      }
+      if(!await permitted(browserApi,[source.scope])){
+        snapshot.errors.push({service:source.label,message:"Firefox permission for this source is missing"});
+        continue;
+      }
+      try{snapshot[source.label.toLowerCase()]=await source.read(token,fetchImpl,now);}
+      catch(error){snapshot.errors.push({service:source.label,message:String(error?.message||"Google source unavailable").slice(0,160)});}
+    }
+    return root.WorkspaceMorningCoffee.compile(snapshot,now);
+  }
   async function handle(message,browserApi,fetchImpl,cryptoApi) {
     switch(message.type) {
       case "GOOGLE_AUTH_STATUS":return {ok:true,auth:await status(browserApi)};
@@ -147,10 +177,12 @@
       case "GOOGLE_AUTH_DISCONNECT":return {ok:true,result:await disconnect(browserApi,fetchImpl)};
       case "GOOGLE_READ_OVERVIEW":return {ok:true,result:await overview(browserApi,fetchImpl)};
       case "GOOGLE_READ_FILE":return {ok:true,result:await readSaved(browserApi,fetchImpl,message)};
+      case "MORNING_COFFEE_PREPARE":return {ok:true,result:await morningCoffee(
+        browserApi,fetchImpl,message.sources)};
       default:throw new Error("Unknown Google connector request");
     }
   }
   root.WorkspaceGoogleSession={HOSTS,requiredHosts,CONFIG_KEY,PENDING_KEY,TOKEN_KEY,handle,
-    status,prepare,complete,disconnect,overview};
+    status,prepare,complete,disconnect,overview,morningCoffee};
   if(typeof module!=="undefined"&&module.exports) module.exports=root.WorkspaceGoogleSession;
 })(globalThis);

@@ -486,6 +486,98 @@ if(aiForm){
     finally{await refreshAI();}
   });
 }
+function coffeeStatus(message,isError=false){
+  const el=document.querySelector("#coffee-status");
+  if(!el)return;
+  el.textContent=message;
+  el.classList.toggle("error",isError);
+}
+function renderCoffee(data) {
+  const host=document.querySelector("#coffee-results");
+  if(!host)return;
+  host.replaceChildren();
+  const summary=node("article","");
+  summary.append(node("h3","","Ayarime / Today's Briefing"));
+  summary.append(node("p","",
+    data.localDate+" · "+data.counts.events+" calendar event(s) · "+
+    data.counts.tasks+" incomplete task(s) · "+
+    data.counts.highlighted+" items flagged for review"));
+  summary.append(node("small","",data.sources.length
+    ? "Sources consulted: "+data.sources.join(", ")+"."
+    : "No authorized source could be read."));
+  if(data.partial) summary.append(node("p","","Partial coverage: some data was unavailable or truncated."));
+  host.append(summary);
+  const priorities=node("article","");
+  priorities.append(node("h3","","Items to review"));
+  if(!data.attention.length)priorities.append(node("p","",
+    "No items returned from the sources that could be read. This is not a complete account-wide check."));
+  for(const item of data.attention) {
+    const entry=node("div","coffee-entry");
+    entry.append(node("h4","",item.title));
+    entry.append(node("p","",item.type==="calendar"
+      ? "Calendar · "+item.attention+(item.when?" · "+item.when:"")
+      : "Tasks"+(item.list?" / "+item.list:"")+" · "+item.attention));
+    if(item.sourceUrl) {
+      const open=node("button","mini coffee-link","↗ Open source");
+      open.type="button";
+      open.addEventListener("click",async()=>{
+        open.disabled=true;
+        try{await request({type:"OPEN_BRIEFING_SOURCE",url:item.sourceUrl,source:item.type});}
+        catch(error){coffeeStatus(error.message,true);}
+        finally{open.disabled=false;}
+      });
+      entry.append(open);
+    }
+    priorities.append(entry);
+  }
+  host.append(priorities);
+  if(data.connections.length) {
+    const linked=node("article","");
+    linked.append(node("h3","","Cross-references"));
+    for(const connection of data.connections) {
+      const entry=node("div","coffee-entry");
+      entry.append(node("h4","","Shared Google file reference"));
+      entry.append(node("p","",connection.titles.join(" + ")));
+      entry.append(node("small","",connection.explanation));
+      linked.append(entry);
+    }
+    host.append(linked);
+  }
+  if(data.errors.length) {
+    const warnings=node("article","");
+    warnings.append(node("h3","","Unavailable sources"));
+    for(const issue of data.errors)
+      warnings.append(node("p","",issue.service+": "+issue.message));
+    host.append(warnings);
+  }
+  const caveats=node("article","");
+  caveats.append(node("h3","","Coverage and interpretation"));
+  for(const notice of data.notices)caveats.append(node("p","",notice));
+  host.append(caveats);
+}
+const coffeeButton=document.querySelector("#coffee-run");
+if(coffeeButton)coffeeButton.addEventListener("click",async()=>{
+  const sources={
+    calendar:document.querySelector("#coffee-calendar").checked,
+    tasks:document.querySelector("#coffee-tasks").checked
+  };
+  if(!sources.calendar&&!sources.tasks){
+    coffeeStatus("Select Calendar and/or Tasks before preparing a briefing.",true);
+    return;
+  }
+  coffeeButton.disabled=true;
+  const host=document.querySelector("#coffee-results");
+  host.replaceChildren();
+  coffeeStatus("Reading only the selected authorized Google sources…");
+  try {
+    const response=await request({type:"MORNING_COFFEE_PREPARE",sources});
+    renderCoffee(response.result);
+    coffeeStatus(response.result.partial
+      ? "Morning Coffee prepared with incomplete coverage; see warnings below."
+      : "Morning Coffee prepared locally. No AI provider or Gmail data was involved.");
+  }catch(error){coffeeStatus(error.message,true);}
+  finally{coffeeButton.disabled=false;}
+});
 refreshAI();
 refreshGoogle();
 refresh();

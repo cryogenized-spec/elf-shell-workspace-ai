@@ -60,7 +60,9 @@
         title:safeText(item.summary||"Untitled event",180),
         start:safeText(item.start?.dateTime||item.start?.date,50),
         end:safeText(item.end?.dateTime||item.end?.date,50),
-        status:safeText(item.status,30)
+        status:safeText(item.status,30),
+        description:safeText(item.description,2000),
+        sourceUrl:safeText(item.htmlLink,2048)
       }))};
   }
   async function currentTasks(token,fetchImpl,now=Date.now()) {
@@ -84,7 +86,9 @@
           id:safeText(task.id,180),
           title:safeText(task.title||"Untitled task",180),
           due:safeText(task.due,50),
-          status:safeText(task.status,30)
+          status:safeText(task.status,30),
+          notes:safeText(task.notes,2000),
+          sourceUrl:safeText(task.webViewLink,2048)
         }))});
     }
     return {lists:result,limited:hasMore};

@@ -8,7 +8,7 @@
 <main class="shell">
 <header class="masthead">
   <div class="slashes" aria-hidden="true">///</div>
-  <div><h1>ELF<span>//</span>SHELL</h1><p>AYARIME / WORKSPACE CONTROL MODULE · ALPHA 0.7</p></div>
+  <div><h1>ELF<span>//</span>SHELL</h1><p>AYARIME / WORKSPACE CONTROL MODULE · ALPHA 0.8</p></div>
   <div class="status-pill">LOCAL / READY</div>
 </header>
 <section class="frame profile-manager" aria-label="Workspace profiles">
@@ -102,6 +102,19 @@
     <div id="google-file-results" class="google-results" aria-live="polite"></div>
   </div>
   <p class="quiet">This prototype discards refresh tokens and stores only a temporary access token in Firefox session storage. It does not persist account contents. Sign-in may require Google OAuth app verification and is not yet validated against a live Google account.</p>
+</section>
+<section class="frame coffee-panel" aria-label="Morning Coffee daily briefing">
+  <p class="eyebrow">// 08 · AYARIME / MORNING COFFEE</p>
+  <h2>Morning Coffee <span aria-hidden="true">☕</span></h2>
+  <p class="quiet">A source-linked briefing prepared only when you ask. Select which authorized Google sources to read. No Gmail access, no AI model submission and no changes to your account.</p>
+  <div class="coffee-sources" role="group" aria-label="Briefing sources">
+    <label><input id="coffee-calendar" type="checkbox" checked /> Calendar · today's events</label>
+    <label><input id="coffee-tasks" type="checkbox" checked /> Google Tasks · incomplete tasks</label>
+  </div>
+  <button id="coffee-run" class="secondary" type="button">✧ Ayarime, prepare my Morning Coffee</button>
+  <p id="coffee-status" class="status" role="status" aria-live="polite">Not prepared. Connect authorized Calendar/Tasks sources first.</p>
+  <div id="coffee-results" class="coffee-results" aria-live="polite"></div>
+  <p class="quiet">Google Tasks scheduled dates do not necessarily mean deadlines. Results are limited to today's primary calendar and the first few incomplete task lists; any incomplete coverage is labelled.</p>
 </section>
 <section class="frame ai-console" aria-label="Ayarime BYOK text assistant">
   <div class="section-head"><div><p class="eyebrow">// 07 · AYARIME / BYOK</p><h2>AI Console</h2></div></div>
