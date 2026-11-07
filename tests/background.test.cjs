@@ -4,8 +4,8 @@ const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 
-function createHarness(seed={}) {
-  const tabs = [], groups = [], settings = {...seed};
+function createHarness(seed={},options={}) {
+  const tabs = [], groups = [], settings = {...seed}, sessionSettings={};
   let tabId = 1, groupId = 1, onMessage = null, onExternal = null;
   const browser = {
     runtime: {
@@ -14,16 +14,24 @@ function createHarness(seed={}) {
       onMessage: { addListener: callback => { onMessage = callback; } },
       onMessageExternal: { addListener: callback => { onExternal = callback; } }
     },
-    storage: { local: {
-      get: async key => Array.isArray(key)
-        ? Object.fromEntries(key.map(item=>[item,settings[item]]))
-        : ({[key]:settings[key]}),
-      set: async values => { Object.assign(settings, values); }
-    } },
+    storage: {
+      local: {
+        get: async key => Array.isArray(key)
+          ? Object.fromEntries(key.map(item=>[item,settings[item]]))
+          : ({[key]:settings[key]}),
+        set: async values => {Object.assign(settings,values);}
+      },
+      session: {
+        get: async key => ({[key]:sessionSettings[key]}),
+        set: async values => {Object.assign(sessionSettings,values);}
+      }
+    },
     tabs: {
       query: async () => tabs.map(tab => ({ ...tab })),
       create: async data => {
-        const tab = {id: tabId++, windowId: data.windowId || 1, url: data.url, active: !!data.active, pinned: !!data.pinned};
+        const tab = {id: tabId++, windowId: data.windowId || 1,
+          url: options.pendingNavigation && data.url.startsWith("https://") ? "about:blank" : data.url,
+          active: !!data.active, pinned: !!data.pinned};
         tabs.push(tab); return {...tab};
       },
       update: async (id, patch) => {
@@ -57,7 +65,7 @@ function createHarness(seed={}) {
     vm.runInContext(fs.readFileSync(path.resolve(__dirname,"..",file),"utf8"),context,{filename:file});
   }
   return {
-    tabs, groups, settings,
+    tabs, groups, settings, sessionSettings,
     dispatch: async (message, sender={id:browser.runtime.id}) => onMessage(message,sender),
     external: async (message, sender={id:"elf-shell-ayarime@local.theme"}) => onExternal(message,sender)
   };
@@ -210,4 +218,38 @@ test("profile creation validates names and enforces a maximum of 10",async()=>{
   const state=await h.dispatch({type:"GET_STATE"});
   assert.equal(state.profiles.length,10);
   assert.equal((await h.dispatch({type:"CREATE_PROFILE",name:"Extra"})).ok,false);
+});
+
+test("pending about:blank Google navigation is reused with zero duplicate tabs",async()=>{
+  const h=createHarness({}, {pendingNavigation:true});
+  const first=await h.dispatch({type:"OPEN_WORKSPACE"});
+  assert.equal(first.ok,true);assert.equal(first.result.opened,6);
+  assert(h.tabs.filter(t=>t.url==="about:blank").length===6);
+  const second=await h.dispatch({type:"OPEN_WORKSPACE"});
+  assert.equal(second.ok,true);
+  assert.equal(second.result.opened,0);
+  assert.equal(second.result.reused,6);
+  assert.equal(h.tabs.length,7);
+  const registry=h.sessionSettings["elfshell.workspace.tabRegistry.v1"];
+  assert(registry && Object.keys(registry).length===6);
+});
+test("tracked Google login redirect is reused without opening a duplicate",async()=>{
+  const h=createHarness();
+  await h.dispatch({type:"OPEN_WORKSPACE"});
+  const gmail=h.tabs.find(t=>t.url.includes("mail.google.com"));
+  gmail.url="https://accounts.google.com/v3/signin/identifier";
+  const again=await h.dispatch({type:"OPEN_WORKSPACE"});
+  assert.equal(again.ok,true);
+  assert.equal(again.result.opened,0);
+  assert.equal(h.tabs.length,7);
+});
+test("manually navigated unrelated tab is not incorrectly reused",async()=>{
+  const h=createHarness();
+  await h.dispatch({type:"OPEN_WORKSPACE"});
+  const gmail=h.tabs.find(t=>t.url.includes("mail.google.com"));
+  gmail.url="https://example.com/";
+  const next=await h.dispatch({type:"OPEN_WORKSPACE"});
+  assert.equal(next.ok,true);
+  assert.equal(next.result.opened,1);
+  assert.equal(h.tabs.length,8);
 });
