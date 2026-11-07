@@ -1,13 +1,14 @@
 {
   "manifest_version": 3,
   "name": "ELF//SHELL — Workspace AI",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "Ayarime Workspace Hub, optional Google read-only connectors, BYOK text and local Morning Coffee briefing.",
   "permissions": [
     "tabs",
     "tabGroups",
     "storage",
-    "identity"
+    "identity",
+    "alarms"
   ],
   "background": {
     "scripts": [
@@ -20,6 +21,8 @@
       "google/session.js",
       "ai/providers.js",
       "ai/session.js",
+      "updater/release.js",
+      "updater/checker.js",
       "background.js"
     ]
   },
@@ -47,7 +50,7 @@
     }
   },
   "content_security_policy": {
-    "extension_pages": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'; connect-src 'self' https://oauth2.googleapis.com https://www.googleapis.com https://tasks.googleapis.com https://docs.googleapis.com https://sheets.googleapis.com https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com"
+    "extension_pages": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'; connect-src 'self' https://api.github.com https://oauth2.googleapis.com https://www.googleapis.com https://tasks.googleapis.com https://docs.googleapis.com https://sheets.googleapis.com https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com"
   },
   "externally_connectable": {
     "ids": [
@@ -62,6 +65,7 @@
     "https://sheets.googleapis.com/*",
     "https://api.openai.com/*",
     "https://api.anthropic.com/*",
-    "https://generativelanguage.googleapis.com/*"
+    "https://generativelanguage.googleapis.com/*",
+    "https://api.github.com/*"
   ]
 }
