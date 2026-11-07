@@ -59,6 +59,9 @@
   function matchesTab(resource, tab) {
     if (!tab || typeof tab.url !== "string") return false;
     try {
+      if (resource.key.startsWith("app:")) {
+        return resource.key === "app:" + appKind(parseGoogleUrl(tab.url));
+      }
       return resource.key === resourceKey(tab.url);
     } catch {
       return false;
