@@ -6,12 +6,13 @@ const vm = require("node:vm");
 
 function createHarness() {
   const tabs = [], groups = [], settings = {};
-  let tabId = 1, groupId = 1, onMessage = null;
+  let tabId = 1, groupId = 1, onMessage = null, onExternal = null;
   const browser = {
     runtime: {
       id: "workspace-ai@elf-shell.local",
       getURL: name => "moz-extension://fixture/" + name,
-      onMessage: { addListener: callback => { onMessage = callback; } }
+      onMessage: { addListener: callback => { onMessage = callback; } },
+      onMessageExternal: { addListener: callback => { onExternal = callback; } }
     },
     storage: { local: {
       get: async key => ({ [key]: settings[key] }),
@@ -55,7 +56,8 @@ function createHarness() {
   }
   return {
     tabs, groups,
-    dispatch: async (message, sender={id:browser.runtime.id}) => onMessage(message,sender)
+    dispatch: async (message, sender={id:browser.runtime.id}) => onMessage(message,sender),
+    external: async (message, sender={id:"elf-shell-ayarime@local.theme"}) => onExternal(message,sender)
   };
 }
 test("repeated Workspace launch reuses tabs and pins only the master", async()=>{
@@ -99,4 +101,34 @@ test("tabs from another browser window are not moved or duplicated",async()=>{
   assert.equal(second.result.opened,0);
   assert.equal(second.result.outsideWindow.includes("Gmail"),true);
   assert.equal(gmail.windowId,2);
+});
+
+test("versioned external bridge answers handshake without exposing account data",async()=>{
+  const h=createHarness();
+  const hello=await h.external({kind:"elfshell.workspace.bridge",version:1,command:"HELLO"});
+  assert.equal(hello.ok,true);
+  assert.equal(hello.version,1);
+  assert.equal(hello.dataAccess,"browser-tabs-only");
+  assert.equal(hello.capabilities.includes("OPEN_WORKSPACE"),true);
+  assert.equal(h.tabs.length,0);
+});
+test("bridge rejects untrusted extension IDs and unsupported versions",async()=>{
+  const h=createHarness();
+  const request={kind:"elfshell.workspace.bridge",version:1,command:"OPEN_WORKSPACE"};
+  assert.equal((await h.external(request,{id:"untrusted@example.org"})).ok,false);
+  assert.equal((await h.external({...request,version:99})).ok,false);
+  assert.equal((await h.external({...request,command:"SEND_EMAIL"})).ok,false);
+  assert.equal(h.tabs.length,0);
+});
+test("trusted ELF//SHELL command restores tabs without duplicate writes",async()=>{
+  const h=createHarness();
+  const msg={kind:"elfshell.workspace.bridge",version:1,command:"OPEN_WORKSPACE"};
+  const one=await h.external(msg);
+  assert.equal(one.ok,true);assert.equal(one.result.opened,6);
+  const two=await h.external(msg);
+  assert.equal(two.ok,true);assert.equal(two.result.opened,0);
+  const list=await h.external({...msg,command:"LIST_RESOURCES"});
+  assert.equal(list.ok,true);assert.equal(list.resources.length,6);
+  assert.equal(list.resources[0].url,undefined);
+  assert.equal(h.tabs.length,7);
 });
