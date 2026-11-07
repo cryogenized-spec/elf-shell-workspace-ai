@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "ELF//SHELL — Workspace AI",
+  "version": "0.1.0",
+  "description": "Optional Ayarime Workspace Hub, native Firefox tab manager and sidebar. No Google account access or AI calls in this alpha.",
+  "permissions": ["tabs", "tabGroups", "storage"],
+  "background": {"scripts": ["shared/workspace.js", "background.js"]},
+  "sidebar_action": {"default_title": "Ayarime — Workspace", "default_panel": "sidebar.html", "default_icon": "icons/mark.svg"},
+  "action": {"default_title": "Ayarime — Bring up my workspace", "default_icon": "icons/mark.svg"},
+  "icons": {"48": "icons/mark.svg"},
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "workspace-ai@elf-shell.local",
+      "strict_min_version": "142.0",
+      "data_collection_permissions": {"required": ["none"]}
+    }
+  },
+  "content_security_policy": {"extension_pages": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'; connect-src 'self'"}
+}
