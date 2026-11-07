@@ -76,6 +76,7 @@
     return status(browserApi);
   }
   async function complete(browserApi,fetchImpl,message) {
+    if(!await permitted(browserApi)) throw Error("Google connection or data-sharing consent was revoked before token exchange");
     const stored=(await browserApi.storage.session.get(PENDING_KEY))[PENDING_KEY];
     const code=OAUTH.validateCallback(message.callbackUrl,stored);
     // Authorization codes are single-use. Drop the verifier/state before exchange.
