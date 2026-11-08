@@ -1,6 +1,6 @@
-# Google OAuth — developer preview (v0.6)
+# Google OAuth — developer preview (v0.13.4)
 
-**Current status:** Code-complete implementation for local test harnesses; no live Google OAuth client has been provisioned or tested. It is **not publicly authorized** or ready for general release.
+**Current status:** Live Google consent and Firefox callback capture have succeeded on a user-created Desktop OAuth client, but the token exchange returned HTTP 400 because the Desktop OAuth client secret was missing. v0.13.4 supports session-only client-secret input; successful live token exchange still requires verification. The extension is **not** a publicly signed or approved release.
 
 ## Why a Desktop OAuth client?
 
@@ -20,8 +20,8 @@ References:
 
 1. Create or select a Google Cloud project with Calendar API and/or Tasks API enabled.
 2. Configure its OAuth consent screen and test users as Google requires.
-3. Create an OAuth **Desktop application** client. Never include a confidential client secret in the extension source.
-4. In the companion Hub, enter the client ID (ending in `.apps.googleusercontent.com`) and select Calendar, Tasks, or both, then save.
+3. Create an OAuth **Desktop application** client. Keep the generated client ID and client secret locally; **never place the secret in extension source, a public repository, an issue or a chat**. Google considers installed apps public clients that cannot keep these values confidential.
+4. In the companion Hub, enter the client ID (ending in `.apps.googleusercontent.com`), select Calendar/Tasks read-only, and save. Paste the matching Desktop client's generated secret into the **session-only password field**, then click **Use secret for this session**. Do not enter it in the client ID field.
 5. Click **Allow Google API connections** and approve the optional Firefox host permission request.
 6. Click **Prepare sign-in**. The background creates an unpredictable OAuth state and a unique SHA-256 PKCE code challenge, and stores its verifier in session memory.
 7. Click **Connect Google**. This is a **separate user click** so Firefox's interactive authorization opens from a user gesture.
@@ -33,7 +33,7 @@ References:
 
 The app requests optional Firefox permissions for `oauth2.googleapis.com` and only the selected Google service API origins (`www.googleapis.com`, `tasks.googleapis.com`, `docs.googleapis.com`, `sheets.googleapis.com`). The extension's `identity` permission enables the OAuth browser flow. The app does **not** request Gmail scopes, generic Drive scopes or account-wide searches. Optional Docs and Sheets read-only scopes are available, but Google classifies these as **sensitive**, granting broader access than the UI's saved-file-only selection policy. See [Docs/Sheets previews](google-files.md).
 
-The client ID and chosen scopes are stored in Firefox `storage.local`, and they are **not confidential**. A short-lived access token and pending authorization challenge are stored in Firefox `storage.session`. **No refresh token is retained.** No access token is returned in status messages or passed to ELF//SHELL's separate extension. Session storage isn't a secure vault; future persistent access will need a proper credential design.
+The client ID and chosen scopes are stored in Firefox `storage.local`, and they are **not confidential**. The separately entered Desktop OAuth client secret, a short-lived access token and any pending authorization challenge are stored in Firefox `storage.session` only. **No refresh token is retained.** No access token is returned in status messages or passed to ELF//SHELL's separate extension. Session storage isn't a secure vault; future persistent access will need a proper credential design.
 
 Users can grant a subset of scopes; the UI only calls APIs corresponding to scopes actually granted. The native connector uses `GET` exclusively for user data, and contains no Gmail send, document write, sharing, delete, or calendar modification operation.
 
@@ -84,3 +84,20 @@ The previous v0.13.1 build reached Google's consent screen in a real Firefox pro
 A dedicated UI launch module now distinguishes three safe start errors without echoing authorization URLs, callback codes or credentials: `AUTH_START_INVALID_REQUEST` (prepared URL missing/invalid), `AUTH_START_IDENTITY_UNAVAILABLE` (Firefox identity API missing) and `AUTH_START_BROWSER_REJECTED` (synchronous browser launch failure). Unit and native Firefox tests check the exact **two-field** launch signature, promptness and secret redaction. None of these tests uses the user's real credentials or proves a successful completed Google OAuth authorization.
 
 **Recovery:** In the isolated test profile, replace the temporary v0.13.2 XPI with the verified v0.13.3 field-test build. Close any old Google sign-in window, retain the existing new project's Desktop OAuth client ID, select Calendar/Tasks only, and save. Prepare a new sign-in, then choose Connect Google. If another error occurs, share only Ayarime's sanitized `AUTH_START_...` code or stage/HTTP status. Do not paste a callback URL, authorization code, raw browser console request or access token.
+
+## v0.13.4 — Google Desktop client secret required by live token endpoint
+
+During a real Firefox session, the Google Cloud Desktop client successfully opened Google's consent screen and returned a one-time OAuth code to the add-on, but `https://oauth2.googleapis.com/token` rejected the code exchange with **HTTP 400 `invalid_request`: `client_secret is missing`**. The extension omitted this parameter despite supplying a client ID, verifier, exact loopback redirect and `authorization_code` grant type.
+
+Google's Desktop OAuth documentation marks `client_secret` as **optional** in its token-exchange parameter table, but Google's live endpoint required it in this case. Independent Google developer forum reports describe the same behavior for newly created Desktop clients using PKCE. Google explains that Desktop apps are public clients and **cannot protect a bundled secret**, so this client secret is not a suitable sole security boundary. PKCE, state validation, short-lived access tokens and least-privilege scopes remain essential.
+
+**v0.13.4 correction:** The Account Access page now has a **Google Desktop OAuth client secret · this Firefox session only** password field. The value is never placed in the GitHub repository, XPI bundle, `storage.local`, update metadata, console logs, AI provider prompts or status responses. The corresponding token request includes `client_secret` only in its HTTPS POST body to Google's OAuth token endpoint. It remains in Firefox `storage.session` until the user clears it, disconnects, changes the Google Client ID or ends the browser session. Session storage is not encrypted and can be inspected by someone with privileged browser access; it is **not** a hardware-backed secret vault.
+
+**How to enter it:** On the [Google Auth Platform Clients page](https://console.cloud.google.com/auth/clients), select the existing **Desktop app** OAuth client for the new ELF//SHELL project. Retrieve its matching client secret from Google's credentials interface or the OAuth Desktop client JSON you saved at creation. Do not share or screenshot the client secret. In Ayarime enter the public Client ID as usual, save configuration, enter the **matching** client secret in the new password field and press **Use secret for this session**. Then prepare a **fresh** sign-in and connect with Calendar/Tasks scopes only. Old authorization codes and PKCE verifiers are single-use and must never be replayed.
+
+The token exchange now classifies `missing-client-secret`, `invalid-client`, `invalid-grant`, `unauthorized-client` and unknown failures using a fixed, redacted error description. It never returns raw Google token error bodies, code/verifier or secret values to the UI. **No live Google token exchange has yet been re-run using this new secret input**, so successful connection remains an open acceptance gate.
+
+Official references:
+- https://developers.google.com/identity/protocols/oauth2/native-app
+- https://developers.google.com/identity/protocols/oauth2/
+- https://discuss.google.dev/t/desktop-oauth-pkce-exchange-returns-invalid-request-after-successful-loopback-callback-with-no-client-secret/390526
