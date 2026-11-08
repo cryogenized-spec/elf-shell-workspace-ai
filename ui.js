@@ -423,7 +423,91 @@ const AI_HOSTS={
   anthropic:"https://api.anthropic.com/*",
   gemini:"https://generativelanguage.googleapis.com/*"
 };
-const AI_DEFAULTS={openai:"gpt-6-luna",anthropic:"claude-sonnet-4-5",gemini:"gemini-3.8-flash"};
+const AI_DEFAULTS={openai:"gpt-5.4-mini",anthropic:"claude-sonnet-4-5",gemini:"gemini-3.8-flash"};
+const AI_OFFER=globalThis.WorkspaceOpenAIComplimentary;
+const aiOfferSelector=document.querySelector("#ai-model-choice");
+function populateOpenAIModels(){
+  if(!aiOfferSelector||!AI_OFFER)return;
+  aiOfferSelector.replaceChildren(new Option("Custom / existing model ID",""));
+  const datalist=document.querySelector("#openai-model-presets");
+  if(datalist)datalist.replaceChildren();
+  for(const [group,models] of Object.entries(AI_OFFER.GROUPS)){
+    const label=group==="standard"?"250,000 shared daily tokens · eligible list"
+      :group==="small"?"2,500,000 shared daily tokens · eligible list"
+      :"Other OpenAI models · outside these screenshot groups";
+    const groupEl=document.createElement("optgroup");groupEl.label=label;
+    for(const item of models){
+      const suffix=item.status==="shut-down"?" · retired / unavailable"
+        :item.status==="deprecated"?" · deprecated / check access":"";
+      const option=new Option(item.id+suffix,item.id);
+      option.disabled=item.status==="shut-down";
+      groupEl.append(option);
+      if(datalist){
+        const suggestion=document.createElement("option");
+        suggestion.value=item.id;suggestion.label=label+suffix;
+        datalist.append(suggestion);
+      }
+    }
+    aiOfferSelector.append(groupEl);
+  }
+}
+function renderModelOffer(provider,modelId){
+  const isOpenAI=provider==="openai";
+  const catalog=document.querySelector("#ai-offer-selector");
+  const panel=document.querySelector("#ai-offer-panel");
+  if(catalog)catalog.hidden=!isOpenAI;
+  if(panel)panel.hidden=!isOpenAI;
+  const item=isOpenAI?AI_OFFER.lookup(modelId):null;
+  if(aiOfferSelector)aiOfferSelector.value=item&&item.status!=="shut-down"?modelId:"";
+  const note=document.querySelector("#ai-model-offer-note");
+  if(!note)return;
+  if(!isOpenAI)return;
+  if(!item){
+    note.textContent="Custom model. No complimentary group confirmed; check its pricing in OpenAI.";
+  }else if(item.status==="shut-down"){
+    note.textContent=item.id+" · listed in your historical offer, but the API model has been shut down. Choose a supported alternative.";
+  }else{
+    const quota=item.group==="standard"?"250,000":
+      item.group==="small"?"2,500,000":null;
+    note.textContent=item.id+(quota
+      ?" · in the "+quota+"-token daily group shown in your offer."
+      :" · outside the two screenshot offer groups; standard billing may apply.")+
+      (item.status==="deprecated"?" Deprecated model: verify availability before a paid request.":"");
+  }
+  const effort=document.querySelector("#ai-effort");
+  if(effort && item?.nonReasoning)effort.value="none";
+  else if(effort&&item?.group!=="other"&&effort.value==="max")
+    effort.value="high";
+}
+function showOpenAIOffer(status){
+  if(!status||!document.querySelector("#ai-offer-panel"))return;
+  const enrolled=document.querySelector("#ai-offer-enrolled");
+  enrolled.checked=status.enrollmentSelfReported;
+  document.querySelector("#ai-offer-enrollment-status").textContent=status.enrollmentSelfReported
+    ?"Enrollment self-reported. This app cannot verify the organization/project setting or account-wide free usage."
+    :"Enrollment NOT confirmed here. Your screenshot shows eligibility only, so requests may be billed.";
+  for(const group of ["standard","small"]){
+    const max=status.limits[group],observed=status.observedTokens[group];
+    const meter=document.querySelector("#ai-offer-"+group+"-meter");
+    if(!meter)continue;
+    meter.max=max;meter.value=Math.min(observed,max);
+    document.querySelector("#ai-offer-"+group+"-count").textContent=
+      observed.toLocaleString()+" tokens observed in this extension today · NOT remaining free tokens";
+  }
+  document.querySelector("#ai-offer-day").textContent=
+    "UTC date: "+status.date+" · counters reset at 00:00 UTC. Other API clients are not counted.";
+}
+async function refreshOpenAIOffer(){
+  if(!aiOfferSelector)return;
+  try{
+    const response=await request({type:"AI_OFFER_STATUS"});
+    showOpenAIOffer(response.offer);
+  }catch(error){
+    const status=document.querySelector("#ai-offer-enrollment-status");
+    if(status)status.textContent="Local offer status unavailable: "+error.message;
+  }
+}
+populateOpenAIModels();
 const aiForm=document.querySelector("#ai-settings-form");
 let aiSavedProvider="openai";
 function aiMessage(message,error=false){
@@ -440,6 +524,7 @@ function showAIState(ai){
   if(ai.provider==="openai")model.setAttribute("list","openai-model-presets");
   else model.removeAttribute("list");
   document.querySelector("#ai-stream-options").hidden=ai.provider!=="openai";
+  renderModelOffer(ai.provider,ai.model);
   document.querySelector("#ai-send").disabled=
     !ai.hasSessionKey||!ai.hostGranted||globalThis.WorkspaceTraceUI.isRunning();
   document.querySelector("#ai-check-model").disabled=!ai.hasSessionKey||!ai.hostGranted;
@@ -457,7 +542,29 @@ async function refreshAI(){
 }
 if(aiForm){
   const provider=aiForm.querySelector("#ai-provider"),model=aiForm.querySelector("#ai-model");
-  provider.addEventListener("change",()=>{model.value=AI_DEFAULTS[provider.value];});
+  provider.addEventListener("change",()=>{
+    model.value=AI_DEFAULTS[provider.value];
+    renderModelOffer(provider.value,model.value);
+  });
+  model.addEventListener("input",()=>renderModelOffer(provider.value,model.value));
+  aiOfferSelector.addEventListener("change",()=>{
+    if(aiOfferSelector.value){
+      model.value=aiOfferSelector.value;
+      renderModelOffer(provider.value,model.value);
+    }
+  });
+  document.querySelector("#ai-offer-enrolled").addEventListener("change",async event=>{
+    const field=event.currentTarget;
+    field.disabled=true;
+    try{
+      const result=await request({type:"AI_OFFER_SET_ENROLLMENT",enrolled:field.checked});
+      showOpenAIOffer(result.offer);
+    }catch(error){
+      const note=document.querySelector("#ai-offer-enrollment-status");
+      note.textContent="Could not save local acknowledgment: "+error.message;
+      await refreshOpenAIOffer();
+    }finally{field.disabled=false;}
+  });
   aiForm.addEventListener("submit",async event=>{
     event.preventDefault();
     if(globalThis.WorkspaceTraceUI.isRunning()){
@@ -526,7 +633,9 @@ if(aiForm){
       const launched=globalThis.WorkspaceTraceUI.start({
         text:prompt,effort:document.querySelector("#ai-effort").value,
         webSearch:document.querySelector("#ai-web-search").checked
-      },refreshAI);
+      },async()=>{
+        await Promise.all([refreshAI(),refreshOpenAIOffer()]);
+      });
       if(!launched)aiMessage("An OpenAI stream is already active.",true);
       return;
     }
@@ -736,5 +845,6 @@ if(updateToggle){
 }
 refreshUpdater();
 refreshAI();
+refreshOpenAIOffer();
 refreshGoogle();
 refresh();
