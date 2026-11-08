@@ -405,6 +405,44 @@ if(browser.runtime.onInstalled?.addListener){
       globalThis.WorkspaceReleaseChecker.badge(browser)).catch(()=>{});
   });
 }
+// Dedicated same-extension Port for live OpenAI SSE; legacy one-shot providers are unchanged.
+// A Port is used rather than sendMessage because stream deltas arrive over time.
+if(browser.runtime.onConnect?.addListener){
+  browser.runtime.onConnect.addListener(port=>{
+    if(!port||port.name!=="elfshell.openai.trace.v1"||port.sender?.id!==browser.runtime.id){
+      try{port?.disconnect();}catch{}
+      return;
+    }
+    let begun=false,finished=false,closed=false,controller=null;
+    const send=event=>{
+      if(closed||finished)return;
+      if(event.kind==="terminal")finished=true;
+      try{port.postMessage(event);}catch{closed=true;controller?.abort();}
+    };
+    port.onMessage.addListener(message=>{
+      if(message?.type==="cancel"){
+        if(controller&&!finished)controller.abort();
+        return;
+      }
+      if(begun||message?.type!=="start"){
+        if(!begun)send({kind:"terminal",status:"failed",message:"Unexpected stream command"});
+        return;
+      }
+      begun=true;
+      controller=new AbortController();
+      globalThis.WorkspaceOpenAIStream.run({
+        browserApi:browser,fetchImpl:fetch,personaLoader:readPersona,
+        message,signal:controller.signal,emit:send
+      }).catch(error=>{
+        // No provider error bodies or secrets enter user-facing diagnostics.
+        const cancelled=controller.signal.aborted;
+        send({kind:"terminal",status:cancelled?"cancelled":"failed",
+          message:cancelled?"Request cancelled":String(error?.message||"OpenAI request failed").slice(0,170)});
+      });
+    });
+    port.onDisconnect.addListener(()=>{closed=true;controller?.abort();});
+  });
+}
 browser.action.onClicked.addListener(() => {
   // This must be called immediately within the user gesture, before awaiting anything.
   if (browser.sidebarAction && browser.sidebarAction.open) {
