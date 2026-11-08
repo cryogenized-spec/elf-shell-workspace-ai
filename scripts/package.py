@@ -3,7 +3,7 @@
 from pathlib import Path
 from zipfile import ZipFile, ZIP_DEFLATED
 ROOT = Path(__file__).resolve().parents[1]
-FILES = ["manifest.json","background.js","shared/workspace.js","shared/persona.js","google/oauth.js","google/read.js","google/files.js","briefing/engine.js","google/session.js","ai/providers.js","diagnostics/connection.js","ai/session.js","updater/release.js","updater/checker.js","hub.html","sidebar.html","ui.js","ui.css","icons/mark.svg"]
+FILES = ["manifest.json","background.js","shared/workspace.js","shared/persona.js","google/oauth.js","google/read.js","google/files.js","briefing/engine.js","google/session.js","ai/providers.js","diagnostics/connection.js","ai/session.js","ai/openai-stream.js","updater/release.js","updater/checker.js","hub.html","sidebar.html","ui.js","ui.css","icons/mark.svg"]
 DEST = ROOT / "dist" / "extension"
 DEST.mkdir(parents=True,exist_ok=True)
 for relative in FILES:
