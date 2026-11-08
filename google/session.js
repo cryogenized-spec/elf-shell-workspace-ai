@@ -86,7 +86,7 @@
     const current=await config(browserApi);
     await browserApi.storage.local.set({[CONFIG_KEY]:next});
     if(current.clientId!==next.clientId || current.scopes.join(" ")!==next.scopes.join(" "))
-      await browserApi.storage.session.remove([PENDING_KEY,TOKEN_KEY,SECRET_KEY]);
+      await browserApi.storage.session.remove([PENDING_KEY,TOKEN_KEY]);
     // Never pair credentials from one Google client with a different client ID.
     if(current.clientId!==next.clientId)
       await browserApi.storage.session.remove(SECRET_KEY);
@@ -157,8 +157,8 @@
   }
   async function disconnect(browserApi,fetchImpl) {
     const existing=(await browserApi.storage.session.get(TOKEN_KEY))[TOKEN_KEY];
-    // Always remove local credentials even if remote revocation fails.
-    await browserApi.storage.session.remove([PENDING_KEY,TOKEN_KEY]);
+    // Always remove local credentials, including the supplied Desktop client secret.
+    await browserApi.storage.session.remove([PENDING_KEY,TOKEN_KEY,SECRET_KEY]);
     let revoked=false;
     if(existing?.accessToken && await permitted(browserApi)){
       try{
