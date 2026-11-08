@@ -8,14 +8,15 @@ const {TextEncoder}=require("node:util");
 
 function createHarness(seed={},options={}) {
   const tabs = [], groups = [], settings = {...seed}, sessionSettings={}, scheduledAlarms={}, badgeState={text:""};
-  let tabId = 1, groupId = 1, onMessage = null, onExternal = null;
+  let tabId = 1, groupId = 1, onMessage = null, onExternal = null, onConnect = null;
   const browser = {
     runtime: {
       id: "workspace-ai@elf-shell.local",
       getURL: name => "moz-extension://fixture/" + name,
-      getManifest: () => ({version:"0.11.0"}),
+      getManifest: () => ({version:"0.12.0"}),
       onMessage: { addListener: callback => { onMessage = callback; } },
-      onMessageExternal: { addListener: callback => { onExternal = callback; } }
+      onMessageExternal: { addListener: callback => { onExternal = callback; } },
+      onConnect: {addListener: callback => { onConnect = callback; }}
     },
     storage: {
       local: {
@@ -94,15 +95,29 @@ function createHarness(seed={},options={}) {
     throw new Error("No Google network request expected in this test");
   };
   const context = vm.createContext({
-    browser,URL,URLSearchParams,console,fetch:mockFetch,crypto:cryptoApi,TextEncoder,TextDecoder,btoa
+    browser,URL,URLSearchParams,console,fetch:mockFetch,crypto:cryptoApi,TextEncoder,TextDecoder,btoa,AbortController,Uint8Array
   });
   for (const file of ["shared/workspace.js","shared/persona.js",
     "google/oauth.js","google/read.js","google/files.js","briefing/engine.js","google/session.js",
-    "ai/providers.js","diagnostics/connection.js","ai/session.js","updater/release.js","updater/checker.js","background.js"]) {
+    "ai/providers.js","diagnostics/connection.js","ai/session.js","ai/openai-stream.js","updater/release.js","updater/checker.js","background.js"]) {
     vm.runInContext(fs.readFileSync(path.resolve(__dirname,"..",file),"utf8"),context,{filename:file});
   }
   return {
     tabs, groups, settings, sessionSettings, scheduledAlarms, badgeState, fetchCalls,
+    port: (name="elfshell.openai.trace.v1",sender={id:browser.runtime.id}) => {
+      const sent=[];
+      let incoming=null,disconnect=null,closed=false;
+      const port={
+        name,sender,
+        onMessage:{addListener:fn=>{incoming=fn;}},
+        onDisconnect:{addListener:fn=>{disconnect=fn;}},
+        postMessage:msg=>{if(!closed)sent.push(msg);},
+        disconnect:()=>{closed=true;disconnect?.();}
+      };
+      onConnect(port);
+      return {sent,send:message=>incoming?.(message),get closed(){return closed;},
+        disconnect:()=>port.disconnect()};
+    },
     dispatch: async (message, sender={id:browser.runtime.id}) => onMessage(message,sender),
     external: async (message, sender={id:"elf-shell-ayarime@local.theme"}) => onExternal(message,sender)
   };
@@ -609,7 +624,7 @@ test("release alerts default off and do not call GitHub without opt-in",async()=
   const h=createHarness();
   const status=await h.dispatch({type:"UPDATE_STATUS"});
   assert.equal(status.ok,true,status.error);
-  assert.equal(status.update.current,"0.11.0");
+  assert.equal(status.update.current,"0.12.0");
   assert.equal(status.update.enabled,false);
   assert.equal(status.update.permissionGranted,false);
   assert.equal(status.update.notice,false);
@@ -626,7 +641,7 @@ test("opt-in release feed shows a badge but never downloads or installs an exten
     assert.equal(options.credentials,"omit");
     assert.equal(options.redirect,"error");
     return {ok:true,status:200,json:async()=>[{
-      tag_name:"v0.11.1",html_url:U.RELEASE_PREFIX+"v0.11.1",
+      tag_name:"v0.12.1",html_url:U.RELEASE_PREFIX+"v0.12.1",
       draft:false,prerelease:false,name:"Small fixes",body:"Better performance"
     }]};
   }});
@@ -638,11 +653,11 @@ test("opt-in release feed shows a badge but never downloads or installs an exten
   const checked=await h.dispatch({type:"UPDATE_CHECK"});
   assert.equal(checked.ok,true,checked.error);
   assert.equal(checked.update.notice,true);
-  assert.equal(checked.update.latest.version,"v0.11.1");
+  assert.equal(checked.update.latest.version,"v0.12.1");
   assert.equal(h.badgeState.text,"1");
   assert.equal(h.fetchCalls.length,1);
   assert(h.fetchCalls[0].url.includes("/releases?per_page=10"));
-  const ignored=await h.dispatch({type:"UPDATE_IGNORE",version:"v0.11.1"});
+  const ignored=await h.dispatch({type:"UPDATE_IGNORE",version:"v0.12.1"});
   assert.equal(ignored.ok,true);
   assert.equal(ignored.update.notice,false);
   assert.equal(h.badgeState.text,"");
@@ -654,7 +669,7 @@ test("release checks accept preview channel but external core cannot check or co
   const U=require("../updater/release.js");
   const h=createHarness({}, {releasePermission:true,mockFetch:async()=>({
     ok:true,status:200,json:async()=>[
-      {tag_name:"v0.11.2-beta.1",html_url:U.RELEASE_PREFIX+"v0.11.2-beta.1",
+      {tag_name:"v0.12.2-beta.1",html_url:U.RELEASE_PREFIX+"v0.12.2-beta.1",
         draft:false,prerelease:true,name:"Preview",body:"Improvements"}
     ]})});
   await h.dispatch({type:"UPDATE_CONFIG",enabled:true,channel:"stable"});
@@ -662,7 +677,7 @@ test("release checks accept preview channel but external core cannot check or co
   assert.equal(stable.update.notice,false);
   await h.dispatch({type:"UPDATE_CONFIG",enabled:true,channel:"preview"});
   const preview=await h.dispatch({type:"UPDATE_CHECK"});
-  assert.equal(preview.update.latest.version,"v0.11.2-beta.1");
+  assert.equal(preview.update.latest.version,"v0.12.2-beta.1");
   assert.equal(preview.update.notice,true);
   const external=await h.external({kind:"elfshell.workspace.bridge",version:1,command:"UPDATE_CHECK"});
   assert.equal(external.ok,false);
@@ -707,17 +722,17 @@ test("AI_CHECK_MODEL refuses to use a key before provider and data consent",asyn
 });
 test("AI_CHECK_MODEL uses a GET for exactly one chosen model and returns no key",async()=>{
   const h=createHarness({}, {aiPermission:true,mockFetch:async(url,init)=>{
-    assert.equal(url,"https://api.openai.com/v1/models/gpt-5.5");
+    assert.equal(url,"https://api.openai.com/v1/models/gpt-6-luna");
     assert.equal(init.method,"GET");
     assert.equal(init.body,undefined);
-    return {ok:true,status:200,json:async()=>({id:"gpt-5.5",object:"model",
+    return {ok:true,status:200,json:async()=>({id:"gpt-6-luna",object:"model",
       extraSecret:"should-not-surface"})};
   }});
   h.sessionSettings["elfshell.byok.apiKey.v1"]={provider:"openai",key:"sk_TEST_123456"};
   const result=await h.dispatch({type:"AI_CHECK_MODEL"});
   assert.equal(result.ok,true,result.error);
   assert.equal(result.result.ok,true);
-  assert.equal(result.result.modelId,"gpt-5.5");
+  assert.equal(result.result.modelId,"gpt-6-luna");
   assert.equal(h.fetchCalls.length,1);
   assert(!JSON.stringify(result).includes("sk_TEST_123456"));
   assert(!JSON.stringify(result).includes("should-not-surface"));
@@ -742,4 +757,42 @@ test("GOOGLE_TEST_ACCESS returns only read-only API status after explicit reques
     sources:{calendar:true}
   });
   assert.equal(outsider.ok,false);
+});
+
+test("OpenAI Port is available only to this extension and denies unconsented requests",async()=>{
+  const h=createHarness();
+  const hostile=h.port("elfshell.openai.trace.v1",{id:"untrusted@extension"});
+  assert.equal(hostile.closed,true);
+  const p=h.port();
+  p.send({type:"start",text:"Hello",effort:"medium",webSearch:false});
+  for(let i=0;i<20&&!p.sent.length;i++)await new Promise(resolve=>setTimeout(resolve,5));
+  assert.equal(p.sent.at(-1).kind,"terminal");
+  assert.equal(p.sent.at(-1).status,"failed");
+  assert.equal(h.fetchCalls.length,0);
+});
+test("OpenAI Port emits real summary and answer events, without secrets",async()=>{
+  const h=createHarness({}, {aiPermission:true,mockFetch:async(url,init)=>{
+    assert.equal(url,"https://api.openai.com/v1/responses");
+    assert.equal(init.method,"POST");
+    assert.equal(JSON.parse(init.body).stream,true);
+    const data=[
+      'data: {"type":"response.created"}\n\n',
+      'data: {"type":"response.reasoning_summary_text.delta","item_id":"rs","summary_index":0,"delta":"Verified"}\n\n',
+      'data: {"type":"response.output_text.delta","item_id":"msg","content_index":0,"delta":"Done"}\n\n',
+      'data: {"type":"response.completed","response":{"usage":{"input_tokens":4,"output_tokens":5}}}\n\n'
+    ].join("");
+    return {ok:true,status:200,body:new ReadableStream({
+      start(ctrl){ctrl.enqueue(new TextEncoder().encode(data));ctrl.close();}
+    })};
+  }});
+  h.sessionSettings["elfshell.byok.apiKey.v1"]={provider:"openai",key:"sk_TEST_SECRET_VALUE"};
+  const p=h.port();
+  p.send({type:"start",text:"Test",effort:"low",webSearch:false});
+  for(let i=0;i<80&&!p.sent.some(x=>x.kind==="terminal");i++)
+    await new Promise(resolve=>setTimeout(resolve,5));
+  assert.equal(p.sent.at(-1).status,"completed",JSON.stringify(p.sent));
+  assert(p.sent.some(x=>x.kind==="summary"));
+  assert(p.sent.some(x=>x.kind==="answer"));
+  assert(!JSON.stringify(p.sent).includes("sk_TEST_SECRET_VALUE"));
+  assert.equal(h.fetchCalls.length,1);
 });
