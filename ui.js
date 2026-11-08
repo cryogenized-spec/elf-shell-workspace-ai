@@ -401,20 +401,10 @@ if(googleForm) {
     const connect=document.querySelector("#google-connect");
     let login;
     try{
-      // Must be called synchronously in a real user click. Explicitly declare
-      // Firefox's supported special loopback redirect (no listener needed).
-      const authUrl=new URL(url);
-      const redirectUri=authUrl.searchParams.get("redirect_uri");
-      const redirect=new URL(redirectUri||"about:blank");
-      if(authUrl.origin!=="https://accounts.google.com" ||
-         redirect.protocol!=="http:"||redirect.hostname!=="127.0.0.1"||
-         !redirect.pathname.startsWith("/mozoauth2/"))
-        throw Error("Invalid prepared Google redirect");
-      login=browser.identity.launchWebAuthFlow({
-        interactive:true,url,redirect_uri:redirectUri
-      });
-    }catch{
-      googleMessage("Firefox could not start Google sign-in. Prepare sign-in again.",true);
+      // No async gap before launching: Firefox requires a direct user gesture.
+      login=globalThis.WorkspaceGoogleLogin.launch(browser,url);
+    }catch(error){
+      googleMessage(globalThis.WorkspaceGoogleLogin.safeStartFailure(error),true);
       return;
     }
     const attempt=++googleSignInSerial;
