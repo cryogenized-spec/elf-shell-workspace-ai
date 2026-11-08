@@ -131,3 +131,13 @@ This test passed in the November 7, 2026 GitHub Actions run. It does not access 
 76. Test Stop, extension disconnect, 401/403/429/500, incomplete token limits, malformed streams, and closed stream before completion; no success on EOF alone.
 77. Verify the original ELF//SHELL external bridge cannot start OpenAI streams; no API key or raw HTTP body is emitted in Port events or saved to local history.
 78. Test both sidebar and Super Tab in native Firefox, without live provider credentials; real inference requires independent consent and cost-limited key acceptance.
+
+## v0.13 OpenAI daily complimentary model groups
+
+79. In native Firefox, confirm all 8 standard and 9 mini/nano models shown in the user's screenshot are present in two optgroups, including disabled historical shutdown models.
+80. Confirm new installations default to GPT-5.4 Mini without overwriting a previously saved custom or GPT-6 model ID.
+81. Confirm the enrollment checkbox is OFF by default and stays explicitly unverified, irrespective of the user's screenshot showing eligibility. Toggling only updates local extension state; it never requests provider settings changes.
+82. Verify completed stream usage reports increment the correct local 250k/2.5M group by input+output tokens only. Unreported or invalid usage must never be invented.
+83. Verify both local meters reset exactly at 00:00 UTC, even if the local desktop's date is different. Concurrent stream completions must not overwrite one another.
+84. Check model statuses against OpenAI's current catalog, including o1/o3-mini/o4-mini shutdown; no unsupported reasoning options or hidden automatic web-search activation.
+85. Confirm the UI never calls the meter an authoritative free balance and explicitly warns about shared organization-wide usage, cross-boundary fully billed requests, and excluded tool costs.

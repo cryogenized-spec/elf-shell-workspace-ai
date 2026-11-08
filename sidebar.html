@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Ayarime — Workspace</title><link rel="stylesheet" href="ui.css"><script defer src="ui-trace.js"></script><script defer src="ui.js"></script></head>
+<title>Ayarime — Workspace</title><link rel="stylesheet" href="ui.css"><script defer src="ai/openai-complimentary.js"></script><script defer src="ui-trace.js"></script><script defer src="ui.js"></script></head>
 <body data-view="sidebar"><main class="side-shell">
 <header class="sidebar-header"><div class="slashes" aria-hidden="true">///</div><div><h1>AYARIME</h1><p>WORKSPACE / CONTROL</p></div></header>
 <section class="frame side-panel"><label for="profile-select" class="eyebrow">// ACTIVE WORKSPACE</label>
@@ -42,6 +42,14 @@
       <option value="gpt-6.1-sol">GPT-6.1 Sol</option>
       <option value="gpt-6-astra">GPT-6 Astra · highest cost</option>
     </datalist>
+
+    <div id="ai-offer-selector" class="offer-selector">
+      <label for="ai-model-choice">OpenAI model catalog · select or enter custom ID</label>
+      <select id="ai-model-choice" aria-label="Choose an OpenAI model from the daily complimentary-token offer">
+        <option value="">Custom / existing model ID</option>
+      </select>
+      <p id="ai-model-offer-note" class="quiet" role="status">Choose an offer model to see its daily group and current availability.</p>
+    </div>
     <button class="mini" type="submit">Save provider / model</button>
   </form>
   <div class="ai-key-controls">
@@ -51,6 +59,28 @@
     <button id="ai-set-key" type="button" class="mini">Use key this session</button>
     <button id="ai-clear-key" type="button" class="mini danger">Forget key</button>
   </div>
+
+  <section id="ai-offer-panel" class="offer-panel" aria-label="OpenAI daily complimentary-token offer">
+    <h3>OpenAI · complimentary token offer</h3>
+    <p class="quiet">Your screenshot shows eligibility, not confirmed enrollment. Sharing must be enabled in OpenAI's own organization/project settings. This extension never changes that setting.</p>
+    <label class="offer-confirm"><input id="ai-offer-enrolled" type="checkbox" /> I've independently confirmed “enrolled for complimentary daily tokens” in OpenAI's dashboard.</label>
+    <p id="ai-offer-enrollment-status" class="quiet" aria-live="polite">Enrollment is not confirmed in this extension.</p>
+    <div class="offer-meters">
+      <div class="offer-meter">
+        <div class="offer-meter-head"><strong>Standard models</strong><span>250,000 / day</span></div>
+        <meter id="ai-offer-standard-meter" min="0" max="250000" value="0"></meter>
+        <p id="ai-offer-standard-count" class="quiet">0 locally observed tokens</p>
+      </div>
+      <div class="offer-meter">
+        <div class="offer-meter-head"><strong>Mini / nano models</strong><span>2,500,000 / day</span></div>
+        <meter id="ai-offer-small-meter" min="0" max="2500000" value="0"></meter>
+        <p id="ai-offer-small-count" class="quiet">0 locally observed tokens</p>
+      </div>
+    </div>
+    <p id="ai-offer-day" class="quiet">Counters are for this extension/profile only and reset at 00:00 UTC.</p>
+    <p class="quiet">Not a free-balance guarantee. Other projects or apps share the same allowance. OpenAI may bill an entire request that exceeds the quota; tool calls are excluded. Actual eligibility, use and costs are confirmed in OpenAI's dashboard.</p>
+    <p class="offer-links"><a href="https://platform.openai.com/settings/organization/data-controls/sharing" target="_blank" rel="noopener noreferrer">OpenAI data-sharing settings</a> · <a href="https://platform.openai.com/usage/chat-completions" target="_blank" rel="noopener noreferrer">Usage / service tier</a></p>
+  </section>
   <label for="ai-prompt" class="eyebrow">EXPLICIT TEXT PROMPT</label>
   <textarea id="ai-prompt" rows="4" maxlength="6000" placeholder="Ask Ayarime…"></textarea>
   <div id="ai-stream-options" class="trace-options">
@@ -107,5 +137,5 @@
   </div>
   <p class="quiet">The release check downloads only small JSON metadata. Firefox code updates still require a complete, Mozilla-signed XPI. There is no unsupported hot-patching or remote code execution.</p>
 </section>
-<footer>ELF//SHELL · ALPHA 0.12</footer>
+<footer>ELF//SHELL · ALPHA 0.13</footer>
 </main></body></html>

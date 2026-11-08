@@ -13,7 +13,7 @@ function createHarness(seed={},options={}) {
     runtime: {
       id: "workspace-ai@elf-shell.local",
       getURL: name => "moz-extension://fixture/" + name,
-      getManifest: () => ({version:"0.12.0"}),
+      getManifest: () => ({version:"0.13.0"}),
       onMessage: { addListener: callback => { onMessage = callback; } },
       onMessageExternal: { addListener: callback => { onExternal = callback; } },
       onConnect: {addListener: callback => { onConnect = callback; }}
@@ -99,7 +99,7 @@ function createHarness(seed={},options={}) {
   });
   for (const file of ["shared/workspace.js","shared/persona.js",
     "google/oauth.js","google/read.js","google/files.js","briefing/engine.js","google/session.js",
-    "ai/providers.js","diagnostics/connection.js","ai/session.js","ai/openai-stream.js","updater/release.js","updater/checker.js","background.js"]) {
+    "ai/providers.js","ai/openai-complimentary.js","diagnostics/connection.js","ai/session.js","ai/openai-stream.js","updater/release.js","updater/checker.js","background.js"]) {
     vm.runInContext(fs.readFileSync(path.resolve(__dirname,"..",file),"utf8"),context,{filename:file});
   }
   return {
@@ -624,7 +624,7 @@ test("release alerts default off and do not call GitHub without opt-in",async()=
   const h=createHarness();
   const status=await h.dispatch({type:"UPDATE_STATUS"});
   assert.equal(status.ok,true,status.error);
-  assert.equal(status.update.current,"0.12.0");
+  assert.equal(status.update.current,"0.13.0");
   assert.equal(status.update.enabled,false);
   assert.equal(status.update.permissionGranted,false);
   assert.equal(status.update.notice,false);
@@ -641,7 +641,7 @@ test("opt-in release feed shows a badge but never downloads or installs an exten
     assert.equal(options.credentials,"omit");
     assert.equal(options.redirect,"error");
     return {ok:true,status:200,json:async()=>[{
-      tag_name:"v0.12.1",html_url:U.RELEASE_PREFIX+"v0.12.1",
+      tag_name:"v0.13.1",html_url:U.RELEASE_PREFIX+"v0.13.1",
       draft:false,prerelease:false,name:"Small fixes",body:"Better performance"
     }]};
   }});
@@ -653,11 +653,11 @@ test("opt-in release feed shows a badge but never downloads or installs an exten
   const checked=await h.dispatch({type:"UPDATE_CHECK"});
   assert.equal(checked.ok,true,checked.error);
   assert.equal(checked.update.notice,true);
-  assert.equal(checked.update.latest.version,"v0.12.1");
+  assert.equal(checked.update.latest.version,"v0.13.1");
   assert.equal(h.badgeState.text,"1");
   assert.equal(h.fetchCalls.length,1);
   assert(h.fetchCalls[0].url.includes("/releases?per_page=10"));
-  const ignored=await h.dispatch({type:"UPDATE_IGNORE",version:"v0.12.1"});
+  const ignored=await h.dispatch({type:"UPDATE_IGNORE",version:"v0.13.1"});
   assert.equal(ignored.ok,true);
   assert.equal(ignored.update.notice,false);
   assert.equal(h.badgeState.text,"");
@@ -669,7 +669,7 @@ test("release checks accept preview channel but external core cannot check or co
   const U=require("../updater/release.js");
   const h=createHarness({}, {releasePermission:true,mockFetch:async()=>({
     ok:true,status:200,json:async()=>[
-      {tag_name:"v0.12.2-beta.1",html_url:U.RELEASE_PREFIX+"v0.12.2-beta.1",
+      {tag_name:"v0.13.2-beta.1",html_url:U.RELEASE_PREFIX+"v0.13.2-beta.1",
         draft:false,prerelease:true,name:"Preview",body:"Improvements"}
     ]})});
   await h.dispatch({type:"UPDATE_CONFIG",enabled:true,channel:"stable"});
@@ -677,7 +677,7 @@ test("release checks accept preview channel but external core cannot check or co
   assert.equal(stable.update.notice,false);
   await h.dispatch({type:"UPDATE_CONFIG",enabled:true,channel:"preview"});
   const preview=await h.dispatch({type:"UPDATE_CHECK"});
-  assert.equal(preview.update.latest.version,"v0.12.2-beta.1");
+  assert.equal(preview.update.latest.version,"v0.13.2-beta.1");
   assert.equal(preview.update.notice,true);
   const external=await h.external({kind:"elfshell.workspace.bridge",version:1,command:"UPDATE_CHECK"});
   assert.equal(external.ok,false);
@@ -722,17 +722,17 @@ test("AI_CHECK_MODEL refuses to use a key before provider and data consent",asyn
 });
 test("AI_CHECK_MODEL uses a GET for exactly one chosen model and returns no key",async()=>{
   const h=createHarness({}, {aiPermission:true,mockFetch:async(url,init)=>{
-    assert.equal(url,"https://api.openai.com/v1/models/gpt-6-luna");
+    assert.equal(url,"https://api.openai.com/v1/models/gpt-5.4-mini");
     assert.equal(init.method,"GET");
     assert.equal(init.body,undefined);
-    return {ok:true,status:200,json:async()=>({id:"gpt-6-luna",object:"model",
+    return {ok:true,status:200,json:async()=>({id:"gpt-5.4-mini",object:"model",
       extraSecret:"should-not-surface"})};
   }});
   h.sessionSettings["elfshell.byok.apiKey.v1"]={provider:"openai",key:"sk_TEST_123456"};
   const result=await h.dispatch({type:"AI_CHECK_MODEL"});
   assert.equal(result.ok,true,result.error);
   assert.equal(result.result.ok,true);
-  assert.equal(result.result.modelId,"gpt-6-luna");
+  assert.equal(result.result.modelId,"gpt-5.4-mini");
   assert.equal(h.fetchCalls.length,1);
   assert(!JSON.stringify(result).includes("sk_TEST_123456"));
   assert(!JSON.stringify(result).includes("should-not-surface"));
@@ -795,4 +795,50 @@ test("OpenAI Port emits real summary and answer events, without secrets",async()
   assert(p.sent.some(x=>x.kind==="answer"));
   assert(!JSON.stringify(p.sent).includes("sk_TEST_SECRET_VALUE"));
   assert.equal(h.fetchCalls.length,1);
+});
+
+test("offer reads never send network requests and enrollment remains self-reported",async()=>{
+  const h=createHarness();
+  const s=await h.dispatch({type:"AI_OFFER_STATUS"});
+  assert.equal(s.ok,true);
+  assert.equal(s.offer.verifiedByOpenAI,false);
+  assert.equal(s.offer.enrollmentSelfReported,false);
+  assert.equal(s.offer.limits.standard,250000);
+  assert.equal(s.offer.limits.small,2500000);
+  assert.equal(h.fetchCalls.length,0);
+  const enabled=await h.dispatch({type:"AI_OFFER_SET_ENROLLMENT",enrolled:true});
+  assert.equal(enabled.ok,true);
+  assert.equal(enabled.offer.enrollmentSelfReported,true);
+  assert.equal(enabled.offer.verifiedByOpenAI,false);
+  assert(!JSON.stringify(h.settings).includes("sk-TEST"));
+  const external=await h.external({
+    kind:"elfshell.workspace.bridge",version:1,command:"AI_OFFER_STATUS"
+  });
+  assert.equal(external.ok,false);
+});
+test("OpenAI free-offer tracker accounts for completed response usage without logging content",async()=>{
+  const h=createHarness({}, {aiPermission:true,mockFetch:async(url,options)=>{
+    assert.equal(url,"https://api.openai.com/v1/responses");
+    const content=[
+      'data: {"type":"response.created"}\n\n',
+      'data: {"type":"response.output_text.delta","item_id":"m","content_index":0,"delta":"Result"}\n\n',
+      'data: {"type":"response.completed","response":{"usage":{"input_tokens":12,"output_tokens":30}}}\n\n'
+    ].join("");
+    return {status:200,ok:true,body:new ReadableStream({
+      start(ctrl){ctrl.enqueue(new TextEncoder().encode(content));ctrl.close();}
+    })};
+  }});
+  h.sessionSettings["elfshell.byok.apiKey.v1"]={provider:"openai",key:"sk_TEST_SECRET"};
+  const port=h.port();
+  port.send({type:"start",text:"Hello",effort:"medium",webSearch:false});
+  for(let i=0;i<80&&!port.sent.some(e=>e.kind==="terminal");i++)
+    await new Promise(resolve=>setTimeout(resolve,5));
+  assert.equal(port.sent.at(-1).status,"completed",JSON.stringify(port.sent));
+  assert.equal(port.sent.at(-1).localUsage.observedTokens.small,42);
+  const s=await h.dispatch({type:"AI_OFFER_STATUS"});
+  assert.equal(s.offer.observedTokens.small,42);
+  assert.equal(s.offer.enrollmentSelfReported,false);
+  assert.equal(s.offer.verifiedByOpenAI,false);
+  assert(!JSON.stringify(port.sent).includes("sk_TEST_SECRET"));
+  assert(!JSON.stringify(h.settings).includes("Hello"));
 });

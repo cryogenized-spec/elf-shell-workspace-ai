@@ -2,7 +2,7 @@
 
 An optional **Firefox Desktop** companion to [ELF//SHELL — Ayarime](https://github.com/cryogenized-spec/elf-shell-ayarime).
 
-**Status: v0.12.0 developer preview, unsigned and not released publicly.** Native Firefox CI, two-extension command integration and strict Mozilla lint have passed; signed installation and user-profile acceptance are still pending.
+**Status: v0.13.0 developer preview, unsigned and not released publicly.** Native Firefox CI, two-extension command integration and strict Mozilla lint have passed; signed installation and user-profile acceptance are still pending.
 
 This companion is independent of the existing Firefox new-tab extension and does not replace its interface. The first alpha implements a native pinned **Super Tab**, a sidebar styled after the original ELF//SHELL palette, and user-initiated restoration of real Google Workspace tabs.
 
@@ -18,6 +18,7 @@ This companion is independent of the existing Firefox new-tab extension and does
 - Opt into GitHub Release notices (daily or manual), with a toolbar badge, release notes and no silent code downloads.
 - Check Google Calendar/Tasks authorization and selected BYOK model metadata on demand, without provider generation or copying account records.
 - Stream **OpenAI Responses** text and provider-issued reasoning summaries with an original, expandable action timeline, actual tool-event reporting, total/per-action timers and Stop cancellation. Hosted web search stays opt-in; other providers retain one-shot mode.
+- Select all 17 OpenAI offer-listed model IDs across the 250k and 2.5M daily groupings, with deprecated-model warnings, opt-in self-reported enrollment status and local, provider-reported UTC usage meters. These are not verified free balances.
 - Reuse open Google Workspace tabs (Gmail, Calendar, Drive, Docs, Sheets and Tasks) and create only missing tabs.
 - Group Workspace tabs in Firefox and focus the master Hub.
 - Create, rename and switch between up to 10 local Workspace profiles. Each has its own saved Google links and named tab group. Switching/deleting a profile never closes your tabs.
@@ -86,3 +87,5 @@ Read [OAuth setup, scope and privacy constraints](docs/google-oauth.md) before c
 **Connection diagnostics (v0.11):** [Read about manual Google scope and provider model metadata checks](docs/connection-diagnostics.md). These are privacy-safe probes, not evidence of completed live OAuth or inference acceptance.
 
 **OpenAI streaming (v0.12):** [OpenAI live trace architecture, limits and verification](docs/openai-streaming.md). Only provider summaries—not private CoT—are shown; tool rows require real provider events. No live paid API call has been completed for acceptance.
+
+**OpenAI complimentary model catalog (v0.13):** [17 model options, conditional enrollment and two separate UTC usage counters](docs/openai-complimentary-offer.md). The extension neither controls sharing settings nor guarantees free requests.
