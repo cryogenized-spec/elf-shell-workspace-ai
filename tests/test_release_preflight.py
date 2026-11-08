@@ -23,7 +23,7 @@ class TestReleasePreflight(unittest.TestCase):
         self.assertIn("google_oauth_live_test",result["blockers"])
 
     def test_version_mismatch_rejected(self):
-        result=audit(XPI,"v0.13.1")
+        result=audit(XPI,"v0.13.2")
         self.assertTrue(any("do not match" in x for x in result["errors"]))
 
     def test_unverified_public_signing_is_blocked(self):
