@@ -168,6 +168,30 @@ try:
             "Firefox did not complete" in driver.execute_script(
                 "return explainGoogleLoginFailure({message:'Failed to read https://127.0.0.1/?code=SECRET'},'redirect')"),
             "Google error contains a secret or does not distinguish stages"))
+    check("native Firefox uses two-option OAuth launch without deprecated redirect field",
+          lambda:require(
+            driver.execute_script("""
+              const prepared='https://accounts.google.com/o/oauth2/v2/auth'+
+                '?response_type=code&redirect_uri='+encodeURIComponent('http://127.0.0.1/mozoauth2/test');
+              let received=null;
+              const fake={identity:{launchWebAuthFlow:(details)=>{received=details;return Promise.resolve('ignored');}}};
+              window.WorkspaceGoogleLogin.launch(fake,prepared);
+              return received && received.interactive===true &&
+                received.url===prepared && !('redirect_uri' in received) &&
+                Object.keys(received).length===2;
+            """),
+            "Firefox launch helper changed the established two-field API contract"))
+    check("native Firefox OAuth launch errors are redacted and actionable",
+          lambda:require(
+            "AUTH_START_BROWSER_REJECTED" in driver.execute_script("""
+              return window.WorkspaceGoogleLogin.safeStartFailure(
+                new Error('callback code=TOP_SECRET_DO_NOT_ECHO'));
+            """) and
+            "TOP_SECRET_DO_NOT_ECHO" not in driver.execute_script("""
+              return window.WorkspaceGoogleLogin.safeStartFailure(
+                new Error('callback code=TOP_SECRET_DO_NOT_ECHO'));
+            """),
+            "The Firefox launch error might reveal OAuth secrets"))
     check("Google sign-in is opt-in and disabled before preparation",
           lambda:require(not driver.find_element(By.ID,"google-connect").is_enabled(),
             "Connect Google unexpectedly enabled"))
@@ -288,7 +312,7 @@ try:
 
     updater=extension_call({"type":"UPDATE_STATUS"})
     check("release notifications start opt-in and do not claim an installed update",
-          lambda:require(updater["ok"] and updater["update"]["current"]=="0.13.2" and
+          lambda:require(updater["ok"] and updater["update"]["current"]=="0.13.3" and
             not updater["update"]["enabled"] and
             updater["update"]["behavior"]=="notification-only",str(updater)))
     check("release check is disabled before optional GitHub permission",
