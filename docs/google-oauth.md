@@ -52,3 +52,25 @@ No AI inference or Morning Coffee automatic analysis is enabled in this mileston
 The **Account Access** panel now provides a direct shortcut to [Google Cloud Console → Google Auth Platform → Clients](https://console.cloud.google.com/auth/clients). Choose your project; complete the Google Auth setup or audience/consent-screen registration if prompted; click **Create client → Desktop app**; then copy the generated **Client ID** ending in `.apps.googleusercontent.com` into the extension's **Google OAuth Desktop client ID** field. Never paste an API key, OAuth access token or client secret into this field.
 
 The link opens in a new tab with `noopener noreferrer` and does not itself authenticate the extension, send any user data or grant Google scopes. It only helps find the public client identifier. The actual Firefox/Google OAuth flow remains **not live-verified**, as described in this document.
+
+## v0.13.2 — Live Google consent stalls: diagnosis and recovery
+
+A real user reached the Google OAuth consent screen after setting up a new, correctly branded Google Cloud Desktop OAuth client, but Workspace AI returned to **“Google not connected”** and/or remained waiting after consent. No user access token was supplied to the development environment, and successful API retrieval is **not yet verified**.
+
+The old Hub catch block displayed the Google/Firefox error and immediately refreshed connection status, overwriting the real failure with a generic “Google not connected” message. The v0.13.2 repair preserves a **sanitized, actionable error**, distinguishes redirect capture from token exchange, and displays a non-destructive waiting notice after 30 seconds.
+
+The **Reset stuck sign-in** button clears only the pending one-time PKCE state/verifier in Firefox session storage. It **does not** revoke an existing access token or uninstall anything. If an old sign-in popup eventually completes, its callback is deliberately rejected because the pending state was removed. Firefox's native identity popup may need to be closed manually before retrying.
+
+### Safe user recovery
+
+1. Close the lingering Google sign-in window. **Never share its URL** (it may contain a one-time authorization code or OAuth state).
+2. In Account Access, uncheck the sensitive **Docs** and **Sheets** read-only scopes for the first test; keep **Calendar** and **Tasks** read-only only. Save configuration.
+3. Click **Reset stuck sign-in** if enabled, otherwise **Prepare sign-in** to generate a new one-time PKCE challenge.
+4. Click **Connect Google** and follow Google consent. Ayarime now reports whether it is waiting for Firefox's redirect or exchanging a captured code with Google.
+5. If Google seems to load forever after Continue, consider whether Firefox Multi-Account Containers or another container manager automatically assigns the Google domain to a container. Mozilla Bugzilla [#2028967](https://bugzilla.mozilla.org/show_bug.cgi?id=2028967) describes a case where `identity.launchWebAuthFlow` fails to capture a redirect in that configuration. If applicable, temporarily disable *automatic Google-domain container assignment* for a disposable test, then retry. This is a **possible** cause, not a confirmed diagnosis of this user's setup.
+6. If Ayarime specifically reports an **HTTP 400 token exchange**, the redirect did reach Firefox, but Google's token request was rejected. Check that the **Desktop** client ID belongs to the intended project and that the challenge has not expired. Do not paste client secrets into the add-on. Recent reports describe potential Desktop PKCE client-secret compatibility quirks, but they require separate investigation; the app must not collect or embed a confidential secret.
+7. For a persistent error, share **only** the sanitized stage and HTTP status shown by Ayarime—not authorization URLs, access/refresh tokens, raw developer-console requests or API keys.
+
+The 5-minute pending challenge timeout is intentionally retained, and Google token responses still require matching state and authorized read-only scopes. No changes to Google's project, consent screen or account scopes are made automatically. Passing mocked and native Firefox tests is not proof of a live completed OAuth session.
+
+Official references: [Mozilla Identity redirect support](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/identity), [Mozilla launchWebAuthFlow](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/identity/launchWebAuthFlow), [Google installed app authorization](https://developers.google.com/identity/protocols/oauth2/native-app).

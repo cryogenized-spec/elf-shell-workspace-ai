@@ -13,7 +13,7 @@ function createHarness(seed={},options={}) {
     runtime: {
       id: "workspace-ai@elf-shell.local",
       getURL: name => "moz-extension://fixture/" + name,
-      getManifest: () => ({version:"0.13.1"}),
+      getManifest: () => ({version:"0.13.2"}),
       onMessage: { addListener: callback => { onMessage = callback; } },
       onMessageExternal: { addListener: callback => { onExternal = callback; } },
       onConnect: {addListener: callback => { onConnect = callback; }}
@@ -429,6 +429,48 @@ test("Google OAuth consent flow uses only session tokens and supports local disc
   assert.equal((await h.dispatch({type:"GOOGLE_AUTH_STATUS"})).auth.connected,false);
   assert.equal(h.sessionSettings["elfshell.google.sessionToken.v1"],undefined);
 });
+test("stuck Google OAuth can be reset without token exchange or lost existing access",async()=>{
+  const calendar="https://www.googleapis.com/auth/calendar.events.readonly";
+  const client="123456789-abcdefabcdef.apps.googleusercontent.com";
+  const h=createHarness({}, {googlePermission:true,mockFetch:async()=>{
+    throw Error("No Google network call allowed for OAuth reset");
+  }});
+  await h.dispatch({type:"GOOGLE_AUTH_CONFIG",clientId:client,scopes:[calendar]});
+  const prep=await h.dispatch({type:"GOOGLE_AUTH_PREPARE"});
+  assert.equal(prep.ok,true,prep.error);
+  const pending=h.sessionSettings["elfshell.google.pending.v1"];
+  assert(pending&&pending.state);
+  const stale="http://127.0.0.1/mozoauth2/devredirect?state="+
+    encodeURIComponent(pending.state)+"&code=OLD_SINGLE_USE_AUTHORIZATION_CODE";
+  // An already connected session must survive an unrelated, stuck reauthorization.
+  const token={accessToken:"TEST_EXISTING_ACCESS_TOKEN",expiresAt:Date.now()+100000,
+    scopes:[calendar]};
+  h.sessionSettings["elfshell.google.sessionToken.v1"]=token;
+  const reset=await h.dispatch({type:"GOOGLE_AUTH_CANCEL"});
+  assert.equal(reset.ok,true,reset.error);
+  assert.equal(reset.auth.prepared,null);
+  assert.equal(reset.auth.connected,true);
+  assert.equal(h.sessionSettings["elfshell.google.pending.v1"],undefined);
+  assert.equal(h.sessionSettings["elfshell.google.sessionToken.v1"],token);
+  assert.equal(h.fetchCalls.length,0);
+  const late=await h.dispatch({type:"GOOGLE_AUTH_COMPLETE",callbackUrl:stale});
+  assert.equal(late.ok,false);
+  assert.equal(h.fetchCalls.length,0);
+  assert.equal(h.sessionSettings["elfshell.google.sessionToken.v1"],token);
+  // A fresh prepare gets a new challenge without requiring another Cloud project.
+  const next=await h.dispatch({type:"GOOGLE_AUTH_PREPARE"});
+  assert.equal(next.ok,true);
+  assert.notEqual(h.sessionSettings["elfshell.google.pending.v1"].state,pending.state);
+});
+test("core bridge cannot reset or complete Google OAuth",async()=>{
+  const h=createHarness();
+  const reset=await h.external({kind:"elfshell.workspace.bridge",version:1,
+    command:"GOOGLE_AUTH_CANCEL"});
+  assert.equal(reset.ok,false);
+  const complete=await h.external({kind:"elfshell.workspace.bridge",version:1,
+    command:"GOOGLE_AUTH_COMPLETE",callbackUrl:"http://127.0.0.1/mozoauth2/test?code=SENSITIVE"});
+  assert.equal(complete.ok,false);
+});
 test("external ELF//SHELL core cannot read Google account information",async()=>{
   const h=createHarness({}, {googlePermission:true});
   const request={kind:"elfshell.workspace.bridge",version:1,command:"GOOGLE_READ_OVERVIEW"};
@@ -624,7 +666,7 @@ test("release alerts default off and do not call GitHub without opt-in",async()=
   const h=createHarness();
   const status=await h.dispatch({type:"UPDATE_STATUS"});
   assert.equal(status.ok,true,status.error);
-  assert.equal(status.update.current,"0.13.1");
+  assert.equal(status.update.current,"0.13.2");
   assert.equal(status.update.enabled,false);
   assert.equal(status.update.permissionGranted,false);
   assert.equal(status.update.notice,false);
@@ -641,7 +683,7 @@ test("opt-in release feed shows a badge but never downloads or installs an exten
     assert.equal(options.credentials,"omit");
     assert.equal(options.redirect,"error");
     return {ok:true,status:200,json:async()=>[{
-      tag_name:"v0.13.2",html_url:U.RELEASE_PREFIX+"v0.13.2",
+      tag_name:"v0.13.3",html_url:U.RELEASE_PREFIX+"v0.13.3",
       draft:false,prerelease:false,name:"Small fixes",body:"Better performance"
     }]};
   }});
@@ -653,11 +695,11 @@ test("opt-in release feed shows a badge but never downloads or installs an exten
   const checked=await h.dispatch({type:"UPDATE_CHECK"});
   assert.equal(checked.ok,true,checked.error);
   assert.equal(checked.update.notice,true);
-  assert.equal(checked.update.latest.version,"v0.13.2");
+  assert.equal(checked.update.latest.version,"v0.13.3");
   assert.equal(h.badgeState.text,"1");
   assert.equal(h.fetchCalls.length,1);
   assert(h.fetchCalls[0].url.includes("/releases?per_page=10"));
-  const ignored=await h.dispatch({type:"UPDATE_IGNORE",version:"v0.13.2"});
+  const ignored=await h.dispatch({type:"UPDATE_IGNORE",version:"v0.13.3"});
   assert.equal(ignored.ok,true);
   assert.equal(ignored.update.notice,false);
   assert.equal(h.badgeState.text,"");
@@ -669,7 +711,7 @@ test("release checks accept preview channel but external core cannot check or co
   const U=require("../updater/release.js");
   const h=createHarness({}, {releasePermission:true,mockFetch:async()=>({
     ok:true,status:200,json:async()=>[
-      {tag_name:"v0.13.3-beta.1",html_url:U.RELEASE_PREFIX+"v0.13.3-beta.1",
+      {tag_name:"v0.13.4-beta.1",html_url:U.RELEASE_PREFIX+"v0.13.4-beta.1",
         draft:false,prerelease:true,name:"Preview",body:"Improvements"}
     ]})});
   await h.dispatch({type:"UPDATE_CONFIG",enabled:true,channel:"stable"});
@@ -677,7 +719,7 @@ test("release checks accept preview channel but external core cannot check or co
   assert.equal(stable.update.notice,false);
   await h.dispatch({type:"UPDATE_CONFIG",enabled:true,channel:"preview"});
   const preview=await h.dispatch({type:"UPDATE_CHECK"});
-  assert.equal(preview.update.latest.version,"v0.13.3-beta.1");
+  assert.equal(preview.update.latest.version,"v0.13.4-beta.1");
   assert.equal(preview.update.notice,true);
   const external=await h.external({kind:"elfshell.workspace.bridge",version:1,command:"UPDATE_CHECK"});
   assert.equal(external.ok,false);
