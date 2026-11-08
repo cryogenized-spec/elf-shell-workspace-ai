@@ -73,3 +73,7 @@ Implemented OpenAI Responses SSE and provider-exposed reasoning-summary deltas w
 ### v0.13 complimentary offer model groups
 
 The screenshot-specific OpenAI model list is available in two clearly separated 250k/2.5M daily token groups, with deprecated and shutdown markers. Added optional self-reported enrollment and two locally observed token usage meters that reset 00:00 UTC. **Not** authoritative remaining free balance; external API dashboard is the billing source of truth. See [OpenAI complimentary offer](openai-complimentary-offer.md). No account data-sharing setting was changed, and live paid acceptance is still pending.
+
+### v0.13.4 Desktop OAuth token-exchange compatibility
+
+A real Google consent/callback was confirmed; Google returned HTTP 400 `invalid_request` because `client_secret` was omitted from the Desktop token request. The Hub now accepts the user's Desktop client secret in Firefox session storage only and includes it in the Google token POST alongside PKCE, without embedding credentials in public code. Mock/native tests added. Live successful access remains unverified and release gates remain unapproved. See [OAuth notes](google-oauth.md).
