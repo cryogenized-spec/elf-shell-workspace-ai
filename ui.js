@@ -240,7 +240,13 @@ function showGoogleState(auth) {
   googleForm.querySelector("#google-scope-sheets").checked=auth.config.scopes.includes(GOOGLE_SHEETS_SCOPE);
   googleCurrentScopes=[...auth.config.scopes];
   googlePreparedUrl=auth.prepared?.url || null;
-  document.querySelector("#google-prepare").disabled=!auth.permissionsGranted || !auth.config.clientId;
+  document.querySelector("#google-prepare").disabled=!auth.permissionsGranted || !auth.config.clientId || !auth.hasDesktopSecret;
+  const secretStatus=document.querySelector("#google-secret-status");
+  if(secretStatus)secretStatus.textContent=auth.hasDesktopSecret
+    ? "Desktop client secret available for this Firefox session. Value is never displayed."
+    : "No Desktop OAuth client secret stored. Paste it below and click Use secret for this session.";
+  const clearSecret=document.querySelector("#google-secret-clear");
+  if(clearSecret)clearSecret.disabled=!auth.hasDesktopSecret;
   document.querySelector("#google-connect").disabled=!googlePreparedUrl||googleLoginActive;
   document.querySelector("#google-reset").disabled=!auth.prepared&&!googleLoginActive;
   document.querySelector("#google-read").disabled=!auth.connected;
@@ -254,7 +260,9 @@ function showGoogleState(auth) {
     : auth.prepared
       ? "Authorization prepared. Select Connect Google to open Firefox's sign-in."
       : auth.permissionsGranted
-        ? "Google not connected. Save your OAuth client and prepare sign-in."
+        ? auth.hasDesktopSecret
+          ? "Google not connected. Prepare sign-in using the saved Desktop OAuth client."
+          : "Google not connected. Enter your Desktop OAuth client secret in the session-only field, then prepare sign-in."
         : "Google not connected. API host permission must be granted explicitly.");
 }
 function explainGoogleLoginFailure(error,stage){
@@ -268,8 +276,14 @@ function explainGoogleLoginFailure(error,stage){
       "If Google opens inside Multi-Account Containers, temporarily disable "+
       "automatic Google container assignment and retry. No token was stored.";
   }
-  const status=/oauth code exchange \(http (\d{3})\)/.exec(raw);
+  const status=/oauth code exchange \(http (\d{3})(?:, category: ([a-z-]+))?\)/.exec(raw);
   if(status){
+    if(status[2]==="missing-client-secret")
+      return "Google received the authorization code but says the Desktop client secret is missing. Enter it in Ayarime's session-only field and retry with a fresh sign-in.";
+    if(status[2]==="invalid-client")
+      return "Google rejected the Desktop OAuth client credentials (HTTP "+status[1]+"). Check that the client ID and session-only secret belong to the SAME Google Cloud Desktop client.";
+    if(status[2]==="invalid-grant")
+      return "Google rejected the one-time code or PKCE verifier (HTTP "+status[1]+"). Close the old window, prepare a new sign-in, and do not reuse an earlier authorization code.";
     if(status[1]==="400")return "Google returned to Firefox, but rejected the "+
       "one-time code exchange (HTTP 400). The code may have expired or the "+
       "Desktop OAuth client/redirect may not match. Prepare sign-in again.";
@@ -387,6 +401,33 @@ if(googleForm) {
       if(!await grant){googleMessage("Google connection or data-sharing permission declined. Nothing was connected.",true);return;}
       await refreshGoogle();
     }catch(error){googleMessage("Permission request failed: "+error.message,true);}
+  });
+  document.querySelector("#google-secret-save").addEventListener("click",async()=>{
+    const input=document.querySelector("#google-client-secret");
+    const secret=input.value;
+    input.value=""; // Do not retain in the live DOM or in saved form values.
+    if(!secret){googleMessage("Enter the Desktop OAuth client secret in the session-only field.",true);return;}
+    const button=document.querySelector("#google-secret-save");
+    button.disabled=true;
+    try{
+      const response=await request({type:"GOOGLE_AUTH_SECRET_SET",secret});
+      showGoogleState(response.auth);
+      googleMessage("Desktop OAuth client secret stored for this Firefox session only. Prepare sign-in again.");
+    }catch{
+      googleMessage("Unable to use Desktop client secret. Check that it belongs to the selected Google Cloud Desktop client. The value was not saved.",true);
+    }finally{button.disabled=false;}
+  });
+  document.querySelector("#google-secret-clear").addEventListener("click",async()=>{
+    const button=document.querySelector("#google-secret-clear");
+    button.disabled=true;
+    document.querySelector("#google-client-secret").value="";
+    try{
+      const result=await request({type:"GOOGLE_AUTH_SECRET_CLEAR"});
+      showGoogleState(result.auth);
+      googleMessage("Desktop client secret and any pending sign-in cleared from this Firefox session.");
+    }catch{
+      googleMessage("Could not clear the session credential. Close the test browser profile before proceeding.",true);
+    }finally{await refreshGoogle();}
   });
   document.querySelector("#google-prepare").addEventListener("click",async()=>{
     try{
