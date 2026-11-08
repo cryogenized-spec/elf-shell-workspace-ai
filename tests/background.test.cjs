@@ -896,7 +896,7 @@ test("OpenAI free-offer tracker accounts for completed response usage without lo
 });
 
 test("Desktop OAuth secret remains session-only, rejects invalid fields and never surfaces in status",async()=>{
-  const h=createHarness();
+  const h=createHarness({}, {googlePermission:true});
   const client="123456789-abcdefabcdef.apps.googleusercontent.com";
   const calendar="https://www.googleapis.com/auth/calendar.events.readonly";
   await h.dispatch({type:"GOOGLE_AUTH_CONFIG",clientId:client,scopes:[calendar]});
