@@ -154,6 +154,16 @@ try:
           lambda:require(auth["ok"] and not auth["auth"]["connected"] and
             not auth["auth"]["permissionsGranted"] and
             not auth["auth"]["config"]["clientId"],str(auth)))
+    check("Desktop OAuth client secret has private input and no stored value on startup",
+          lambda:require(
+            driver.find_element(By.ID,"google-client-secret").get_attribute("type")=="password" and
+            driver.find_element(By.ID,"google-client-secret").get_attribute("value")=="" and
+            not driver.find_element(By.ID,"google-secret-clear").is_enabled() and
+            "No Desktop OAuth client secret stored" in driver.find_element(By.ID,"google-secret-status").text,
+            "Desktop OAuth secret must not prefill or appear in saved settings"))
+    check("Google OAuth prepare is disabled until a Desktop secret is entered locally",
+          lambda:require(not driver.find_element(By.ID,"google-prepare").is_enabled(),
+            "Google OAuth prepare should not launch without session credentials"))
     check("Google stuck-sign-in reset is available but disabled until authorization starts",
           lambda:require(
             driver.find_element(By.ID,"google-reset").is_displayed() and
@@ -208,7 +218,7 @@ try:
           lambda:require(
             "Create client" in driver.find_element(By.CSS_SELECTOR,".google-oauth-client-help").text and
             "Desktop app" in driver.find_element(By.CSS_SELECTOR,".google-oauth-client-help").text and
-            "never the API key or client secret" in driver.find_element(By.CSS_SELECTOR,".google-oauth-client-help").text,
+            "separately generated" in driver.find_element(By.CSS_SELECTOR,".google-oauth-client-help").text,
             "OAuth setup guidance is incomplete"))
 
     client="123456789-abcdefabcdef.apps.googleusercontent.com"
@@ -312,7 +322,7 @@ try:
 
     updater=extension_call({"type":"UPDATE_STATUS"})
     check("release notifications start opt-in and do not claim an installed update",
-          lambda:require(updater["ok"] and updater["update"]["current"]=="0.13.3" and
+          lambda:require(updater["ok"] and updater["update"]["current"]=="0.13.4" and
             not updater["update"]["enabled"] and
             updater["update"]["behavior"]=="notification-only",str(updater)))
     check("release check is disabled before optional GitHub permission",
