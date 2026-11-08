@@ -1,6 +1,6 @@
-# Google OAuth — developer preview (v0.13.4)
+# Google OAuth — developer preview (v0.14.0)
 
-**Current status:** Live Google consent and Firefox callback capture have succeeded on a user-created Desktop OAuth client, but the token exchange returned HTTP 400 because the Desktop OAuth client secret was missing. v0.13.4 supports session-only client-secret input; successful live token exchange still requires verification. The extension is **not** a publicly signed or approved release.
+**Current status (8 November 2026):** Following the session-only Desktop-client-secret fix in v0.13.4, the user reported successful real Firefox Calendar and Tasks OAuth/API reads. Drive and Gmail metadata (v0.14.0) and saved Docs/Sheets previews have **not** been verified live. Browser-specific denial/revocation/expiry testing and public Google OAuth verification remain incomplete. The extension is **not** a publicly signed or approved release. Historical troubleshooting notes below describe earlier version states, not today's acceptance status. See [the live-acceptance matrix](google-live-acceptance.md).
 
 ## Why a Desktop OAuth client?
 
@@ -31,7 +31,7 @@ References:
 
 ## Consent & storage
 
-The app requests optional Firefox permissions for `oauth2.googleapis.com` and only the selected Google service API origins (`www.googleapis.com`, `tasks.googleapis.com`, `docs.googleapis.com`, `sheets.googleapis.com`). The extension's `identity` permission enables the OAuth browser flow. The app does **not** request Gmail scopes, generic Drive scopes or account-wide searches. Optional Docs and Sheets read-only scopes are available, but Google classifies these as **sensitive**, granting broader access than the UI's saved-file-only selection policy. See [Docs/Sheets previews](google-files.md).
+The app requests Firefox permissions only for selected Google API origins (`oauth2.googleapis.com`, `www.googleapis.com`, `tasks.googleapis.com`, `docs.googleapis.com`, `sheets.googleapis.com`, `gmail.googleapis.com`). The extension's `identity` permission enables OAuth. In v0.14.0, separate restricted `drive.metadata.readonly` and `gmail.metadata` scopes are **OFF by default** and require an explicit account reconnect and Firefox consent. Docs and Sheets read-only scopes are separately **sensitive**, granting broader access than the saved-file-only UI policy. No general Drive content read or Gmail message-body access is implemented. See [Docs/Sheets previews](google-files.md) and [Drive/Gmail metadata](drive-gmail-metadata.md).
 
 The client ID and chosen scopes are stored in Firefox `storage.local`, and they are **not confidential**. The separately entered Desktop OAuth client secret, a short-lived access token and any pending authorization challenge are stored in Firefox `storage.session` only. **No refresh token is retained.** No access token is returned in status messages or passed to ELF//SHELL's separate extension. Session storage isn't a secure vault; future persistent access will need a proper credential design.
 
@@ -43,7 +43,8 @@ The read-only snapshot is intentionally bounded: up to 30 calendar events, 5 tas
 
 - Tests verify nonce/state, callback destination and 5-minute expiry, SHA-256 PKCE, strict client ID/scopes, refused/partial consent, absence of refresh tokens, authentication before any network calls, and GET-only allowed API routes.
 - Existing native Firefox and dual-extension acceptance should remain green.
-- **Not yet proven:** live Google authorization with real registered client ID; browser-specific token exchange handling; public OAuth verification; independent security assessment (if future broader Gmail or Drive restricted scopes are introduced); user-facing privacy review and Mozilla listing metadata.
+- **Remaining live acceptance:** independently documented repeat of Calendar/Tasks OAuth; Drive/Gmail restricted-scope consent and reads; Docs/Sheets actual saved-file previews; partial consent, denial, revocation, token expiration, Firefox restart and disconnect.
+- **Remaining public release gates:** Google OAuth and restricted-scope verification/security requirements, Mozilla privacy/data-collection review, and signed installation. Do not set `release-gates.json` approvals solely from user-reported API success.
 
 No AI inference or Morning Coffee automatic analysis is enabled in this milestone.
 
@@ -51,7 +52,7 @@ No AI inference or Morning Coffee automatic analysis is enabled in this mileston
 
 The **Account Access** panel now provides a direct shortcut to [Google Cloud Console → Google Auth Platform → Clients](https://console.cloud.google.com/auth/clients). Choose your project; complete the Google Auth setup or audience/consent-screen registration if prompted; click **Create client → Desktop app**; then copy the generated **Client ID** ending in `.apps.googleusercontent.com` into the extension's **Google OAuth Desktop client ID** field. Never paste an API key, OAuth access token or client secret into this field.
 
-The link opens in a new tab with `noopener noreferrer` and does not itself authenticate the extension, send any user data or grant Google scopes. It only helps find the public client identifier. The actual Firefox/Google OAuth flow remains **not live-verified**, as described in this document.
+The link opens in a new tab with `noopener noreferrer` and does not itself authenticate the extension, send any user data or grant Google scopes. It only helps find the public client identifier. Calendar and Tasks were subsequently **user-reported successful in live Firefox**; see the acceptance matrix for the distinction between field reports and formal release-gate verification.
 
 ## v0.13.2 — Live Google consent stalls: diagnosis and recovery
 
@@ -68,7 +69,7 @@ The **Reset stuck sign-in** button clears only the pending one-time PKCE state/v
 3. Click **Reset stuck sign-in** if enabled, otherwise **Prepare sign-in** to generate a new one-time PKCE challenge.
 4. Click **Connect Google** and follow Google consent. Ayarime now reports whether it is waiting for Firefox's redirect or exchanging a captured code with Google.
 5. If Google seems to load forever after Continue, consider whether Firefox Multi-Account Containers or another container manager automatically assigns the Google domain to a container. Mozilla Bugzilla [#2028967](https://bugzilla.mozilla.org/show_bug.cgi?id=2028967) describes a case where `identity.launchWebAuthFlow` fails to capture a redirect in that configuration. If applicable, temporarily disable *automatic Google-domain container assignment* for a disposable test, then retry. This is a **possible** cause, not a confirmed diagnosis of this user's setup.
-6. If Ayarime specifically reports an **HTTP 400 token exchange**, the redirect did reach Firefox, but Google's token request was rejected. Check that the **Desktop** client ID belongs to the intended project and that the challenge has not expired. Do not paste client secrets into the add-on. Recent reports describe potential Desktop PKCE client-secret compatibility quirks, but they require separate investigation; the app must not collect or embed a confidential secret.
+6. If Ayarime specifically reports an **HTTP 400 token exchange**, the redirect did reach Firefox, but Google's token request was rejected. Check that the **Desktop** client ID belongs to the intended project and that the challenge has not expired. Use only the local **session-only Desktop OAuth client secret** field added in v0.13.4; never paste it into GitHub, chat, developer logs or non-secret fields. Recent reports describe potential Desktop PKCE client-secret compatibility quirks, but they require separate investigation; the app must not collect or embed a confidential secret.
 7. For a persistent error, share **only** the sanitized stage and HTTP status shown by Ayarime—not authorization URLs, access/refresh tokens, raw developer-console requests or API keys.
 
 The 5-minute pending challenge timeout is intentionally retained, and Google token responses still require matching state and authorized read-only scopes. No changes to Google's project, consent screen or account scopes are made automatically. Passing mocked and native Firefox tests is not proof of a live completed OAuth session.
@@ -95,7 +96,7 @@ Google's Desktop OAuth documentation marks `client_secret` as **optional** in it
 
 **How to enter it:** On the [Google Auth Platform Clients page](https://console.cloud.google.com/auth/clients), select the existing **Desktop app** OAuth client for the new ELF//SHELL project. Retrieve its matching client secret from Google's credentials interface or the OAuth Desktop client JSON you saved at creation. Do not share or screenshot the client secret. In Ayarime enter the public Client ID as usual, save configuration, enter the **matching** client secret in the new password field and press **Use secret for this session**. Then prepare a **fresh** sign-in and connect with Calendar/Tasks scopes only. Old authorization codes and PKCE verifiers are single-use and must never be replayed.
 
-The token exchange now classifies `missing-client-secret`, `invalid-client`, `invalid-grant`, `unauthorized-client` and unknown failures using a fixed, redacted error description. It never returns raw Google token error bodies, code/verifier or secret values to the UI. **No live Google token exchange has yet been re-run using this new secret input**, so successful connection remains an open acceptance gate.
+The token exchange now classifies `missing-client-secret`, `invalid-client`, `invalid-grant`, `unauthorized-client` and unknown failures using a fixed, redacted error description. It never returns raw Google token error bodies, code/verifier or secret values to the UI. **Historical note:** at the time v0.13.4 was merged, the new secret input had not been live retested. The later user field report confirmed Calendar/Tasks reads; no public OAuth approval is implied.
 
 Official references:
 - https://developers.google.com/identity/protocols/oauth2/native-app
