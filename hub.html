@@ -2,13 +2,13 @@
 <html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ELF//SHELL — Workspace Hub</title><link rel="stylesheet" href="ui.css">
-<script defer src="ui.js"></script></head>
+<script defer src="ui-trace.js"></script><script defer src="ui.js"></script></head>
 <body data-view="hub">
 <div class="backdrop" aria-hidden="true"></div>
 <main class="shell">
 <header class="masthead">
   <div class="slashes" aria-hidden="true">///</div>
-  <div><h1>ELF<span>//</span>SHELL</h1><p>AYARIME / WORKSPACE CONTROL MODULE · ALPHA 0.11</p></div>
+  <div><h1>ELF<span>//</span>SHELL</h1><p>AYARIME / WORKSPACE CONTROL MODULE · ALPHA 0.12</p></div>
   <div class="status-pill">LOCAL / READY</div>
 </header>
 <section class="frame profile-manager" aria-label="Workspace profiles">
@@ -130,6 +130,12 @@
     </select>
     <label for="ai-model">Model ID</label>
     <input id="ai-model" type="text" maxlength="90" spellcheck="false" required placeholder="Choose a supported model ID" />
+    <datalist id="openai-model-presets">
+      <option value="gpt-6-luna">GPT-6 Luna · efficient</option>
+      <option value="gpt-6.1-terra">GPT-6.1 Terra</option>
+      <option value="gpt-6.1-sol">GPT-6.1 Sol</option>
+      <option value="gpt-6-astra">GPT-6 Astra · highest cost</option>
+    </datalist>
     <button type="submit" class="mini">Save provider and model</button>
   </form>
   <div class="ai-key-controls">
@@ -141,7 +147,32 @@
   </div>
   <label for="ai-prompt" class="eyebrow">SEND AN EXPLICIT PROMPT</label>
   <textarea id="ai-prompt" rows="4" maxlength="6000" placeholder="Ayarime, help me organize my work…"></textarea>
+  <div id="ai-stream-options" class="trace-options">
+    <label for="ai-effort">OpenAI reasoning effort</label>
+    <select id="ai-effort" aria-label="OpenAI reasoning effort">
+      <option value="none">None · no summary request</option>
+      <option value="low">Low</option>
+      <option value="medium" selected>Medium · recommended</option>
+      <option value="high">High</option>
+      <option value="xhigh">Extra high</option>
+      <option value="max">Maximum · more tokens and potential cost</option>
+    </select>
+    <label class="trace-check" for="ai-web-search"><input id="ai-web-search" type="checkbox" /> Allow OpenAI hosted web search for this request (additional charges may apply)</label>
+    <p class="quiet">Responses API streaming with provider-exposed reasoning summaries. Raw private chain-of-thought is not available. Tool steps appear only when the provider actually emits them.</p>
+  </div>
   <button id="ai-send" type="button" class="secondary">Ask Ayarime ↗</button>
+  <button id="ai-cancel" type="button" class="mini danger" hidden>Stop OpenAI generation</button>
+  <section id="ai-trace" class="trace-board" aria-label="OpenAI live activity" hidden>
+    <div class="trace-head"><strong>AYARIME / LIVE ACTIVITY</strong><span id="ai-elapsed" class="trace-clock" aria-label="Total elapsed time">0.0s</span></div>
+    <div id="ai-trace-steps" class="trace-steps" aria-live="polite"></div>
+    <details id="ai-summary-details" class="trace-summary" open>
+      <summary>Provider reasoning summaries</summary>
+      <p id="ai-summary-status" class="quiet">Waiting for the provider.</p>
+      <div id="ai-summary-text" class="trace-summary-body"></div>
+    </details>
+    <small id="ai-trace-usage" class="quiet">Token usage appears after OpenAI completes.</small>
+  </section>
+
   <button id="ai-check-model" type="button" class="mini" disabled>Verify model access · no generation</button>
   <p class="quiet" id="ai-check-result" role="status" aria-live="polite">Model verification not run. This uses a provider metadata GET, not an inference request.</p>
   <p id="ai-status" class="status" role="status" aria-live="polite">AI not configured.</p>

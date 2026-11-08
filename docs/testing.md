@@ -120,3 +120,14 @@ This test passed in the November 7, 2026 GitHub Actions run. It does not access 
 68. Verify Calendar/Tasks diagnostic GETs request only the selected authorized service, with maxResults=1 and a fields filter. Do not parse or return event/list IDs.
 69. Deny OAuth scope or revoke Firefox data permission and confirm the diagnostic fails without a network request.
 70. In real Firefox with no keys/accounts, verify the Google test and model check buttons are disabled. Do not claim a real external connection has been tested based on the simulated suite.
+
+## v0.12 OpenAI SSE acceptance
+
+71. Confirm OpenAI defaults to GPT-6 Luna but saved user model IDs are preserved; no silent paid request on load.
+72. Confirm effort medium, web-search permission unchecked and trace hidden by default. Click Ask only after explicit user key and Firefox data consent.
+73. Test raw SSE fragmented UTF-8, CRLF, provider comments and [DONE], multi-event streams, full vs delta final answer replacement and provider reasoning summaries.
+74. Verify `response.reasoning_text.*` is discarded; only provider `reasoning_summary_*` reaches the UI. If none, show 'not provided' rather than fabricated thinking.
+75. Verify tool actions/timers reflect real provider output-item/search events, not invented tools or timings. Hosted web search must be separately opt-in and may have additional charges.
+76. Test Stop, extension disconnect, 401/403/429/500, incomplete token limits, malformed streams, and closed stream before completion; no success on EOF alone.
+77. Verify the original ELF//SHELL external bridge cannot start OpenAI streams; no API key or raw HTTP body is emitted in Port events or saved to local history.
+78. Test both sidebar and Super Tab in native Firefox, without live provider credentials; real inference requires independent consent and cost-limited key acceptance.

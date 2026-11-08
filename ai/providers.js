@@ -2,7 +2,7 @@
 (function(root){
   "use strict";
   const PROVIDERS=Object.freeze({
-    openai:Object.freeze({host:"https://api.openai.com/*",origin:"https://api.openai.com",defaultModel:"gpt-5.5"}),
+    openai:Object.freeze({host:"https://api.openai.com/*",origin:"https://api.openai.com",defaultModel:"gpt-6-luna"}),
     anthropic:Object.freeze({host:"https://api.anthropic.com/*",origin:"https://api.anthropic.com",defaultModel:"claude-sonnet-4-5"}),
     gemini:Object.freeze({host:"https://generativelanguage.googleapis.com/*",origin:"https://generativelanguage.googleapis.com",defaultModel:"gemini-3.8-flash"})
   });

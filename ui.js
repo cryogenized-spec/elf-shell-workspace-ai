@@ -423,7 +423,7 @@ const AI_HOSTS={
   anthropic:"https://api.anthropic.com/*",
   gemini:"https://generativelanguage.googleapis.com/*"
 };
-const AI_DEFAULTS={openai:"gpt-5.5",anthropic:"claude-sonnet-4-5",gemini:"gemini-3.8-flash"};
+const AI_DEFAULTS={openai:"gpt-6-luna",anthropic:"claude-sonnet-4-5",gemini:"gemini-3.8-flash"};
 const aiForm=document.querySelector("#ai-settings-form");
 let aiSavedProvider="openai";
 function aiMessage(message,error=false){
@@ -437,7 +437,11 @@ function showAIState(ai){
   const provider=aiForm.querySelector("#ai-provider"),model=aiForm.querySelector("#ai-model");
   provider.value=ai.provider;model.value=ai.model;
   aiSavedProvider=ai.provider;
-  document.querySelector("#ai-send").disabled=!ai.hasSessionKey||!ai.hostGranted;
+  if(ai.provider==="openai")model.setAttribute("list","openai-model-presets");
+  else model.removeAttribute("list");
+  document.querySelector("#ai-stream-options").hidden=ai.provider!=="openai";
+  document.querySelector("#ai-send").disabled=
+    !ai.hasSessionKey||!ai.hostGranted||globalThis.WorkspaceTraceUI.isRunning();
   document.querySelector("#ai-check-model").disabled=!ai.hasSessionKey||!ai.hostGranted;
   document.querySelector("#ai-clear-key").disabled=!ai.hasSessionKey;
   aiMessage(ai.hasSessionKey
@@ -456,6 +460,10 @@ if(aiForm){
   provider.addEventListener("change",()=>{model.value=AI_DEFAULTS[provider.value];});
   aiForm.addEventListener("submit",async event=>{
     event.preventDefault();
+    if(globalThis.WorkspaceTraceUI.isRunning()){
+      aiMessage("Stop the active OpenAI stream before changing provider or model.",true);
+      return;
+    }
     const button=aiForm.querySelector('button[type="submit"]');button.disabled=true;
     try {
       const response=await request({type:"AI_SAVE_SETTINGS",
@@ -508,9 +516,20 @@ if(aiForm){
     }catch(error){output.textContent="Model check unavailable: "+error.message;}
     finally{await refreshAI();}
   });
+  document.querySelector("#ai-cancel").addEventListener("click",()=>{
+    globalThis.WorkspaceTraceUI.cancel();
+  });
   document.querySelector("#ai-send").addEventListener("click",async()=>{
     const button=document.querySelector("#ai-send");
     const prompt=document.querySelector("#ai-prompt").value;
+    if(aiSavedProvider==="openai"){
+      const launched=globalThis.WorkspaceTraceUI.start({
+        text:prompt,effort:document.querySelector("#ai-effort").value,
+        webSearch:document.querySelector("#ai-web-search").checked
+      },refreshAI);
+      if(!launched)aiMessage("An OpenAI stream is already active.",true);
+      return;
+    }
     const output=document.querySelector("#ai-output");output.replaceChildren();
     button.disabled=true;aiMessage("Sending your explicit text prompt to the selected provider…");
     try{
