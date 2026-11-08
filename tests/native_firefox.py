@@ -212,7 +212,7 @@ try:
           lambda:require(
             not driver.find_element(By.ID,"ai-offer-enrolled").is_selected() and
             "NOT remaining free tokens" in driver.find_element(By.ID,"ai-offer-small-count").text and
-            "Eligibility" in driver.find_element(By.ID,"ai-offer-panel").text,
+            "eligibility" in driver.find_element(By.ID,"ai-offer-panel").text,
             "Offer view incorrectly claims verified free balance"))
     check("web search is disabled by default; summary effort selectable",
           lambda:require(not driver.find_element(By.ID,"ai-web-search").is_selected() and
