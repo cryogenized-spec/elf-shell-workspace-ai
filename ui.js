@@ -221,6 +221,8 @@ function googleHostsForScopes(scopes) {
   return hosts;
 }
 let googlePreparedUrl=null;
+let googleSignInSerial=0;
+let googleLoginActive=false;
 const googleForm=document.querySelector("#google-config-form");
 function googleMessage(value,error=false) {
   const target=document.querySelector("#google-auth-status");
@@ -239,7 +241,8 @@ function showGoogleState(auth) {
   googleCurrentScopes=[...auth.config.scopes];
   googlePreparedUrl=auth.prepared?.url || null;
   document.querySelector("#google-prepare").disabled=!auth.permissionsGranted || !auth.config.clientId;
-  document.querySelector("#google-connect").disabled=!googlePreparedUrl;
+  document.querySelector("#google-connect").disabled=!googlePreparedUrl||googleLoginActive;
+  document.querySelector("#google-reset").disabled=!auth.prepared&&!googleLoginActive;
   document.querySelector("#google-read").disabled=!auth.connected;
   document.querySelector("#google-check").disabled=!auth.connected;
   document.querySelector("#google-disconnect").disabled=!auth.connected;
@@ -392,19 +395,21 @@ if(googleForm) {
     }catch(error){googleMessage(error.message,true);}
   });
   document.querySelector("#google-connect").addEventListener("click",async()=>{
+    if(googleLoginActive)return;
     const url=googlePreparedUrl;
     if(!url){googleMessage("Prepare sign-in first.",true);return;}
     const connect=document.querySelector("#google-connect");
-    // Firefox's identity API must be invoked synchronously from this click.
-    // Passing the explicit loopback redirect removes any ambiguity about which
-    // of Firefox's supported callback destinations should end this flow.
     let login;
     try{
+      // Must be called synchronously in a real user click. Explicitly declare
+      // Firefox's supported special loopback redirect (no listener needed).
       const authUrl=new URL(url);
       const redirectUri=authUrl.searchParams.get("redirect_uri");
+      const redirect=new URL(redirectUri||"about:blank");
       if(authUrl.origin!=="https://accounts.google.com" ||
-         !redirectUri || !redirectUri.startsWith("http://127.0.0.1/mozoauth2/"))
-        throw Error("Invalid prepared redirect");
+         redirect.protocol!=="http:"||redirect.hostname!=="127.0.0.1"||
+         !redirect.pathname.startsWith("/mozoauth2/"))
+        throw Error("Invalid prepared Google redirect");
       login=browser.identity.launchWebAuthFlow({
         interactive:true,url,redirect_uri:redirectUri
       });
@@ -412,35 +417,63 @@ if(googleForm) {
       googleMessage("Firefox could not start Google sign-in. Prepare sign-in again.",true);
       return;
     }
+    const attempt=++googleSignInSerial;
+    googleLoginActive=true;
     googlePreparedUrl=null;
     connect.disabled=true;
+    document.querySelector("#google-reset").disabled=false;
     let stage="redirect";
     const slowNotice=setTimeout(()=>{
-      if(stage==="redirect")googleMessage(
+      if(attempt===googleSignInSerial&&stage==="redirect")googleMessage(
         "Still waiting for Firefox to capture Google's return redirect. "+
-        "If Google is stuck after Continue, close the sign-in window and check "+
-        "whether a Firefox Container is assigned to Google. No connection was made yet.",
-        true);
+        "If Google keeps loading after Continue, use Reset sign-in, close the "+
+        "Google window, and check if Google is assigned to a Firefox Container. "+
+        "Nothing is connected yet.",true);
     },30000);
     googleMessage("Google sign-in opened. Waiting for Firefox to capture the authorization redirect…");
     try{
       const callback=await login;
+      // Reset invalidates the one-time challenge. Never reuse a late callback.
+      if(attempt!==googleSignInSerial)return;
       stage="exchange";
       clearTimeout(slowNotice);
-      googleMessage("Firefox received Google's callback. Exchanging the one-time code securely…");
-      const r=await request({type:"GOOGLE_AUTH_COMPLETE",callbackUrl:callback});
-      showGoogleState(r.auth);
-      if(!r.auth.connected)googleMessage(
-        "Google responded, but no usable authorized session was established.",true);
+      document.querySelector("#google-reset").disabled=true;
+      googleMessage("Firefox captured Google's return. Exchanging the one-time code securely…");
+      const result=await request({type:"GOOGLE_AUTH_COMPLETE",callbackUrl:callback});
+      if(attempt!==googleSignInSerial)return;
+      showGoogleState(result.auth);
+      if(!result.auth.connected)googleMessage(
+        "Google returned, but no authorized session could be confirmed.",true);
     }catch(error){
-      clearTimeout(slowNotice);
-      // Refresh first, then preserve the actionable failure. The old ordering
-      // immediately erased errors and misleadingly said only "not connected".
+      if(attempt!==googleSignInSerial)return;
+      // Refresh before showing the failure; the old order erased useful errors.
       await refreshGoogle();
       googleMessage(explainGoogleLoginFailure(error,stage),true);
     }finally{
       clearTimeout(slowNotice);
+      if(attempt===googleSignInSerial){
+        googleLoginActive=false;
+        connect.disabled=!googlePreparedUrl;
+        document.querySelector("#google-reset").disabled=false;
+      }
     }
+  });
+  document.querySelector("#google-reset").addEventListener("click",async()=>{
+    ++googleSignInSerial;
+    googleLoginActive=false;
+    googlePreparedUrl=null;
+    const reset=document.querySelector("#google-reset");
+    reset.disabled=true;
+    try{
+      const result=await request({type:"GOOGLE_AUTH_CANCEL"});
+      showGoogleState(result.auth);
+      googleMessage("Pending sign-in reset. Close the old Google sign-in window, "+
+        "then choose Prepare sign-in for a fresh attempt. No account access "+
+        "was granted by this reset.");
+    }catch{
+      googleMessage("Could not reset the pending sign-in. Reload the Hub "+
+        "and prepare a new authorization attempt.",true);
+    }finally{reset.disabled=false;}
   });
   document.querySelector("#google-disconnect").addEventListener("click",async()=>{
     const button=document.querySelector("#google-disconnect");button.disabled=true;
