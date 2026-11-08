@@ -1,11 +1,11 @@
 {
   "name": "elf-shell-workspace-ai",
-  "version": "0.13.2",
+  "version": "0.13.3",
   "private": true,
   "license": "MPL-2.0",
   "description": "Firefox-first ELF//SHELL Workspace AI companion alpha",
   "scripts": {
-    "test": "node --check background.js && node --check ui.js && node --check ui-trace.js && node --check shared/workspace.js && node --check shared/persona.js && node --check google/oauth.js && node --check google/read.js && node --check google/files.js && node --check briefing/engine.js && node --check google/session.js && node --check ai/providers.js && node --check ai/openai-complimentary.js && node --check diagnostics/connection.js && node --check ai/session.js && node --check ai/openai-stream.js && node --check updater/release.js && node --check updater/checker.js && node --test tests/*.test.cjs",
+    "test": "node --check background.js && node --check ui.js && node --check ui-trace.js && node --check shared/workspace.js && node --check shared/persona.js && node --check google/oauth.js && node --check google/login-ui.js && node --check google/read.js && node --check google/files.js && node --check briefing/engine.js && node --check google/session.js && node --check ai/providers.js && node --check ai/openai-complimentary.js && node --check diagnostics/connection.js && node --check ai/session.js && node --check ai/openai-stream.js && node --check updater/release.js && node --check updater/checker.js && node --test tests/*.test.cjs",
     "package": "python3 scripts/package.py",
     "lint:firefox": "web-ext lint --source-dir dist/extension --warnings-as-errors"
   }
