@@ -37,7 +37,8 @@
     "https://www.googleapis.com/*",
     "https://tasks.googleapis.com/*",
     "https://docs.googleapis.com/*",
-    "https://sheets.googleapis.com/*"
+    "https://sheets.googleapis.com/*",
+    "https://gmail.googleapis.com/*"
   ]);
   function requiredHosts(scopes) {
     const requested=OAUTH.scopes(scopes);
@@ -46,7 +47,9 @@
     if(requested.includes(OAUTH.TASKS_READ))result.push(HOSTS[2]);
     if(requested.includes(OAUTH.DOCS_READ))result.push(HOSTS[3]);
     if(requested.includes(OAUTH.SHEETS_READ))result.push(HOSTS[4]);
-    return result;
+    if(requested.includes(OAUTH.DRIVE_METADATA_READ))result.push(HOSTS[1]);
+    if(requested.includes(OAUTH.GMAIL_METADATA_READ))result.push(HOSTS[5]);
+    return [...new Set(result)];
   }
   const configDefault=()=>({clientId:"",scopes:[OAUTH.CALENDAR_READ]});
   async function config(browserApi) {
@@ -57,7 +60,11 @@
   }
   async function permitted(browserApi,requested) {
     const selected=requested || (await config(browserApi)).scopes;
-    return Boolean(await browserApi.permissions.contains({origins:requiredHosts(selected),data_collection:[...DATA_TYPES]}));
+    const types=selected.includes(OAUTH.GMAIL_METADATA_READ)
+      ?[...DATA_TYPES,"personalCommunications"]:[...DATA_TYPES];
+    return Boolean(await browserApi.permissions.contains({
+      origins:requiredHosts(selected),data_collection:types
+    }));
   }
   function safePending(value,now) {
     return value && typeof value==="object" &&
@@ -229,6 +236,21 @@
     }
     return root.WorkspaceMorningCoffee.compile(snapshot,now);
   }
+  async function readMetadata(browserApi,fetchImpl,source,now=Date.now()){
+    const items={
+      drive:{scope:OAUTH.DRIVE_METADATA_READ,read:root.WorkspaceGoogleCatalog.recentDrive},
+      gmail:{scope:OAUTH.GMAIL_METADATA_READ,read:root.WorkspaceGoogleCatalog.inboxGmail}
+    };
+    if(!Object.hasOwn(items,source))throw Error("Select Drive or Gmail metadata");
+    const item=items[source];
+    if(!await permitted(browserApi,[item.scope]))
+      throw Error("Grant Firefox host and data-sharing permission for "+source+" first");
+    const token=(await browserApi.storage.session.get(TOKEN_KEY))[TOKEN_KEY];
+    if(!token||!Number.isFinite(token.expiresAt)||token.expiresAt<=now||
+       !Array.isArray(token.scopes)||!token.scopes.includes(item.scope))
+      throw Error("This Google session lacks the chosen "+source+" metadata scope. Reauthorize explicitly.");
+    return item.read(token,fetchImpl,now);
+  }
   async function checkGoogle(browserApi,fetchImpl,sources){
     const token=(await browserApi.storage.session.get(TOKEN_KEY))[TOKEN_KEY];
     return root.WorkspaceConnectionDiagnostics.googleProbe({
@@ -248,6 +270,8 @@
       case "GOOGLE_AUTH_DISCONNECT":return {ok:true,result:await disconnect(browserApi,fetchImpl)};
       case "GOOGLE_TEST_ACCESS":return {ok:true,result:await checkGoogle(browserApi,fetchImpl,message.sources)};
       case "GOOGLE_READ_OVERVIEW":return {ok:true,result:await overview(browserApi,fetchImpl)};
+      case "GOOGLE_READ_METADATA":return {ok:true,result:await readMetadata(
+        browserApi,fetchImpl,message.source)};
       case "GOOGLE_READ_FILE":return {ok:true,result:await readSaved(browserApi,fetchImpl,message)};
       case "MORNING_COFFEE_PREPARE":return {ok:true,result:await morningCoffee(
         browserApi,fetchImpl,message.sources)};
@@ -255,6 +279,7 @@
     }
   }
   root.WorkspaceGoogleSession={HOSTS,requiredHosts,CONFIG_KEY,PENDING_KEY,TOKEN_KEY,handle,
-    status,prepare,complete,disconnect,overview,morningCoffee,DATA_TYPES,SECRET_KEY,validDesktopSecret};
+    status,prepare,complete,disconnect,overview,morningCoffee,readMetadata,
+    DATA_TYPES,SECRET_KEY,validDesktopSecret};
   if(typeof module!=="undefined"&&module.exports) module.exports=root.WorkspaceGoogleSession;
 })(globalThis);

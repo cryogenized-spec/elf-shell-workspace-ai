@@ -77,3 +77,7 @@ The screenshot-specific OpenAI model list is available in two clearly separated 
 ### v0.13.4 Desktop OAuth token-exchange compatibility
 
 A real Google consent/callback was confirmed; Google returned HTTP 400 `invalid_request` because `client_secret` was omitted from the Desktop token request. The Hub now accepts the user's Desktop client secret in Firefox session storage only and includes it in the Google token POST alongside PKCE, without embedding credentials in public code. Mock/native tests added. Live successful access remains unverified and release gates remain unapproved. See [OAuth notes](google-oauth.md).
+
+### v0.14.0 bounded Google Drive/Gmail metadata
+
+Implemented optional, explicitly requested Drive `drive.metadata.readonly` recent-file metadata and Gmail `gmail.metadata` inbox-header REST previews. Both are restricted Google scopes, unselected by default and separate from the existing Calendar/Tasks/Docs/Sheets permissions. No message body, Drive file downloads, write actions or AI ingestion. OAuth + native browser CI coverage; real Drive/Gmail API acceptance is still pending. See [Drive/Gmail metadata](drive-gmail-metadata.md).

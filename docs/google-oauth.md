@@ -101,3 +101,7 @@ Official references:
 - https://developers.google.com/identity/protocols/oauth2/native-app
 - https://developers.google.com/identity/protocols/oauth2/
 - https://discuss.google.dev/t/desktop-oauth-pkce-exchange-returns-invalid-request-after-successful-loopback-callback-with-no-client-secret/390526
+
+## v0.14.0 optional restricted metadata scopes
+
+Ayarime now supports opt-in `drive.metadata.readonly` (Drive file listing) and `gmail.metadata` (inbox headers) as separate Google REST sources. These are Google **restricted** scopes, not automatically granted by enabling APIs, and are disabled by default. Gmail requires an additional Firefox `personalCommunications` consent. Selecting either scope changes the OAuth configuration and requires a new explicit Google connection. The API's ordinary bearer access token remains short-lived. The existing Calendar/Tasks scopes and original successful live read continue independently. See [Drive/Gmail metadata](drive-gmail-metadata.md). Neither restricted scope has yet passed actual user-account acceptance or production verification.

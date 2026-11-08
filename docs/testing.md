@@ -151,3 +151,15 @@ This test passed in the November 7, 2026 GitHub Actions run. It does not access 
 90. Test Google HTTP 400 with `invalid_request` and `client_secret is missing`; show a **fixed sanitized error**, not the raw provider body. Test invalid-client/grant and unexpected provider errors without echoing credentials.
 91. Confirm Disconnect clears the session client secret and access token, while Reset stuck sign-in does not erase an already connected token.
 92. Perform a **separate** live OAuth acceptance test with an approved disposable Desktop OAuth client and minimal Calendar/Tasks scopes. Current CI is mock-only; do not approve release gates until actual token exchange succeeds.
+
+## v0.14.0 restricted Gmail and Drive metadata previews
+
+93. Confirm Drive and Gmail restricted scope checkboxes are initially OFF in both new and upgraded Firefox profiles; existing Calendar/Tasks OAuth selection is preserved.
+94. Confirm Calendar/Tasks continue to work with the existing OAuth scopes without requesting additional metadata permissions. No Gmail/Drive network request on Hub open, login, Morning Coffee or AI send.
+95. Check that Drive metadata sends one GET to `www.googleapis.com/drive/v3/files` with 20 items, explicit query/order/fields; no download, write or broad data request.
+96. Confirm Gmail metadata sends a GET for max eight INBOX messages and up to eight `format=metadata` header-only GETs; NEVER pass `q` with `gmail.metadata` and never surface message bodies.
+97. Deny Gmail's additional Firefox `personalCommunications` data consent and verify no Gmail API call is permitted; deny Drive host consent and verify no Drive metadata calls.
+98. Test bad/revoked/expired tokens and Google HTTP 401, 403, 429; return sanitized error category with no raw provider body or credentials in the UI.
+99. Check a Drive `webViewLink` pointing outside verified Google domains is dropped; never render Google text or headers through `innerHTML`.
+100. Verify neither the core Ayarime bridge nor an AI model can invoke metadata reads or receive results; reconnect explicitly when adding restricted scopes.
+101. Test an actual disposable Google account after separate OAuth consent; do not close live verification until Gmail/Drive respond successfully.

@@ -245,6 +245,7 @@ async function handle(message) {
       case "GOOGLE_AUTH_COMPLETE":
       case "GOOGLE_AUTH_DISCONNECT":
       case "GOOGLE_TEST_ACCESS":
+      case "GOOGLE_READ_METADATA":
       case "GOOGLE_READ_OVERVIEW":
       case "GOOGLE_READ_FILE":
       case "MORNING_COFFEE_PREPARE":

@@ -13,7 +13,7 @@ function createHarness(seed={},options={}) {
     runtime: {
       id: "workspace-ai@elf-shell.local",
       getURL: name => "moz-extension://fixture/" + name,
-      getManifest: () => ({version:"0.13.4"}),
+      getManifest: () => ({version:"0.14.0"}),
       onMessage: { addListener: callback => { onMessage = callback; } },
       onMessageExternal: { addListener: callback => { onExternal = callback; } },
       onConnect: {addListener: callback => { onConnect = callback; }}
@@ -98,7 +98,7 @@ function createHarness(seed={},options={}) {
     browser,URL,URLSearchParams,console,fetch:mockFetch,crypto:cryptoApi,TextEncoder,TextDecoder,btoa,AbortController,Uint8Array
   });
   for (const file of ["shared/workspace.js","shared/persona.js",
-    "google/oauth.js","google/read.js","google/files.js","briefing/engine.js","google/session.js",
+    "google/oauth.js","google/read.js","google/files.js","google/catalog.js","briefing/engine.js","google/session.js",
     "ai/providers.js","ai/openai-complimentary.js","diagnostics/connection.js","ai/session.js","ai/openai-stream.js","updater/release.js","updater/checker.js","background.js"]) {
     vm.runInContext(fs.readFileSync(path.resolve(__dirname,"..",file),"utf8"),context,{filename:file});
   }
@@ -676,7 +676,7 @@ test("release alerts default off and do not call GitHub without opt-in",async()=
   const h=createHarness();
   const status=await h.dispatch({type:"UPDATE_STATUS"});
   assert.equal(status.ok,true,status.error);
-  assert.equal(status.update.current,"0.13.4");
+  assert.equal(status.update.current,"0.14.0");
   assert.equal(status.update.enabled,false);
   assert.equal(status.update.permissionGranted,false);
   assert.equal(status.update.notice,false);
@@ -693,7 +693,7 @@ test("opt-in release feed shows a badge but never downloads or installs an exten
     assert.equal(options.credentials,"omit");
     assert.equal(options.redirect,"error");
     return {ok:true,status:200,json:async()=>[{
-      tag_name:"v0.13.5",html_url:U.RELEASE_PREFIX+"v0.13.5",
+      tag_name:"v0.14.1",html_url:U.RELEASE_PREFIX+"v0.14.1",
       draft:false,prerelease:false,name:"Small fixes",body:"Better performance"
     }]};
   }});
@@ -705,11 +705,11 @@ test("opt-in release feed shows a badge but never downloads or installs an exten
   const checked=await h.dispatch({type:"UPDATE_CHECK"});
   assert.equal(checked.ok,true,checked.error);
   assert.equal(checked.update.notice,true);
-  assert.equal(checked.update.latest.version,"v0.13.5");
+  assert.equal(checked.update.latest.version,"v0.14.1");
   assert.equal(h.badgeState.text,"1");
   assert.equal(h.fetchCalls.length,1);
   assert(h.fetchCalls[0].url.includes("/releases?per_page=10"));
-  const ignored=await h.dispatch({type:"UPDATE_IGNORE",version:"v0.13.5"});
+  const ignored=await h.dispatch({type:"UPDATE_IGNORE",version:"v0.14.1"});
   assert.equal(ignored.ok,true);
   assert.equal(ignored.update.notice,false);
   assert.equal(h.badgeState.text,"");
@@ -721,7 +721,7 @@ test("release checks accept preview channel but external core cannot check or co
   const U=require("../updater/release.js");
   const h=createHarness({}, {releasePermission:true,mockFetch:async()=>({
     ok:true,status:200,json:async()=>[
-      {tag_name:"v0.13.6-beta.1",html_url:U.RELEASE_PREFIX+"v0.13.6-beta.1",
+      {tag_name:"v0.14.2-beta.1",html_url:U.RELEASE_PREFIX+"v0.14.2-beta.1",
         draft:false,prerelease:true,name:"Preview",body:"Improvements"}
     ]})});
   await h.dispatch({type:"UPDATE_CONFIG",enabled:true,channel:"stable"});
@@ -729,7 +729,7 @@ test("release checks accept preview channel but external core cannot check or co
   assert.equal(stable.update.notice,false);
   await h.dispatch({type:"UPDATE_CONFIG",enabled:true,channel:"preview"});
   const preview=await h.dispatch({type:"UPDATE_CHECK"});
-  assert.equal(preview.update.latest.version,"v0.13.6-beta.1");
+  assert.equal(preview.update.latest.version,"v0.14.2-beta.1");
   assert.equal(preview.update.notice,true);
   const external=await h.external({kind:"elfshell.workspace.bridge",version:1,command:"UPDATE_CHECK"});
   assert.equal(external.ok,false);
@@ -970,4 +970,69 @@ test("clearing Desktop OAuth secret invalidates pending request but not existing
   assert.equal(cleared.auth.prepared,null);
   assert.equal(cleared.auth.connected,true);
   assert.equal(h.sessionSettings["elfshell.google.sessionToken.v1"],token);
+});
+
+test("Gmail and Drive metadata are separate opt-in scopes; no fetch without both token and permission",async()=>{
+  const drive="https://www.googleapis.com/auth/drive.metadata.readonly";
+  const gmail="https://www.googleapis.com/auth/gmail.metadata";
+  let calls=0;
+  const h=createHarness({}, {googlePermission:true,mockFetch:async(url,options)=>{
+    calls++;
+    assert.equal(options.method,"GET");
+    if(url.includes("/drive/v3/files"))
+      return {ok:true,status:200,json:async()=>({files:[
+        {id:"f_123",name:"Workshop list",mimeType:"application/vnd.google-apps.spreadsheet",
+        modifiedTime:"2026-11-08T06:00:00Z",webViewLink:"https://docs.google.com/spreadsheets/d/f_123/edit"}
+      ]})};
+    if(url.includes("/messages?"))
+      return {ok:true,status:200,json:async()=>({messages:[{id:"f11223344"}]})};
+    if(url.includes("/messages/f11223344?"))
+      return {ok:true,status:200,json:async()=>({labelIds:["INBOX","UNREAD"],payload:{
+        headers:[{name:"From",value:"Supplier <supplier@example.com>"},
+        {name:"Subject",value:"Inventory update"},{name:"Date",value:"Sun, 08 Nov 2026"}],
+        body:{data:"NEVER_SEND_BODY"}
+      }})};
+    throw Error("Unexpected metadata endpoint");
+  }});
+  assert.equal((await h.dispatch({type:"GOOGLE_READ_METADATA",source:"drive"})).ok,false);
+  assert.equal((await h.dispatch({type:"GOOGLE_READ_METADATA",source:"gmail"})).ok,false);
+  assert.equal(calls,0);
+  const calendar="https://www.googleapis.com/auth/calendar.events.readonly";
+  h.sessionSettings["elfshell.google.sessionToken.v1"]={
+    accessToken:"TEST_ONLY_TOKEN",expiresAt:Date.now()+100000,
+    scopes:[calendar]
+  };
+  assert.equal((await h.dispatch({type:"GOOGLE_READ_METADATA",source:"gmail"})).ok,false);
+  assert.equal(calls,0);
+  h.sessionSettings["elfshell.google.sessionToken.v1"].scopes=[drive,gmail];
+  const result=await h.dispatch({type:"GOOGLE_READ_METADATA",source:"drive"});
+  assert.equal(result.ok,true,result.error);
+  assert.equal(result.result.files[0].name,"Workshop list");
+  const mail=await h.dispatch({type:"GOOGLE_READ_METADATA",source:"gmail"});
+  assert.equal(mail.ok,true,mail.error);
+  assert.equal(mail.result.messages[0].subject,"Inventory update");
+  assert.equal(mail.result.messages[0].unread,true);
+  assert(!JSON.stringify(mail).includes("NEVER_SEND_BODY"));
+  assert(!JSON.stringify(result).includes("TEST_ONLY_TOKEN"));
+  assert.equal(calls,3);
+  for(const source of ["calendar","__proto__","gmail?x=evil"]){
+    assert.equal((await h.dispatch({type:"GOOGLE_READ_METADATA",source})).ok,false);
+  }
+  assert.equal(calls,3);
+  const external=await h.external({kind:"elfshell.workspace.bridge",
+    version:1,command:"GOOGLE_READ_METADATA",source:"gmail"});
+  assert.equal(external.ok,false);
+});
+test("Gmail metadata fails closed if Firefox permission/communications consent is absent",async()=>{
+  const gmail="https://www.googleapis.com/auth/gmail.metadata";
+  let calls=0;
+  const h=createHarness({}, {googlePermission:true,googleDataConsent:false,
+    mockFetch:async()=>{calls++;throw Error("No Gmail network allowed");}
+  });
+  h.sessionSettings["elfshell.google.sessionToken.v1"]={
+    accessToken:"TEST_TOKEN",expiresAt:Date.now()+100000,scopes:[gmail]
+  };
+  const reply=await h.dispatch({type:"GOOGLE_READ_METADATA",source:"gmail"});
+  assert.equal(reply.ok,false);
+  assert.equal(calls,0);
 });

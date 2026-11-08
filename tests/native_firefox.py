@@ -150,6 +150,17 @@ try:
           lambda:require(extension_call({"type":"GET_PERSONA"})["persona"]["customPrompt"]=="","Reset failed"))
 
     auth=extension_call({"type":"GOOGLE_AUTH_STATUS"})
+    check("Drive and Gmail restricted scopes are OFF by default",
+          lambda:require(
+            not driver.find_element(By.ID,"google-scope-drive").is_selected() and
+            not driver.find_element(By.ID,"google-scope-gmail").is_selected(),
+            "Restricted Drive/Gmail scopes must never be preselected"))
+    check("Drive and Gmail metadata previews are disabled until user authorizes each scope",
+          lambda:require(
+            not driver.find_element(By.ID,"google-drive-read").is_enabled() and
+            not driver.find_element(By.ID,"google-gmail-read").is_enabled() and
+            "restricted" in driver.find_element(By.CSS_SELECTOR,".google-metadata-panel").text.lower(),
+            "Restricted metadata controls must begin disconnected"))
     check("Google authorization is disconnected and no scope is pre-granted",
           lambda:require(auth["ok"] and not auth["auth"]["connected"] and
             not auth["auth"]["permissionsGranted"] and
@@ -322,7 +333,7 @@ try:
 
     updater=extension_call({"type":"UPDATE_STATUS"})
     check("release notifications start opt-in and do not claim an installed update",
-          lambda:require(updater["ok"] and updater["update"]["current"]=="0.13.4" and
+          lambda:require(updater["ok"] and updater["update"]["current"]=="0.14.0" and
             not updater["update"]["enabled"] and
             updater["update"]["behavior"]=="notification-only",str(updater)))
     check("release check is disabled before optional GitHub permission",
