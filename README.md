@@ -91,3 +91,5 @@ Read [OAuth setup, scope and privacy constraints](docs/google-oauth.md) before c
 **OpenAI complimentary model catalog (v0.13):** [17 model options, conditional enrollment and two separate UTC usage counters](docs/openai-complimentary-offer.md). The extension neither controls sharing settings nor guarantees free requests.
 
 **Google OAuth recovery (v0.13.2):** the Account Access panel preserves Google/Firefox sign-in errors instead of overwriting them; it distinguishes callback capture from token exchange and offers a safe Reset stuck sign-in button. See [OAuth troubleshooting](docs/google-oauth.md). Live Google connection is still unverified.
+
+**v0.13.3 Firefox OAuth regression fix:** Restores the previously functioning two-field `launchWebAuthFlow({interactive:true,url})` call; preserves safe v0.13.2 stage diagnostics and reset. See [Google OAuth troubleshooting](docs/google-oauth.md). Live Google token exchange remains unverified.
