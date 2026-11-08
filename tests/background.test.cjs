@@ -13,7 +13,7 @@ function createHarness(seed={},options={}) {
     runtime: {
       id: "workspace-ai@elf-shell.local",
       getURL: name => "moz-extension://fixture/" + name,
-      getManifest: () => ({version:"0.13.0"}),
+      getManifest: () => ({version:"0.13.1"}),
       onMessage: { addListener: callback => { onMessage = callback; } },
       onMessageExternal: { addListener: callback => { onExternal = callback; } },
       onConnect: {addListener: callback => { onConnect = callback; }}
@@ -624,7 +624,7 @@ test("release alerts default off and do not call GitHub without opt-in",async()=
   const h=createHarness();
   const status=await h.dispatch({type:"UPDATE_STATUS"});
   assert.equal(status.ok,true,status.error);
-  assert.equal(status.update.current,"0.13.0");
+  assert.equal(status.update.current,"0.13.1");
   assert.equal(status.update.enabled,false);
   assert.equal(status.update.permissionGranted,false);
   assert.equal(status.update.notice,false);
