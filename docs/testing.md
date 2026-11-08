@@ -19,7 +19,7 @@ Use a fresh Firefox Desktop profile (Firefox 142+):
 8. Add a malformed URL, a non-Google URL and a duplicate; confirm each is rejected.
 9. Verify the underlying core ELF//SHELL new-tab page continues working with the companion installed and with it disabled.
 
-**Not yet tested on the user's Firefox installation.** CI validates syntax, key derivation and package integrity only. No Google account access is requested.
+**Status update (v0.14.0):** This initial checklist predates the user's successful Calendar/Tasks OAuth field report after v0.13.4. The CI tests use fake or unauthenticated account data; real Docs/Sheets/Drive/Gmail results have not been recorded. See [the current per-service field acceptance plan](google-live-acceptance.md).
 
 ## Named-profile acceptance (v0.3)
 
@@ -55,7 +55,7 @@ This test passed in the November 7, 2026 GitHub Actions run. It does not access 
 21. Without a configured Google Desktop OAuth client ID, confirm the account shows disconnected and performs no network requests.
 22. Select Calendar only, save, grant optional Firefox API origins explicitly; verify declining the prompt leaves access disabled.
 23. Prepare sign-in and inspect that the authorization URL uses Firefox's documented `127.0.0.1/mozoauth2/<derived identity>` redirect, state and PKCE S256.
-24. With a disposable Google OAuth project and test account, validate interactive Firefox redirect, token exchange, granular scope consent and cancellation; this **has not yet been run**.
+24. With a disposable Google OAuth project and test account, validate interactive Firefox redirect, token exchange, granular scope consent and cancellation. **Calendar/Tasks were reported successful live; denial, cancellation, revocation and additional services remain separately unaccepted.**
 25. Click the manual read action; confirm only Google Calendar/Tasks GETs are made, no Gmail scopes are requested, and partial/truncated results are labelled.
 26. Disconnect and verify local credentials are cleared regardless of whether Google confirms revocation.
 27. Verify no Google token reaches ELF//SHELL core extension, generic UI status messages, logs, or persistent `storage.local`.
@@ -90,7 +90,7 @@ This test passed in the November 7, 2026 GitHub Actions run. It does not access 
 47. Check source-link validation rejects untrusted hosts, port/userinfo tricks and script URLs.
 48. Check an exact shared Google Docs/Sheets link is labelled as a matching **reference**, not conclusive business context.
 49. Verify the external core bridge cannot start Morning Coffee or access its contents.
-50. Do not claim coverage of Gmail, other calendars or all tasks. A real OAuth account has not yet been used in acceptance.
+50. Do not claim coverage of Gmail message content, other calendars or all tasks. The user has since reported real Calendar/Tasks reads, but Gmail metadata, Docs and Sheets have no live acceptance record.
 
 ## Update Watch (v0.9)
 
