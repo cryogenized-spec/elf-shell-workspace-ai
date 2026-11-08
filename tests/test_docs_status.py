@@ -27,7 +27,7 @@ class DocumentationStatusTests(unittest.TestCase):
             self.assertIn(test_case, matrix)
         self.assertIn("User-reported", matrix)
         self.assertIn("NOT RUN", matrix)
-        self.assertIn("not a real-account API acceptance", matrix.lower())
+        self.assertIn("not a real-account api acceptance", matrix.lower())
         self.assertIn("No complete live acceptance", matrix)
         self.assertIn("42468593339", matrix)
         self.assertIn("42468423712", matrix)
