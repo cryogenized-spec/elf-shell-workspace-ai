@@ -21,6 +21,26 @@ Evidence review: 8 November 2026 (SAST). This is an unsigned Firefox developer p
 
 Automated sources: [PR #34](https://github.com/cryogenized-spec/elf-shell-workspace-ai/pull/34), [main validation — PASS](https://github.com/cryogenized-spec/elf-shell-workspace-ai/actions/runs/42468593339), and [native Firefox CI — PASS](https://github.com/cryogenized-spec/elf-shell-workspace-ai/actions/runs/42468423712). Native Firefox CI has no authenticated Google session. [OAuth issue #15](https://github.com/cryogenized-spec/elf-shell-workspace-ai/issues/15) remains open. All release-gates.json approvals remain false.
 
+## Linux Mint device preflight (no Google sign-in)
+
+This is the next safe check after confirming the Firefox MCP tunnel works. From a checkout of this repository on the user's Linux Mint machine, run:
+
+```bash
+bash scripts/run-local-firefox-preflight.sh
+```
+
+The wrapper reuses the existing `~/.venvs/elfshell-firefox` Selenium virtualenv and `/usr/bin/firefox`, runs unit tests, packages the unsigned extension, and invokes the existing `tests/native_firefox.py` suite in a **fresh isolated headless Firefox profile**. It closes that profile afterward and prints a concise PASS/FAIL summary. Override `SELENIUM_PYTHON` or `FIREFOX_BINARY` if the environment differs. An initial Selenium Manager driver download may be required on a machine that has never run it.
+
+It does **not** authorize Google APIs, reuse an everyday Firefox profile, connect an account, run paid AI inference, or count as G03–G07 live acceptance. Any screenshot and JSON artifacts in `dist/native-firefox/` are generated from synthetic and disconnected fixture data and stay on the testing machine. Review before sharing them.
+
+The connected Firefox DevTools MCP currently runs with the deliberately restricted `slim` preset (`pages snapshot input screenshot`), which cannot install temporary extensions. Firefox's internal `about:addons` and `about:debugging` URLs are not navigable through its standard BiDi page tool. For future **MCP-driven extension installation**, the operator must deliberately restart the tunnel's local command with the additional **`webextension`** module, while retaining the isolated profile:
+
+```text
+--tools pages snapshot input screenshot webextension
+```
+
+That option extends the browser MCP's capabilities; it is **not** enabled or changed by this repository update. The existing Selenium native suite already has a safe way to install the unsigned XPI without widening the ChatGPT tool surface.
+
 ## Live test procedure
 
 Use a disposable Google test account, isolated Firefox profile (Firefox 142+), current v0.14.0 source loaded temporarily from about:debugging, a throwaway Doc and Sheet, and harmless test event/task/message. Never copy client secrets, authorization or callback URLs, OAuth codes/state/verifiers, tokens, personal email headers, file names, full API payloads or content into GitHub, screenshots or chat.

@@ -13,6 +13,8 @@ jobs:
           node-version: '22'
       - name: Local tests and JavaScript syntax
         run: npm test
+      - name: Verify on-device preflight script syntax
+        run: bash -n scripts/run-local-firefox-preflight.sh
       - name: Build unsigned development extension
         run: npm run package
       - name: Check XPI contents and manifest
