@@ -204,12 +204,15 @@ const GOOGLE_CALENDAR_SCOPE="https://www.googleapis.com/auth/calendar.events.rea
 const GOOGLE_TASKS_SCOPE="https://www.googleapis.com/auth/tasks.readonly";
 const GOOGLE_DOCS_SCOPE="https://www.googleapis.com/auth/documents.readonly";
 const GOOGLE_SHEETS_SCOPE="https://www.googleapis.com/auth/spreadsheets.readonly";
+const GOOGLE_DRIVE_SCOPE="https://www.googleapis.com/auth/drive.metadata.readonly";
+const GOOGLE_GMAIL_SCOPE="https://www.googleapis.com/auth/gmail.metadata";
 const GOOGLE_HOST_PERMISSIONS={
   oauth:"https://oauth2.googleapis.com/*",
   calendar:"https://www.googleapis.com/*",
   tasks:"https://tasks.googleapis.com/*",
   docs:"https://docs.googleapis.com/*",
-  sheets:"https://sheets.googleapis.com/*"
+  sheets:"https://sheets.googleapis.com/*",
+  gmail:"https://gmail.googleapis.com/*"
 };
 let googleCurrentScopes=[GOOGLE_CALENDAR_SCOPE];
 function googleHostsForScopes(scopes) {
@@ -218,7 +221,14 @@ function googleHostsForScopes(scopes) {
   if(scopes.includes(GOOGLE_TASKS_SCOPE))hosts.push(GOOGLE_HOST_PERMISSIONS.tasks);
   if(scopes.includes(GOOGLE_DOCS_SCOPE))hosts.push(GOOGLE_HOST_PERMISSIONS.docs);
   if(scopes.includes(GOOGLE_SHEETS_SCOPE))hosts.push(GOOGLE_HOST_PERMISSIONS.sheets);
-  return hosts;
+  if(scopes.includes(GOOGLE_DRIVE_SCOPE))hosts.push(GOOGLE_HOST_PERMISSIONS.calendar);
+  if(scopes.includes(GOOGLE_GMAIL_SCOPE))hosts.push(GOOGLE_HOST_PERMISSIONS.gmail);
+  return [...new Set(hosts)];
+}
+function googleConsentTypes(scopes){
+  return scopes.includes(GOOGLE_GMAIL_SCOPE)
+    ?["authenticationInfo","websiteContent","personalCommunications"]
+    :["authenticationInfo","websiteContent"];
 }
 let googlePreparedUrl=null;
 let googleSignInSerial=0;
@@ -238,6 +248,8 @@ function showGoogleState(auth) {
   googleForm.querySelector("#google-scope-tasks").checked=auth.config.scopes.includes(GOOGLE_TASKS_SCOPE);
   googleForm.querySelector("#google-scope-docs").checked=auth.config.scopes.includes(GOOGLE_DOCS_SCOPE);
   googleForm.querySelector("#google-scope-sheets").checked=auth.config.scopes.includes(GOOGLE_SHEETS_SCOPE);
+  googleForm.querySelector("#google-scope-drive").checked=auth.config.scopes.includes(GOOGLE_DRIVE_SCOPE);
+  googleForm.querySelector("#google-scope-gmail").checked=auth.config.scopes.includes(GOOGLE_GMAIL_SCOPE);
   googleCurrentScopes=[...auth.config.scopes];
   googlePreparedUrl=auth.prepared?.url || null;
   document.querySelector("#google-prepare").disabled=!auth.permissionsGranted || !auth.config.clientId || !auth.hasDesktopSecret;
@@ -252,11 +264,17 @@ function showGoogleState(auth) {
   document.querySelector("#google-read").disabled=!auth.connected;
   document.querySelector("#google-check").disabled=!auth.connected;
   document.querySelector("#google-disconnect").disabled=!auth.connected;
+  document.querySelector("#google-drive-read").disabled=
+    !auth.connected||!auth.grantedScopes.includes(GOOGLE_DRIVE_SCOPE);
+  document.querySelector("#google-gmail-read").disabled=
+    !auth.connected||!auth.grantedScopes.includes(GOOGLE_GMAIL_SCOPE);
   googleMessage(auth.connected
     ? "Connected until "+new Date(auth.expiresAt).toLocaleTimeString()+
        " · Granted: "+auth.grantedScopes.map(scope=>
          scope===GOOGLE_DOCS_SCOPE?"Docs":scope===GOOGLE_SHEETS_SCOPE?"Sheets":
-         scope===GOOGLE_TASKS_SCOPE?"Tasks":"Calendar").join(", ")
+         scope===GOOGLE_TASKS_SCOPE?"Tasks":
+         scope===GOOGLE_DRIVE_SCOPE?"Drive metadata":
+         scope===GOOGLE_GMAIL_SCOPE?"Gmail headers":"Calendar").join(", ")
     : auth.prepared
       ? "Authorization prepared. Select Connect Google to open Firefox's sign-in."
       : auth.permissionsGranted
@@ -374,6 +392,62 @@ function renderGoogleResults(data) {
   if(!data.calendar && !data.tasks && !(data.errors||[]).length)
     section("No readable sources",[],"Reconnect with Calendar or Tasks permissions.");
 }
+function renderWorkspaceMetadata(data){
+  const host=document.querySelector("#google-metadata-results");
+  if(!host)return;
+  host.replaceChildren();
+  const title=node("h3","",data.kind==="drive"?"Recent Drive files":"Gmail inbox headers");
+  host.append(title,node("p","quiet",data.note||"Bounded metadata preview"));
+  const items=data.kind==="drive"?data.files:data.messages;
+  for(const item of items||[]){
+    const article=node("div","google-metadata-entry");
+    if(data.kind==="drive"){
+      const label=node("strong","",item.name||"Untitled file");
+      article.append(label);
+      article.append(node("small","",[
+        item.mimeType||"Unknown format",item.modified||"Unknown modification date"
+      ].join(" · ")));
+      if(item.link){
+        try{
+          const url=new URL(item.link);
+          if(url.protocol==="https:" &&
+             ["drive.google.com","docs.google.com","sheets.google.com"].includes(url.hostname) &&
+             !url.username&&!url.password){
+            const a=node("a","","Open original file");
+            a.href=url.href;a.target="_blank";a.rel="noopener noreferrer";
+            article.append(a);
+          }
+        }catch{/* Ignore invalid provider source URLs. */}
+      }
+    }else{
+      article.append(node("strong","",item.subject||"(No subject)"));
+      article.append(node("small","","From: "+(item.from||"Unknown")+" · "+
+        (item.date||"Unknown date")+(item.unread?" · Unread":"")));
+    }
+    host.append(article);
+  }
+  if(!items?.length)host.append(node("p","quiet","No matching metadata returned."));
+  if(data.limited)host.append(node("p","quiet","Additional records exist. This preview is intentionally limited."));
+}
+async function loadWorkspaceMetadata(source){
+  const button=document.querySelector(source==="drive"?"#google-drive-read":"#google-gmail-read");
+  const status=document.querySelector("#google-metadata-status");
+  const host=document.querySelector("#google-metadata-results");
+  button.disabled=true;
+  status.textContent="Fetching user-selected "+(source==="drive"?"Drive file metadata":"Gmail inbox headers")+"…";
+  host.replaceChildren();
+  try{
+    const response=await request({type:"GOOGLE_READ_METADATA",source});
+    renderWorkspaceMetadata(response.result);
+    status.textContent=(source==="drive"?"Drive":"Gmail")+
+      " metadata retrieved read-only. No content was stored or sent to an AI provider.";
+  }catch(error){
+    // API adapter returns fixed, sanitized errors; never display raw provider bodies.
+    status.textContent=error?.message||"Google metadata request failed";
+  }finally{
+    await refreshGoogle();
+  }
+}
 if(googleForm) {
   googleForm.addEventListener("submit",async event=>{
     event.preventDefault();
@@ -383,6 +457,8 @@ if(googleForm) {
     if(googleForm.querySelector("#google-scope-tasks").checked)scopes.push(GOOGLE_TASKS_SCOPE);
     if(googleForm.querySelector("#google-scope-docs").checked)scopes.push(GOOGLE_DOCS_SCOPE);
     if(googleForm.querySelector("#google-scope-sheets").checked)scopes.push(GOOGLE_SHEETS_SCOPE);
+    if(googleForm.querySelector("#google-scope-drive").checked)scopes.push(GOOGLE_DRIVE_SCOPE);
+    if(googleForm.querySelector("#google-scope-gmail").checked)scopes.push(GOOGLE_GMAIL_SCOPE);
     try {
       const r=await request({type:"GOOGLE_AUTH_CONFIG",
         clientId:googleForm.querySelector("#google-client-id").value,scopes});
@@ -391,10 +467,16 @@ if(googleForm) {
     }catch(error){googleMessage(error.message,true);}
     finally{save.disabled=false;}
   });
+  document.querySelector("#google-drive-read").addEventListener("click",()=>{
+    loadWorkspaceMetadata("drive");
+  });
+  document.querySelector("#google-gmail-read").addEventListener("click",()=>{
+    loadWorkspaceMetadata("gmail");
+  });
   document.querySelector("#google-grant").addEventListener("click",async()=>{
     // Permission must originate from this direct click, before async work.
     let grant;
-    try {grant=browser.permissions.request({origins:googleHostsForScopes(googleCurrentScopes),data_collection:["authenticationInfo","websiteContent"]});}
+    try {grant=browser.permissions.request({origins:googleHostsForScopes(googleCurrentScopes),data_collection:googleConsentTypes(googleCurrentScopes)});}
     catch(error){googleMessage("Firefox could not request API host permission.",true);return;}
     googleMessage("Choose Allow or Deny in Firefox's permission dialog…");
     try{
