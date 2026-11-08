@@ -141,3 +141,13 @@ This test passed in the November 7, 2026 GitHub Actions run. It does not access 
 83. Verify both local meters reset exactly at 00:00 UTC, even if the local desktop's date is different. Concurrent stream completions must not overwrite one another.
 84. Check model statuses against OpenAI's current catalog, including o1/o3-mini/o4-mini shutdown; no unsupported reasoning options or hidden automatic web-search activation.
 85. Confirm the UI never calls the meter an authoritative free balance and explicitly warns about shared organization-wide usage, cross-boundary fully billed requests, and excluded tool costs.
+
+## v0.13.4 Google Desktop token exchange fix
+
+86. Verify the Google Desktop client secret field uses `type=password`, is blank on startup, and never renders values in status or error messages.
+87. Saving the matching credential must put it in Firefox `storage.session` only (never `storage.local`, GitHub, extension package or AI model payloads); clearing it must remove the pending PKCE state.
+88. Preparing a new Desktop OAuth sign-in without an entered session client secret must fail closed before opening Google; a Client ID change clears any previous secret. Changing only scopes does not reuse an unrelated client ID.
+89. Verify a successful mocked token exchange includes a `client_secret` matching the selected Desktop client and preserves all state/PKCE checks. No raw authorization code, verifier or secret may enter status responses.
+90. Test Google HTTP 400 with `invalid_request` and `client_secret is missing`; show a **fixed sanitized error**, not the raw provider body. Test invalid-client/grant and unexpected provider errors without echoing credentials.
+91. Confirm Disconnect clears the session client secret and access token, while Reset stuck sign-in does not erase an already connected token.
+92. Perform a **separate** live OAuth acceptance test with an approved disposable Desktop OAuth client and minimal Calendar/Tasks scopes. Current CI is mock-only; do not approve release gates until actual token exchange succeeds.
