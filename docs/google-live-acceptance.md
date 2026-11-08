@@ -29,7 +29,7 @@ This is the next safe check after confirming the Firefox MCP tunnel works. From 
 bash scripts/run-local-firefox-preflight.sh
 ```
 
-The wrapper reuses the existing `~/.venvs/elfshell-firefox` Selenium virtualenv and `/usr/bin/firefox`, runs unit tests, packages the unsigned extension, and invokes the existing `tests/native_firefox.py` suite in a **fresh isolated headless Firefox profile**. It closes that profile afterward and prints a concise PASS/FAIL summary. Override `SELENIUM_PYTHON` or `FIREFOX_BINARY` if the environment differs. An initial Selenium Manager driver download may be required on a machine that has never run it.
+The wrapper reuses the existing `~/.venvs/elfshell-firefox` Selenium virtualenv (**Selenium 4.52+**) and `/usr/bin/firefox`, runs unit tests, packages the unsigned extension, and invokes the existing `tests/native_firefox.py` suite in a **fresh isolated headless Firefox profile**. It closes that profile afterward and prints a concise PASS/FAIL summary. Override `SELENIUM_PYTHON` or `FIREFOX_BINARY` if the environment differs. An initial Selenium Manager driver download may be required on a machine that has never run it.
 
 It does **not** authorize Google APIs, reuse an everyday Firefox profile, connect an account, run paid AI inference, or count as G03–G07 live acceptance. Any screenshot and JSON artifacts in `dist/native-firefox/` are generated from synthetic and disconnected fixture data and stay on the testing machine. Review before sharing them.
 

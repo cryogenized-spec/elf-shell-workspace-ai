@@ -49,8 +49,9 @@ try:
     driver.set_script_timeout(25)
     driver.set_window_size(1366,800)
 
-    companion_id=driver.install_addon(str(COMPANION),temporary=True)
-    core_id=driver.install_addon(str(CORE),temporary=True)
+    # Always temporary: the core and companion archives are unsigned dev builds.
+    companion_id=driver.install_web_extension(str(COMPANION),permanent=False).id
+    core_id=driver.install_web_extension(str(CORE),permanent=False).id
     check("both independent extensions installed in one isolated Firefox",
           lambda:require(companion_id=="workspace-ai@elf-shell.local" and
             core_id=="elf-shell-ayarime@local.theme",str((companion_id,core_id))))

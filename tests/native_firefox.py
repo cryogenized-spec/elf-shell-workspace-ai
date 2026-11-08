@@ -67,7 +67,11 @@ try:
     results["firefoxVersion"]=driver.capabilities.get("browserVersion")
     major=int(results["firefoxVersion"].split(".")[0])
     require(major>=142,"Firefox version 142+ required")
-    addon_id=driver.install_addon(str(PACKAGE),temporary=True)
+    # Selenium 4.52+ returns a WebExtension object with an explicit id.
+    # permanent=False is essential: developer XPIs are unsigned and must
+    # remain confined to this disposable Firefox test session.
+    addon=driver.install_web_extension(str(PACKAGE),permanent=False)
+    addon_id=addon.id
     check("unsigned temporary Firefox add-on installed",
           lambda:require(addon_id=="workspace-ai@elf-shell.local","Unexpected extension ID: "+repr(addon_id)))
 

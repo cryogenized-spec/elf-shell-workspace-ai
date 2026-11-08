@@ -32,7 +32,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install Selenium
-        run: python -m pip install 'selenium>=4.30,<5'
+        run: python -m pip install 'selenium>=4.52,<5'
       - name: Native Firefox headless tab orchestration
         env:
           FIREFOX_BINARY: ${{ steps.firefox.outputs.firefox-path }}
