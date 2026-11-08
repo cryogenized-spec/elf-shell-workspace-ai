@@ -12,7 +12,7 @@ XPI=ROOT/"dist"/"workspace-ai-alpha-unsigned.xpi"
 
 class TestReleasePreflight(unittest.TestCase):
     def test_candidate_integrity_passes_but_is_not_signed(self):
-        result=audit(XPI,"v0.12.0")
+        result=audit(XPI,"v0.13.0")
         self.assertFalse(result["errors"],result["errors"])
         self.assertFalse(result["signed"])
         self.assertFalse(result["published"])
@@ -23,11 +23,11 @@ class TestReleasePreflight(unittest.TestCase):
         self.assertIn("google_oauth_live_test",result["blockers"])
 
     def test_version_mismatch_rejected(self):
-        result=audit(XPI,"v0.12.1")
+        result=audit(XPI,"v0.13.1")
         self.assertTrue(any("do not match" in x for x in result["errors"]))
 
     def test_unverified_public_signing_is_blocked(self):
-        result=audit(XPI,"v0.12.0",publish=True)
+        result=audit(XPI,"v0.13.0",publish=True)
         self.assertFalse(result["publishReady"])
         self.assertTrue(any("blocked" in x for x in result["errors"]))
 
