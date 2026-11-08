@@ -216,7 +216,8 @@
     await consume(response,event=>trace.handle(event),signal);
     if(!trace.isTerminal()||!terminal)throw Error("Stream ended unexpectedly");
     let localUsage=null;
-    if(terminal.usage?.inputTokens!==null && terminal.usage?.outputTokens!==null){
+    if(Number.isSafeInteger(terminal.usage?.inputTokens) &&
+       Number.isSafeInteger(terminal.usage?.outputTokens)){
       try{
         localUsage=await root.WorkspaceOpenAIComplimentary.record(
           browserApi,config.model,terminal.usage);
