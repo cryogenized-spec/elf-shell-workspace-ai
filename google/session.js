@@ -75,6 +75,12 @@
     await browserApi.storage.session.set({[PENDING_KEY]:{...result,createdAt:Date.now()}});
     return status(browserApi);
   }
+  async function cancelPending(browserApi) {
+    // Resets only the one-time PKCE challenge; does not alter an existing token.
+    // Any delayed callback from an abandoned Google popup will fail validation.
+    await browserApi.storage.session.remove(PENDING_KEY);
+    return status(browserApi);
+  }
   async function complete(browserApi,fetchImpl,message) {
     if(!await permitted(browserApi)) throw Error("Google connection or data-sharing consent was revoked before token exchange");
     const stored=(await browserApi.storage.session.get(PENDING_KEY))[PENDING_KEY];
@@ -182,6 +188,7 @@
       case "GOOGLE_AUTH_STATUS":return {ok:true,auth:await status(browserApi)};
       case "GOOGLE_AUTH_CONFIG":return {ok:true,auth:await setConfig(browserApi,message)};
       case "GOOGLE_AUTH_PREPARE":return {ok:true,auth:await prepare(browserApi,cryptoApi)};
+      case "GOOGLE_AUTH_CANCEL":return {ok:true,auth:await cancelPending(browserApi)};
       case "GOOGLE_AUTH_COMPLETE":return {ok:true,auth:await complete(browserApi,fetchImpl,message)};
       case "GOOGLE_AUTH_DISCONNECT":return {ok:true,result:await disconnect(browserApi,fetchImpl)};
       case "GOOGLE_TEST_ACCESS":return {ok:true,result:await checkGoogle(browserApi,fetchImpl,message.sources)};
