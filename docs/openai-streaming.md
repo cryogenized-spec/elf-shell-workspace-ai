@@ -45,3 +45,7 @@ Automated unit tests cover fragmented UTF-8/CRLF SSE, summary deltas and done ev
 - https://developers.openai.com/api/docs/guides/reasoning
 - https://developers.openai.com/api/docs/models
 - https://developers.openai.com/api/docs/guides/tools-web-search
+
+## v0.13 offer groups
+
+The OpenAI model catalog now includes all 17 IDs in the user's **250k/2.5M** daily conditional-complimentary offer, as well as the GPT-6 options under **Other**. New OpenAI configurations default to `gpt-5.4-mini`; saved models are preserved. See [OpenAI complimentary offer](openai-complimentary-offer.md) for account eligibility, private data-sharing consent, and honest locally observed token counters. No live provider credentials or billing test was run.
