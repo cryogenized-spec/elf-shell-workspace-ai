@@ -31,7 +31,7 @@ Google diagnostics refuse to run without a valid browser-session OAuth token, ma
 - Results remain in the current page; the extension stores neither diagnostic results nor probe responses.
 - All raw secrets are excluded from returned status messages; error bodies are discarded.
 - All diagnostic actions use fixed approved HTTPS provider origins, `GET`, `credentials:"omit"` and `redirect:"error"`.
-- Unit and native Firefox tests simulate the network. **No real Google account or paid BYOK credential has been used to pass this milestone.**
+- Unit and native Firefox tests for v0.11 simulated the network. **Subsequently the user reported successful real Calendar/Tasks API reads after the v0.13.4 OAuth fix**, but this does not retroactively turn v0.11 CI into live-account evidence. No paid BYOK inference acceptance is recorded. See [Google field matrix](google-live-acceptance.md).
 - The live Google OAuth, real inference, Mozilla privacy review, signing and distribution gates remain unapproved in `release-gates.json`; the existence of a diagnostic button cannot automatically approve them.
 
 When a user intentionally runs these live checks with a disposable Google test account and/or approved provider key, the results help distinguish consent, API connectivity and model naming failures before running controlled inference acceptance. The tests do not provide an audited record on their own.
