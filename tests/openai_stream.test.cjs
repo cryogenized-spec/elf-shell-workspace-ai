@@ -1,6 +1,7 @@
 "use strict";
 const test=require("node:test");
 const assert=require("node:assert/strict");
+require("../shared/persona.js");
 require("../ai/providers.js");
 const STREAM=require("../ai/openai-stream.js");
 const encode=new TextEncoder();
