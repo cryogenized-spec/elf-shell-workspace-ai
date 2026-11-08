@@ -8,7 +8,7 @@
 <main class="shell">
 <header class="masthead">
   <div class="slashes" aria-hidden="true">///</div>
-  <div><h1>ELF<span>//</span>SHELL</h1><p>AYARIME / WORKSPACE CONTROL MODULE · ALPHA 0.13</p></div>
+  <div><h1>ELF<span>//</span>SHELL</h1><p>AYARIME / WORKSPACE CONTROL MODULE · ALPHA 0.14</p></div>
   <div class="status-pill">LOCAL / READY</div>
 </header>
 <section class="frame profile-manager" aria-label="Workspace profiles">
@@ -96,6 +96,8 @@
       <label><input type="checkbox" id="google-scope-tasks" /> Google Tasks — read only</label>
       <label><input type="checkbox" id="google-scope-docs" /> Google Docs — read only (sensitive scope)</label>
       <label><input type="checkbox" id="google-scope-sheets" /> Google Sheets — read only (sensitive scope)</label>
+      <label><input type="checkbox" id="google-scope-drive" /> Google Drive — file metadata only (restricted scope)</label>
+      <label><input type="checkbox" id="google-scope-gmail" /> Gmail — inbox headers only (restricted scope)</label>
     </fieldset>
     <button type="submit" class="secondary">Save OAuth configuration</button>
   </form>
@@ -112,6 +114,19 @@
   <p class="quiet google-auth-help">For the first connection, use Calendar and Tasks read-only scopes; leave Docs and Sheets unchecked. If Google keeps loading after consent, use <strong>Reset stuck sign-in</strong> and close the old sign-in window. This does not revoke any completed Google session.</p>
   <p id="google-check-result" class="quiet" role="status" aria-live="polite">Google access verification not run. It checks selected Calendar/Tasks API access without displaying item contents.</p>
   <div id="google-results" class="google-results" aria-live="polite"></div>
+  <section class="google-metadata-panel" aria-label="Optional Gmail and Drive metadata">
+    <p class="eyebrow">// 06 · WORKSPACE METADATA / EXPLICIT READ</p>
+    <h3>Drive & Gmail · metadata preview</h3>
+    <p class="quiet">These two OAuth scopes are <strong>restricted</strong> under Google policy. Only authorize them if you want to preview file names and inbox headers in Ayarime. Enabling APIs in Google Cloud does not grant these scopes; changing the scope selection requires a fresh Google connection. No contents are sent to an AI model.</p>
+    <div class="google-metadata-buttons">
+      <button id="google-drive-read" type="button" class="mini" disabled>Read 20 recent Drive file names</button>
+      <button id="google-gmail-read" type="button" class="mini" disabled>Read 8 Gmail inbox headers</button>
+    </div>
+    <p id="google-metadata-status" class="quiet" role="status" aria-live="polite">Metadata previews have not been requested.</p>
+    <div id="google-metadata-results" class="google-results" aria-live="polite"></div>
+    <p class="quiet">Gmail returns From, Subject, Date and unread flag only—no body, attachment or email actions. Drive returns file names, modification times, formats and verified Google file links only. Results remain on this page and disappear when it closes.</p>
+  </section>
+
   <div class="google-file-preview">
     <p class="eyebrow">// 06 · SAVED FILE PREVIEW</p>
     <p class="quiet">Use “Read preview” beside a specifically saved Google Doc or spreadsheet above. Sheets previews use a bounded A1 range and respect the saved link's sheet ID (gid). Google Drive-wide discovery and editing are not enabled.</p>
