@@ -1,5 +1,7 @@
 # ELF//SHELL Workspace AI — implementation roadmap
 
+**Current delivery focus (8 November 2026):** [Custom Google Workspace REST MCP audit, dedicated per-service tool inventories and M0–M9 execution roadmap](custom-google-rest-mcp-roadmap.md). This is the authoritative *forward-looking build sequence* for the in-house Google REST tool registry. We are **not using Google's official MCP servers** as an operation ceiling. The original phases below remain historical foundations and longer-term feature areas.
+
 Source-of-truth staged plan (7 November 2026). Stable core must not be modified by this repository.
 
 | Phase | Milestone | Acceptance gate |
