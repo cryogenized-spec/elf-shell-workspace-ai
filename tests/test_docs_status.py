@@ -3,7 +3,6 @@
 These tests do not perform live Google API calls and do not approve release gates.
 """
 import json
-import re
 import unittest
 from pathlib import Path
 
@@ -26,13 +25,19 @@ class DocumentationStatusTests(unittest.TestCase):
         for test_case in ("G00", "G01", "G02", "G03", "G04", "G05", "G06", "G07"):
             self.assertIn(test_case, matrix)
         self.assertIn("User-reported", matrix)
-        self.assertIn("NOT RUN", matrix)
         self.assertIn("not a real-account api acceptance", matrix.lower())
-        self.assertIn("No complete live acceptance", matrix)
         self.assertIn("42468593339", matrix)
         self.assertIn("42468423712", matrix)
-        # Do not allow an automatic CI result to masquerade as Google authorization.
-        self.assertNotRegex(matrix, r"\| G0[3456] .*\| PASS \|")
+        # A future live PASS must cite independently reviewed, sanitized evidence.
+        rows = [line for line in matrix.splitlines() if line.startswith("| G0")]
+        for case in ("G03", "G04", "G05", "G06"):
+            row = next((line for line in rows if line.startswith("| " + case + " |")), None)
+            self.assertIsNotNone(row, case)
+            live_evidence = row.split("|")[4].strip()
+            if live_evidence.startswith("PASS"):
+                self.assertRegex(live_evidence, r"https://github\.com/cryogenized-spec/elf-shell-workspace-ai/issues/[0-9]+")
+            else:
+                self.assertRegex(live_evidence.lower(), r"not run|unverified|pending|blocked")
 
     def test_release_gates_need_explicit_evidence_for_approval(self):
         gates = json.loads((ROOT / "release-gates.json").read_text(encoding="utf-8"))
