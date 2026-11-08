@@ -93,11 +93,13 @@
     <button type="button" id="google-grant" class="mini">1 · Allow Google connection and data sharing</button>
     <button type="button" id="google-prepare" class="mini">2 · Prepare sign-in</button>
     <button type="button" id="google-connect" class="secondary" disabled>3 · Connect Google</button>
+    <button type="button" id="google-reset" class="mini danger" disabled>Reset stuck sign-in</button>
     <button type="button" id="google-read" class="mini" disabled>Read today's Calendar / Tasks</button>
     <button type="button" id="google-check" class="mini" disabled>Verify Calendar / Tasks API access</button>
     <button type="button" id="google-disconnect" class="mini danger" disabled>Disconnect</button>
   </div>
   <p id="google-auth-status" class="status" role="status" aria-live="polite">Google is not connected.</p>
+  <p class="quiet google-auth-help">For the first connection, use Calendar and Tasks read-only scopes; leave Docs and Sheets unchecked. If Google keeps loading after consent, use <strong>Reset stuck sign-in</strong> and close the old sign-in window. This does not revoke any completed Google session.</p>
   <p id="google-check-result" class="quiet" role="status" aria-live="polite">Google access verification not run. It checks selected Calendar/Tasks API access without displaying item contents.</p>
   <div id="google-results" class="google-results" aria-live="polite"></div>
   <div class="google-file-preview">
