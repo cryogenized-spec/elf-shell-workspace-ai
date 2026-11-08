@@ -93,3 +93,5 @@ Read [OAuth setup, scope and privacy constraints](docs/google-oauth.md) before c
 **Google OAuth recovery (v0.13.2):** the Account Access panel preserves Google/Firefox sign-in errors instead of overwriting them; it distinguishes callback capture from token exchange and offers a safe Reset stuck sign-in button. See [OAuth troubleshooting](docs/google-oauth.md). Live Google connection is still unverified.
 
 **v0.13.3 Firefox OAuth regression fix:** Restores the previously functioning two-field `launchWebAuthFlow({interactive:true,url})` call; preserves safe v0.13.2 stage diagnostics and reset. See [Google OAuth troubleshooting](docs/google-oauth.md). Live Google token exchange remains unverified.
+
+**Google token exchange (v0.13.4):** A real Desktop OAuth code exchange returned HTTP 400 `client_secret is missing`. The Hub now accepts the user's own Desktop client secret **locally, in Firefox session storage only**; it supplies that value to Google's token POST with PKCE. No credential is bundled or committed. Live successful connection remains to be verified. See [OAuth developer notes](docs/google-oauth.md).

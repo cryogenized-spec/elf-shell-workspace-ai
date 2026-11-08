@@ -238,6 +238,8 @@ async function handle(message) {
           browser,fetch,readPersona,message));
       case "GOOGLE_AUTH_STATUS":
       case "GOOGLE_AUTH_CONFIG":
+      case "GOOGLE_AUTH_SECRET_SET":
+      case "GOOGLE_AUTH_SECRET_CLEAR":
       case "GOOGLE_AUTH_PREPARE":
       case "GOOGLE_AUTH_CANCEL":
       case "GOOGLE_AUTH_COMPLETE":

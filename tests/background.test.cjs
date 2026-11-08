@@ -13,7 +13,7 @@ function createHarness(seed={},options={}) {
     runtime: {
       id: "workspace-ai@elf-shell.local",
       getURL: name => "moz-extension://fixture/" + name,
-      getManifest: () => ({version:"0.13.3"}),
+      getManifest: () => ({version:"0.13.4"}),
       onMessage: { addListener: callback => { onMessage = callback; } },
       onMessageExternal: { addListener: callback => { onExternal = callback; } },
       onConnect: {addListener: callback => { onConnect = callback; }}
@@ -380,6 +380,8 @@ test("Google OAuth consent flow uses only session tokens and supports local disc
       if(url==="https://oauth2.googleapis.com/token") {
         assert.equal(init.method,"POST");
         assert(init.body.includes("code_verifier="));
+        assert.equal(new URLSearchParams(init.body).get("client_secret"),
+          "GOCSPX-fixture-only-123456789");
         return {ok:true,status:200,json:async()=>({
           access_token:"access_mock_valid_token",token_type:"Bearer",expires_in:3600,
           scope:cal+" "+task,refresh_token:"SECRET_REFRESH_TOKEN_NEVER_STORED"
@@ -401,6 +403,11 @@ test("Google OAuth consent flow uses only session tokens and supports local disc
   assert.equal(set.ok,true);
   assert.equal(set.auth.connected,false);
   assert.equal(set.auth.config.clientId,client);
+  const savedSecret=await h.dispatch({type:"GOOGLE_AUTH_SECRET_SET",
+    secret:"GOCSPX-fixture-only-123456789"});
+  assert.equal(savedSecret.ok,true,savedSecret.error);
+  assert.equal(savedSecret.auth.hasDesktopSecret,true);
+  assert(!JSON.stringify(savedSecret).includes("GOCSPX-fixture-only-123456789"));
   const prepare=await h.dispatch({type:"GOOGLE_AUTH_PREPARE"});
   assert.equal(prepare.ok,true,prepare.error);
   const auth=new URL(prepare.auth.prepared.url);
@@ -428,6 +435,7 @@ test("Google OAuth consent flow uses only session tokens and supports local disc
   assert.equal(done.result.serverRevoked,true);
   assert.equal((await h.dispatch({type:"GOOGLE_AUTH_STATUS"})).auth.connected,false);
   assert.equal(h.sessionSettings["elfshell.google.sessionToken.v1"],undefined);
+  assert.equal(h.sessionSettings["elfshell.google.desktopClientSecret.v1"],undefined);
 });
 test("stuck Google OAuth can be reset without token exchange or lost existing access",async()=>{
   const calendar="https://www.googleapis.com/auth/calendar.events.readonly";
@@ -436,6 +444,8 @@ test("stuck Google OAuth can be reset without token exchange or lost existing ac
     throw Error("No Google network call allowed for OAuth reset");
   }});
   await h.dispatch({type:"GOOGLE_AUTH_CONFIG",clientId:client,scopes:[calendar]});
+  await h.dispatch({type:"GOOGLE_AUTH_SECRET_SET",
+    secret:"GOCSPX-fixture-reset-123456789"});
   const prep=await h.dispatch({type:"GOOGLE_AUTH_PREPARE"});
   assert.equal(prep.ok,true,prep.error);
   const pending=h.sessionSettings["elfshell.google.pending.v1"];
@@ -666,7 +676,7 @@ test("release alerts default off and do not call GitHub without opt-in",async()=
   const h=createHarness();
   const status=await h.dispatch({type:"UPDATE_STATUS"});
   assert.equal(status.ok,true,status.error);
-  assert.equal(status.update.current,"0.13.3");
+  assert.equal(status.update.current,"0.13.4");
   assert.equal(status.update.enabled,false);
   assert.equal(status.update.permissionGranted,false);
   assert.equal(status.update.notice,false);
@@ -683,7 +693,7 @@ test("opt-in release feed shows a badge but never downloads or installs an exten
     assert.equal(options.credentials,"omit");
     assert.equal(options.redirect,"error");
     return {ok:true,status:200,json:async()=>[{
-      tag_name:"v0.13.4",html_url:U.RELEASE_PREFIX+"v0.13.4",
+      tag_name:"v0.13.5",html_url:U.RELEASE_PREFIX+"v0.13.5",
       draft:false,prerelease:false,name:"Small fixes",body:"Better performance"
     }]};
   }});
@@ -695,11 +705,11 @@ test("opt-in release feed shows a badge but never downloads or installs an exten
   const checked=await h.dispatch({type:"UPDATE_CHECK"});
   assert.equal(checked.ok,true,checked.error);
   assert.equal(checked.update.notice,true);
-  assert.equal(checked.update.latest.version,"v0.13.4");
+  assert.equal(checked.update.latest.version,"v0.13.5");
   assert.equal(h.badgeState.text,"1");
   assert.equal(h.fetchCalls.length,1);
   assert(h.fetchCalls[0].url.includes("/releases?per_page=10"));
-  const ignored=await h.dispatch({type:"UPDATE_IGNORE",version:"v0.13.4"});
+  const ignored=await h.dispatch({type:"UPDATE_IGNORE",version:"v0.13.5"});
   assert.equal(ignored.ok,true);
   assert.equal(ignored.update.notice,false);
   assert.equal(h.badgeState.text,"");
@@ -711,7 +721,7 @@ test("release checks accept preview channel but external core cannot check or co
   const U=require("../updater/release.js");
   const h=createHarness({}, {releasePermission:true,mockFetch:async()=>({
     ok:true,status:200,json:async()=>[
-      {tag_name:"v0.13.5-beta.1",html_url:U.RELEASE_PREFIX+"v0.13.5-beta.1",
+      {tag_name:"v0.13.6-beta.1",html_url:U.RELEASE_PREFIX+"v0.13.6-beta.1",
         draft:false,prerelease:true,name:"Preview",body:"Improvements"}
     ]})});
   await h.dispatch({type:"UPDATE_CONFIG",enabled:true,channel:"stable"});
@@ -719,7 +729,7 @@ test("release checks accept preview channel but external core cannot check or co
   assert.equal(stable.update.notice,false);
   await h.dispatch({type:"UPDATE_CONFIG",enabled:true,channel:"preview"});
   const preview=await h.dispatch({type:"UPDATE_CHECK"});
-  assert.equal(preview.update.latest.version,"v0.13.5-beta.1");
+  assert.equal(preview.update.latest.version,"v0.13.6-beta.1");
   assert.equal(preview.update.notice,true);
   const external=await h.external({kind:"elfshell.workspace.bridge",version:1,command:"UPDATE_CHECK"});
   assert.equal(external.ok,false);
@@ -883,4 +893,81 @@ test("OpenAI free-offer tracker accounts for completed response usage without lo
   assert.equal(s.offer.verifiedByOpenAI,false);
   assert(!JSON.stringify(port.sent).includes("sk_TEST_SECRET"));
   assert(!JSON.stringify(h.settings).includes("Hello"));
+});
+
+test("Desktop OAuth secret remains session-only, rejects invalid fields and never surfaces in status",async()=>{
+  const h=createHarness({}, {googlePermission:true});
+  const client="123456789-abcdefabcdef.apps.googleusercontent.com";
+  const calendar="https://www.googleapis.com/auth/calendar.events.readonly";
+  await h.dispatch({type:"GOOGLE_AUTH_CONFIG",clientId:client,scopes:[calendar]});
+  const missing=await h.dispatch({type:"GOOGLE_AUTH_PREPARE"});
+  assert.equal(missing.ok,false);
+  assert.match(missing.error,/Desktop OAuth client secret/);
+  for(const invalid of ["short","a/b?c"," ".repeat(16)]){
+    const res=await h.dispatch({type:"GOOGLE_AUTH_SECRET_SET",secret:invalid});
+    assert.equal(res.ok,false);
+  }
+  const secret="GOCSPX-SYNTHETIC_SECRET_FOR_TESTS";
+  const saved=await h.dispatch({type:"GOOGLE_AUTH_SECRET_SET",secret});
+  assert.equal(saved.ok,true,saved.error);
+  assert.equal(saved.auth.hasDesktopSecret,true);
+  assert(!JSON.stringify(saved).includes(secret));
+  assert(!JSON.stringify(h.settings).includes(secret));
+  assert.equal(h.sessionSettings["elfshell.google.desktopClientSecret.v1"],secret);
+  const status=await h.dispatch({type:"GOOGLE_AUTH_STATUS"});
+  assert.equal(status.auth.hasDesktopSecret,true);
+  assert(!JSON.stringify(status).includes(secret));
+  const alt="123456789-xyzxyzxyz.apps.googleusercontent.com";
+  const changed=await h.dispatch({type:"GOOGLE_AUTH_CONFIG",clientId:alt,scopes:[calendar]});
+  assert.equal(changed.auth.hasDesktopSecret,false);
+  assert.equal(h.sessionSettings["elfshell.google.desktopClientSecret.v1"],undefined);
+  const external=await h.external({kind:"elfshell.workspace.bridge",version:1,
+    command:"GOOGLE_AUTH_SECRET_SET",secret});
+  assert.equal(external.ok,false);
+  assert(!JSON.stringify(external).includes(secret));
+});
+test("Google token exchange reports only fixed error category, never raw provider descriptions",async()=>{
+  const secret="GOCSPX-SYNTHETIC_ERROR_TEST_SECRET";
+  const client="123456789-abcdefabcdef.apps.googleusercontent.com";
+  const scope="https://www.googleapis.com/auth/calendar.events.readonly";
+  const h=createHarness({}, {googlePermission:true,mockFetch:async(url,init)=>{
+    assert.equal(url,"https://oauth2.googleapis.com/token");
+    assert.equal(new URLSearchParams(init.body).get("client_secret"),secret);
+    return {status:400,ok:false,json:async()=>({
+      error:"invalid_request",
+      error_description:"client_secret is missing; YOU_MUST_NOT_SHOW_THIS_RAW_TEXT"
+    })};
+  }});
+  await h.dispatch({type:"GOOGLE_AUTH_CONFIG",clientId:client,scopes:[scope]});
+  await h.dispatch({type:"GOOGLE_AUTH_SECRET_SET",secret});
+  const pending=await h.dispatch({type:"GOOGLE_AUTH_PREPARE"});
+  assert.equal(pending.ok,true,pending.error);
+  const state=new URL(pending.auth.prepared.url).searchParams.get("state");
+  const callback="http://127.0.0.1/mozoauth2/devredirect?state="+
+    state+"&code=PRIVATE_ONE_TIME_CODE";
+  const result=await h.dispatch({type:"GOOGLE_AUTH_COMPLETE",callbackUrl:callback});
+  assert.equal(result.ok,false);
+  assert.match(result.error,/missing-client-secret/);
+  assert(!JSON.stringify(result).includes("PRIVATE_ONE_TIME_CODE"));
+  assert(!JSON.stringify(result).includes(secret));
+  assert(!JSON.stringify(result).includes("YOU_MUST_NOT_SHOW_THIS_RAW_TEXT"));
+  assert.equal(h.sessionSettings["elfshell.google.pending.v1"],undefined);
+});
+test("clearing Desktop OAuth secret invalidates pending request but not existing access token",async()=>{
+  const h=createHarness({},{googlePermission:true});
+  const client="123456789-abcdefabcdef.apps.googleusercontent.com";
+  const calendar="https://www.googleapis.com/auth/calendar.events.readonly";
+  await h.dispatch({type:"GOOGLE_AUTH_CONFIG",clientId:client,scopes:[calendar]});
+  await h.dispatch({type:"GOOGLE_AUTH_SECRET_SET",
+    secret:"GOCSPX-SYNTHETIC_CLEAR_TEST_SECRET"});
+  const prepared=await h.dispatch({type:"GOOGLE_AUTH_PREPARE"});
+  assert.equal(prepared.ok,true);
+  const token={accessToken:"SESSION_ACCESS_TOKEN",expiresAt:Date.now()+120000,scopes:[calendar]};
+  h.sessionSettings["elfshell.google.sessionToken.v1"]=token;
+  const cleared=await h.dispatch({type:"GOOGLE_AUTH_SECRET_CLEAR"});
+  assert.equal(cleared.ok,true);
+  assert.equal(cleared.auth.hasDesktopSecret,false);
+  assert.equal(cleared.auth.prepared,null);
+  assert.equal(cleared.auth.connected,true);
+  assert.equal(h.sessionSettings["elfshell.google.sessionToken.v1"],token);
 });
