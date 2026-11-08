@@ -26,6 +26,13 @@
       text=PROVIDERS.userText(prompt);
     if(!EFFORTS.includes(effort)||typeof webSearch!=="boolean")
       throw Error("Invalid streaming settings");
+    const offer=root.WorkspaceOpenAIComplimentary?.lookup(id);
+    if(offer?.status==="shut-down")
+      throw Error("This legacy model has been shut down by OpenAI; select an available model");
+    if(offer?.nonReasoning && effort!=="none")
+      throw Error("This model does not support reasoning effort; choose None");
+    if(offer&&offer.group!=="other"&&effort==="max")
+      throw Error("Maximum reasoning is unsupported for this offer model; choose High or Extra High");
     const body={
       model:id,input:text,instructions:String(system||"").slice(0,6000),
       store:false,stream:true,max_output_tokens:768,
@@ -157,17 +164,19 @@
           state:match[2]==="completed"?"done":"active"});
         return;
       }
-      if(type==="response.completed"){
+      if(["response.completed","response.incomplete","response.failed"].includes(type)){
         const usage=event.response?.usage;
-        const output=Number.isInteger(usage?.output_tokens)&&usage.output_tokens>=0
+        const output=Number.isSafeInteger(usage?.output_tokens)&&usage.output_tokens>=0
           ?usage.output_tokens:null;
-        const input=Number.isInteger(usage?.input_tokens)&&usage.input_tokens>=0
+        const input=Number.isSafeInteger(usage?.input_tokens)&&usage.input_tokens>=0
           ?usage.input_tokens:null;
-        status("completed",{usage:{inputTokens:input,outputTokens:output}});
-      }else if(type==="response.incomplete")status("incomplete",{
-        message:"OpenAI stopped before completing the answer (possibly output token limit)."
-      });
-      else if(type==="response.failed"||type==="error")status("failed",{
+        const totals={usage:{inputTokens:input,outputTokens:output}};
+        if(type==="response.completed")status("completed",totals);
+        else if(type==="response.incomplete")status("incomplete",{
+          message:"OpenAI stopped before completing the answer (possibly output token limit).",...totals
+        });
+        else status("failed",{message:"OpenAI reported a generation failure.",...totals});
+      }else if(type==="error")status("failed",{
         message:"OpenAI reported a generation failure."
       });
     }
@@ -199,9 +208,21 @@
     }
     if(!response||!Number.isInteger(response.status))throw Error("Invalid OpenAI response");
     if(!response.ok)throw Error(safeError(response.status));
-    const trace=presenter(emit);
+    let terminal=null;
+    const trace=presenter(event=>{
+      if(event.kind==="terminal")terminal=event;
+      else emit(event);
+    });
     await consume(response,event=>trace.handle(event),signal);
-    if(!trace.isTerminal())throw Error("Stream ended unexpectedly");
+    if(!trace.isTerminal()||!terminal)throw Error("Stream ended unexpectedly");
+    let localUsage=null;
+    if(terminal.usage?.inputTokens!==null && terminal.usage?.outputTokens!==null){
+      try{
+        localUsage=await root.WorkspaceOpenAIComplimentary.record(
+          browserApi,config.model,terminal.usage);
+      }catch{/* A local counter failure must not rewrite the provider's actual completion. */}
+    }
+    emit({...terminal,localUsage});
   }
   root.WorkspaceOpenAIStream={buildRequest,optionsFrom,frameData,consume,presenter,run};
   if(typeof module!=="undefined"&&module.exports)module.exports=root.WorkspaceOpenAIStream;
