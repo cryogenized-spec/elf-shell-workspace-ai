@@ -5,7 +5,33 @@
   const CONFIG_KEY="elfshell.google.oauthConfig.v1";
   const PENDING_KEY="elfshell.google.pending.v1";
   const TOKEN_KEY="elfshell.google.sessionToken.v1";
+  const SECRET_KEY="elfshell.google.desktopClientSecret.v1";
   const DATA_TYPES=Object.freeze(["authenticationInfo","websiteContent"]);
+  function validDesktopSecret(raw) {
+    const secret=typeof raw==="string"?raw.trim():"";
+    // OAuth Desktop client credentials are public-client identifiers, but still
+    // must never be printed, exported, saved in code or forwarded to AI.
+    if(secret.length<8 || secret.length>512 ||
+       !/^[A-Za-z0-9._~-]+$/.test(secret))
+      throw Error("Enter the Desktop OAuth client secret from your Google Cloud client, locally");
+    return secret;
+  }
+  async function sessionSecret(browserApi) {
+    const secret=(await browserApi.storage.session.get(SECRET_KEY))[SECRET_KEY];
+    return typeof secret==="string"?secret:"";
+  }
+  async function setDesktopSecret(browserApi,message) {
+    const cfg=await config(browserApi);
+    if(!cfg.clientId)throw Error("Save your Google Desktop OAuth client ID before setting its secret");
+    const secret=validDesktopSecret(message.secret);
+    // Store only in ephemeral Firefox session storage; never local/Sync.
+    await browserApi.storage.session.set({[SECRET_KEY]:secret});
+    return status(browserApi);
+  }
+  async function clearDesktopSecret(browserApi) {
+    await browserApi.storage.session.remove([SECRET_KEY,PENDING_KEY]);
+    return status(browserApi);
+  }
   const HOSTS=Object.freeze([
     "https://oauth2.googleapis.com/*",
     "https://www.googleapis.com/*",
@@ -41,7 +67,7 @@
   }
   async function status(browserApi,now=Date.now()) {
     const cfg=await config(browserApi);
-    const data=await browserApi.storage.session.get([PENDING_KEY,TOKEN_KEY]);
+    const data=await browserApi.storage.session.get([PENDING_KEY,TOKEN_KEY,SECRET_KEY]);
     const token=data[TOKEN_KEY];
     const valid=token && Number.isFinite(token.expiresAt) && token.expiresAt>now;
     const pending=safePending(data[PENDING_KEY],now);
@@ -49,6 +75,7 @@
       config:cfg,
       permissionsGranted:await permitted(browserApi),
       connected:Boolean(valid),
+      hasDesktopSecret:Boolean(data[SECRET_KEY]),
       expiresAt:valid?token.expiresAt:null,
       grantedScopes:valid?token.scopes:[],
       prepared:pending?{url:pending.url,expiresAt:pending.createdAt+300000}:null
@@ -59,13 +86,18 @@
     const current=await config(browserApi);
     await browserApi.storage.local.set({[CONFIG_KEY]:next});
     if(current.clientId!==next.clientId || current.scopes.join(" ")!==next.scopes.join(" "))
-      await browserApi.storage.session.remove([PENDING_KEY,TOKEN_KEY]);
+      await browserApi.storage.session.remove([PENDING_KEY,TOKEN_KEY,SECRET_KEY]);
+    // Never pair credentials from one Google client with a different client ID.
+    if(current.clientId!==next.clientId)
+      await browserApi.storage.session.remove(SECRET_KEY);
     return status(browserApi);
   }
   async function prepare(browserApi,cryptoApi) {
     if(!await permitted(browserApi)) throw new Error("Grant Google's three API host permissions first");
     const cfg=await config(browserApi);
     if(!cfg.clientId) throw new Error("Configure your Google OAuth Desktop client ID before connecting");
+    if(!await sessionSecret(browserApi))
+      throw new Error("Enter your Google Desktop OAuth client secret for this Firefox session before preparing sign-in");
     if(!browserApi.identity?.getRedirectURL)
       throw new Error("Firefox identity API is unavailable");
     const result=await OAUTH.prepare({
@@ -85,17 +117,38 @@
     if(!await permitted(browserApi)) throw Error("Google connection or data-sharing consent was revoked before token exchange");
     const stored=(await browserApi.storage.session.get(PENDING_KEY))[PENDING_KEY];
     const code=OAUTH.validateCallback(message.callbackUrl,stored);
+    const clientSecret=await sessionSecret(browserApi);
+    if(!clientSecret)throw Error("Google Desktop OAuth client secret is missing; re-enter it locally and prepare sign-in again");
     // Authorization codes are single-use. Drop the verifier/state before exchange.
     await browserApi.storage.session.remove(PENDING_KEY);
     const form=new URLSearchParams({
-      client_id:stored.clientId,code,code_verifier:stored.verifier,
+      client_id:stored.clientId,client_secret:clientSecret,code,code_verifier:stored.verifier,
       redirect_uri:stored.redirectUri,grant_type:"authorization_code"
     });
     const reply=await fetchImpl(OAUTH.TOKEN_URL,{
       method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},
       body:form.toString(),redirect:"error",cache:"no-store",credentials:"omit"
     });
-    if(!reply?.ok) throw new Error("Google rejected the OAuth code exchange (HTTP "+(reply?.status||"unknown")+")");
+    if(!reply?.ok) {
+      let category="unknown";
+      // Read only a small, fixed provider error classification. Never return
+      // Google response bodies, authorization codes or token details to the UI.
+      if([400,401,403].includes(reply?.status)){
+        try{
+          const raw=await reply.json();
+          const error=raw&&typeof raw.error==="string"?raw.error:"";
+          const description=raw&&typeof raw.error_description==="string"
+            ?raw.error_description.toLowerCase():"";
+          if(description.includes("client_secret")&&description.includes("missing"))
+            category="missing-client-secret";
+          else if(error==="invalid_client")category="invalid-client";
+          else if(error==="invalid_grant")category="invalid-grant";
+          else if(error==="unauthorized_client")category="unauthorized-client";
+        }catch{/* Keep the error classification generic, never expose raw data. */}
+      }
+      throw Error("Google rejected the OAuth code exchange (HTTP "+
+        (reply?.status||"unknown")+", category: "+category+")");
+    }
     const response=await reply.json();
     const token=OAUTH.validateToken(response,stored.scopes);
     // Any refresh_token from Google is deliberately dropped; never persist it.
@@ -188,6 +241,8 @@
       case "GOOGLE_AUTH_STATUS":return {ok:true,auth:await status(browserApi)};
       case "GOOGLE_AUTH_CONFIG":return {ok:true,auth:await setConfig(browserApi,message)};
       case "GOOGLE_AUTH_PREPARE":return {ok:true,auth:await prepare(browserApi,cryptoApi)};
+      case "GOOGLE_AUTH_SECRET_SET":return {ok:true,auth:await setDesktopSecret(browserApi,message)};
+      case "GOOGLE_AUTH_SECRET_CLEAR":return {ok:true,auth:await clearDesktopSecret(browserApi)};
       case "GOOGLE_AUTH_CANCEL":return {ok:true,auth:await cancelPending(browserApi)};
       case "GOOGLE_AUTH_COMPLETE":return {ok:true,auth:await complete(browserApi,fetchImpl,message)};
       case "GOOGLE_AUTH_DISCONNECT":return {ok:true,result:await disconnect(browserApi,fetchImpl)};
@@ -200,6 +255,6 @@
     }
   }
   root.WorkspaceGoogleSession={HOSTS,requiredHosts,CONFIG_KEY,PENDING_KEY,TOKEN_KEY,handle,
-    status,prepare,complete,disconnect,overview,morningCoffee,DATA_TYPES};
+    status,prepare,complete,disconnect,overview,morningCoffee,DATA_TYPES,SECRET_KEY,validDesktopSecret};
   if(typeof module!=="undefined"&&module.exports) module.exports=root.WorkspaceGoogleSession;
 })(globalThis);
