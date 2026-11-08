@@ -78,7 +78,17 @@
     <input id="google-client-id" type="text" maxlength="180" spellcheck="false" autocomplete="off" placeholder="123456789-xxxx.apps.googleusercontent.com" />
     <div class="google-oauth-client-help">
       <a id="google-create-client-link" href="https://console.cloud.google.com/auth/clients" target="_blank" rel="noopener noreferrer">Create or find a Desktop OAuth client ID in Google Cloud</a>
-      <p class="quiet">Choose your Google Cloud project, then <strong>Create client → Desktop app</strong>. Complete Google Auth setup first if prompted. Copy the <strong>Client ID</strong> ending in <code>.apps.googleusercontent.com</code> into the field above — never the API key or client secret.</p>
+      <p class="quiet">Choose your Google Cloud project, then <strong>Create client → Desktop app</strong>. Complete Google Auth setup first if prompted. Copy the <strong>Client ID</strong> ending in <code>.apps.googleusercontent.com</code> into the field above. The separately generated <strong>Desktop client secret</strong> belongs in the session-only field below, never in the Client ID field.</p>
+    </div>
+    <div class="google-secret-controls">
+      <label for="google-client-secret">Google Desktop OAuth client secret · this Firefox session only</label>
+      <input id="google-client-secret" type="password" maxlength="512" spellcheck="false" autocomplete="off" aria-describedby="google-secret-help" placeholder="Paste only inside your local Firefox extension" />
+      <div class="google-secret-buttons">
+        <button id="google-secret-save" type="button" class="mini">Use secret for this session</button>
+        <button id="google-secret-clear" type="button" class="mini danger" disabled>Forget session secret</button>
+      </div>
+      <p id="google-secret-status" class="quiet" role="status" aria-live="polite">No Desktop OAuth client secret stored.</p>
+      <p id="google-secret-help" class="quiet">Google's Desktop client may require its client_secret alongside PKCE when exchanging an authorization code. Find the secret in that same Google Cloud Desktop OAuth client. Ayarime stores it in Firefox session storage, not in GitHub or saved settings; it is sent only to Google's token endpoint. Do not share it in chat or screenshots. Session storage is not encrypted.</p>
     </div>
     <fieldset>
       <legend>Request these read-only scopes</legend>
