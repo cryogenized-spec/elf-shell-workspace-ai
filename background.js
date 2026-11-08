@@ -224,6 +224,9 @@ async function handle(message) {
         return await serialise(()=>globalThis.WorkspaceReleaseChecker.handle(browser,fetch,message));
       case "GET_STATE":
         return {ok:true,...await serialise(()=>snapshot())};
+      case "AI_OFFER_STATUS":
+      case "AI_OFFER_SET_ENROLLMENT":
+        return await serialise(()=>globalThis.WorkspaceOpenAIComplimentary.handle(browser,message));
       case "AI_STATUS":
       case "AI_SAVE_SETTINGS":
       case "AI_SET_SESSION_KEY":
