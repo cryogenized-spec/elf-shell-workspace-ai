@@ -65,3 +65,7 @@ The release-candidate QA workflow produces an unsigned artifact plus source-equi
 ### v0.11 connection-diagnostics milestone
 
 The Hub/sidebar can now manually verify a selected provider's model metadata without generating text, and the Hub can check Calendar/Tasks API authorization without parsing returned account contents. A failed check gives a safe error category; success is **not** equivalent to live inference, complete Google OAuth onboarding or public release sign-off. See [connection diagnostics](connection-diagnostics.md).
+
+### v0.12 OpenAI streaming and activity trace
+
+Implemented OpenAI Responses SSE and provider-exposed reasoning-summary deltas with a native 1990s OVA-themed live trace; per-stage timers, streaming assistant answer, real tool-event labels and cancellation. Model presets use the currently documented GPT-6 family, with Luna as cost-efficient default. Optional hosted web search is OFF by default. This is simulated/CI-tested pending real BYOK key acceptance, and no raw private CoT is exposed. See [OpenAI streaming](openai-streaming.md).
