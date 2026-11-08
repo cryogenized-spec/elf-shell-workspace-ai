@@ -154,6 +154,20 @@ try:
           lambda:require(auth["ok"] and not auth["auth"]["connected"] and
             not auth["auth"]["permissionsGranted"] and
             not auth["auth"]["config"]["clientId"],str(auth)))
+    check("Google stuck-sign-in reset is available but disabled until authorization starts",
+          lambda:require(
+            driver.find_element(By.ID,"google-reset").is_displayed() and
+            not driver.find_element(By.ID,"google-reset").is_enabled(),
+            "Google reset control should start disabled"))
+    check("Google OAuth error classifier preserves stage without exposing codes",
+          lambda:require(
+            "HTTP 400" in driver.execute_script(
+                "return explainGoogleLoginFailure({message:'Google rejected the OAuth code exchange (HTTP 400) code=SENSITIVE_AUTH_CODE'},'exchange')") and
+            "SENSITIVE_AUTH_CODE" not in driver.execute_script(
+                "return explainGoogleLoginFailure({message:'Google rejected the OAuth code exchange (HTTP 400) code=SENSITIVE_AUTH_CODE'},'exchange')") and
+            "Firefox did not complete" in driver.execute_script(
+                "return explainGoogleLoginFailure({message:'Failed to read https://127.0.0.1/?code=SECRET'},'redirect')"),
+            "Google error contains a secret or does not distinguish stages"))
     check("Google sign-in is opt-in and disabled before preparation",
           lambda:require(not driver.find_element(By.ID,"google-connect").is_enabled(),
             "Connect Google unexpectedly enabled"))
@@ -274,7 +288,7 @@ try:
 
     updater=extension_call({"type":"UPDATE_STATUS"})
     check("release notifications start opt-in and do not claim an installed update",
-          lambda:require(updater["ok"] and updater["update"]["current"]=="0.13.1" and
+          lambda:require(updater["ok"] and updater["update"]["current"]=="0.13.2" and
             not updater["update"]["enabled"] and
             updater["update"]["behavior"]=="notification-only",str(updater)))
     check("release check is disabled before optional GitHub permission",
