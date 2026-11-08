@@ -446,15 +446,18 @@ if(googleForm) {
         "Google returned, but no authorized session could be confirmed.",true);
     }catch(error){
       if(attempt!==googleSignInSerial)return;
+      // Clear a failed one-time challenge. Never allow accidental re-use.
+      const explanation=explainGoogleLoginFailure(error,stage);
+      try{await request({type:"GOOGLE_AUTH_CANCEL"});}catch{/* best effort */}
       // Refresh before showing the failure; the old order erased useful errors.
       await refreshGoogle();
-      googleMessage(explainGoogleLoginFailure(error,stage),true);
+      googleMessage(explanation,true);
     }finally{
       clearTimeout(slowNotice);
       if(attempt===googleSignInSerial){
         googleLoginActive=false;
         connect.disabled=!googlePreparedUrl;
-        document.querySelector("#google-reset").disabled=false;
+        document.querySelector("#google-reset").disabled=!googlePreparedUrl;
       }
     }
   });
