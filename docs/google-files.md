@@ -10,7 +10,7 @@ The optional Google scopes are:
 
 **Important:** These scopes grant broader account access than Ayarime's **UI-level selection policy**. The extension currently only requests data for exact files saved in the active Workspace profile, but Google authorization itself is not limited to those saved file IDs. This developer preview is **not a publicly verified OAuth app**.
 
-The attractive alternative `drive.file` is **non-sensitive and per-file**, but it does *not* authorize arbitrary Drive files merely because somebody pastes a file URL. To use `drive.file` correctly for pre-existing files, we need a separate Google Picker / Google-integrated file selection flow. That work belongs in a later milestone. We deliberately do not request restricted `drive.readonly` or `drive.metadata.readonly` in v0.6.
+The attractive alternative `drive.file` is **non-sensitive and per-file**, but it does *not* authorize arbitrary Drive files merely because somebody pastes a file URL. To use `drive.file` correctly for pre-existing files, we need a separate Google Picker / Google-integrated file selection flow. That work belongs in a later milestone. At the time of v0.6 we deliberately did not request restricted `drive.readonly` or `drive.metadata.readonly`. The newer v0.14.0 build offers **optional, separately consented** `drive.metadata.readonly` file metadata only; it still does not grant file content downloads. See [Drive/Gmail metadata](drive-gmail-metadata.md).
 
 Official references:
 - https://developers.google.com/workspace/docs/api/auth
@@ -41,7 +41,7 @@ Official references:
 
 **Tested:** mocked API fixtures for nested Docs, Sheets tab/GID selection, quoted titles, OAuth scopes, malicious URLs, oversized ranges/responses, missing credentials and external-bridge denial. Native Firefox regression tests and Mozilla add-on lint remain required.
 
-**Not tested:** real Google OAuth sign-in, real Docs/Sheets access, Google consent-screen verification, public signed release. Do not represent this as working against a user's live Google account until these gates are passed.
+**Live status as of 8 November 2026:** The user has reported successful real Google Calendar/Tasks OAuth reads after v0.13.4; **real Docs/Sheets previews remain unverified**. The Docs/Sheets sensitive-scope consent and selected disposable-file tests must be recorded separately in [the live-acceptance matrix](google-live-acceptance.md). Google consent-screen verification and public signed release remain outstanding.
 
 ## Next steps
 

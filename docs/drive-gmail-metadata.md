@@ -29,7 +29,7 @@ Additionally, `drive.file` plus the Google Picker is the preferred **non-restric
 
 Unit tests exercise exact scopes, fixed HTTPS endpoints, no Gmail `q` search, response sizes, missing permissions, raw-error redaction, no message body propagation, safe Drive links, and at most 8/20 items. Background tests verify no reading without direct account authorization and no ability for the original theme extension to invoke these requests. Native Firefox tests confirm the restricted checkboxes are unselected, action buttons disabled until connection and the privacy copy shown.
 
-**Passing CI is not live Google API acceptance.** The user's real Calendar/Tasks access has been demonstrated, but neither Drive nor Gmail is claimed live-verified by this milestone. Request limited approval in the user's own test Google Cloud project and use only the two manual preview buttons to test them. Do not share OAuth codes, token values, entire mail payloads or client secrets in bug reports.
+**Passing CI is not live Google API acceptance.** The user reported real Calendar/Tasks access, but neither Drive nor Gmail has a confirmed live read. See the [v0.14.0 live-acceptance matrix](google-live-acceptance.md) for independent G03/G04 test steps, privacy-safe recording and pending public verification. Request limited approval in the user's own test Google Cloud project and use only the two manual preview buttons to test them. Do not share OAuth codes, token values, entire mail payloads or client secrets in bug reports.
 
 ## Sources
 

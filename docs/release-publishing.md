@@ -12,7 +12,7 @@ The PR validation workflow also executes the release-preflight tests. The report
 
 The `release-gates.json` file begins with all gates unapproved. Each gate requires a human-reviewed, project-specific GitHub issue URL documenting evidence before it can be marked approved:
 
-1. Live Google OAuth PKCE/redirect, scopes, partial consent, disconnect and real Calendar/Tasks/Docs/Sheets read tests using a disposable Google project and test account (see Issue #15).
+1. Complete separately evidenced Google OAuth PKCE/redirect, partial scope consent, denial, disconnect and expiry, plus bounded Calendar/Tasks/Docs/Sheets/Drive/Gmail live reads with a disposable account (see [v0.14.0 field matrix](google-live-acceptance.md) and [Issue #15](https://github.com/cryogenized-spec/elf-shell-workspace-ai/issues/15)). The user reported successful Calendar/Tasks reads, but this does not approve the full gate.
 2. Live BYOK OpenAI/Anthropic/Gemini tests using disposable budget-restricted keys, supported model IDs, provider-specific errors and cancellation (see Issue #19).
 3. Mozilla privacy and data consent acceptance, including current manifest permissions, optional `data_collection` prompt and correct provider disclosures. Requires both Firefox real-device confirmation and reviewer sign-off.
 4. Signed add-on installed and upgraded in real Firefox, without ID drift or loss of stored profiles. Verify Mozilla's signed package independently.
