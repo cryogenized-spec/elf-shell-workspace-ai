@@ -190,9 +190,9 @@ try:
     check("Google API diagnostics cannot run before OAuth consent",
           lambda:require(not driver.find_element(By.ID,"google-check").is_enabled(),
             "Google scope check unexpectedly enabled"))
-    check("OpenAI model presets default to GPT-6 Luna with editable custom ID",
-          lambda:require(ai["ai"]["model"]=="gpt-6-luna" and
-            driver.find_element(By.ID,"ai-model").get_attribute("value")=="gpt-6-luna" and
+    check("OpenAI offer model catalog defaults to GPT-5.4 Mini with editable ID",
+          lambda:require(ai["ai"]["model"]=="gpt-5.4-mini" and
+            driver.find_element(By.ID,"ai-model").get_attribute("value")=="gpt-5.4-mini" and
             driver.find_element(By.ID,"ai-model").get_attribute("list")=="openai-model-presets",
             "OpenAI model preset is not configured"))
     check("live trace UI starts hidden without fetching data or a session key",
@@ -201,6 +201,19 @@ try:
             not driver.find_element(By.ID,"ai-cancel").is_displayed() and
             driver.execute_script("return typeof window.WorkspaceTraceUI")=="object",
             "Unexpected trace surface or missing streaming controller"))
+    check("complimentary model selector contains screenshot models in two groups",
+          lambda:require(
+            driver.find_element(By.ID,"ai-model-choice").is_displayed() and
+            len(driver.find_elements(By.CSS_SELECTOR,"#ai-model-choice optgroup"))==3 and
+            len(driver.find_elements(By.CSS_SELECTOR,"#ai-model-choice optgroup:nth-of-type(1) option"))==8 and
+            len(driver.find_elements(By.CSS_SELECTOR,"#ai-model-choice optgroup:nth-of-type(2) option"))==9,
+            "OpenAI screenshot catalog groups are incomplete"))
+    check("offer enrollment is unchecked and usage is only locally observed",
+          lambda:require(
+            not driver.find_element(By.ID,"ai-offer-enrolled").is_selected() and
+            "NOT remaining free tokens" in driver.find_element(By.ID,"ai-offer-small-count").text and
+            "Eligibility" in driver.find_element(By.ID,"ai-offer-panel").text,
+            "Offer view incorrectly claims verified free balance"))
     check("web search is disabled by default; summary effort selectable",
           lambda:require(not driver.find_element(By.ID,"ai-web-search").is_selected() and
             driver.find_element(By.ID,"ai-effort").get_attribute("value")=="medium",
@@ -245,7 +258,7 @@ try:
 
     updater=extension_call({"type":"UPDATE_STATUS"})
     check("release notifications start opt-in and do not claim an installed update",
-          lambda:require(updater["ok"] and updater["update"]["current"]=="0.12.0" and
+          lambda:require(updater["ok"] and updater["update"]["current"]=="0.13.0" and
             not updater["update"]["enabled"] and
             updater["update"]["behavior"]=="notification-only",str(updater)))
     check("release check is disabled before optional GitHub permission",
