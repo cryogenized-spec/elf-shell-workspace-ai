@@ -18,7 +18,7 @@ References:
 
 ## Developer setup
 
-1. Create a Google Cloud project with Calendar API and/or Tasks API enabled.
+1. Create or select a Google Cloud project with Calendar API and/or Tasks API enabled.
 2. Configure its OAuth consent screen and test users as Google requires.
 3. Create an OAuth **Desktop application** client. Never include a confidential client secret in the extension source.
 4. In the companion Hub, enter the client ID (ending in `.apps.googleusercontent.com`) and select Calendar, Tasks, or both, then save.
@@ -46,3 +46,9 @@ The read-only snapshot is intentionally bounded: up to 30 calendar events, 5 tas
 - **Not yet proven:** live Google authorization with real registered client ID; browser-specific token exchange handling; public OAuth verification; independent security assessment (if future broader Gmail or Drive restricted scopes are introduced); user-facing privacy review and Mozilla listing metadata.
 
 No AI inference or Morning Coffee automatic analysis is enabled in this milestone.
+
+### Direct client-ID creation link
+
+The **Account Access** panel now provides a direct shortcut to [Google Cloud Console → Google Auth Platform → Clients](https://console.cloud.google.com/auth/clients). Choose your project; complete the Google Auth setup or audience/consent-screen registration if prompted; click **Create client → Desktop app**; then copy the generated **Client ID** ending in `.apps.googleusercontent.com` into the extension's **Google OAuth Desktop client ID** field. Never paste an API key, OAuth access token or client secret into this field.
+
+The link opens in a new tab with `noopener noreferrer` and does not itself authenticate the extension, send any user data or grant Google scopes. It only helps find the public client identifier. The actual Firefox/Google OAuth flow remains **not live-verified**, as described in this document.

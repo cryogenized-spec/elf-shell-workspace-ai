@@ -76,6 +76,10 @@
   <form id="google-config-form" class="google-form">
     <label for="google-client-id">Google OAuth Desktop client ID (public identifier, never a client secret)</label>
     <input id="google-client-id" type="text" maxlength="180" spellcheck="false" autocomplete="off" placeholder="123456789-xxxx.apps.googleusercontent.com" />
+    <div class="google-oauth-client-help">
+      <a id="google-create-client-link" href="https://console.cloud.google.com/auth/clients" target="_blank" rel="noopener noreferrer">Create or find a Desktop OAuth client ID in Google Cloud</a>
+      <p class="quiet">Choose your Google Cloud project, then <strong>Create client → Desktop app</strong>. Complete Google Auth setup first if prompted. Copy the <strong>Client ID</strong> ending in <code>.apps.googleusercontent.com</code> into the field above — never the API key or client secret.</p>
+    </div>
     <fieldset>
       <legend>Request these read-only scopes</legend>
       <label><input type="checkbox" id="google-scope-calendar" checked /> Calendar events — read only</label>
