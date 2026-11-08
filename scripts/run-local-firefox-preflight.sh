@@ -22,8 +22,8 @@ if [[ ! -x "$selenium_python" ]]; then
   exit 2
 fi
 
-if ! "$selenium_python" -c 'import selenium' >/dev/null 2>&1; then
-  printf 'ERROR: Selenium is not installed in %s\n' "$selenium_python" >&2
+if ! "$selenium_python" -c 'from selenium import webdriver; assert hasattr(webdriver.Firefox,"install_web_extension")' >/dev/null 2>&1; then
+  printf 'ERROR: Selenium 4.52+ with install_web_extension is required in %s\n' "$selenium_python" >&2
   exit 2
 fi
 
