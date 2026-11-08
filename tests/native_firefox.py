@@ -190,6 +190,21 @@ try:
     check("Google API diagnostics cannot run before OAuth consent",
           lambda:require(not driver.find_element(By.ID,"google-check").is_enabled(),
             "Google scope check unexpectedly enabled"))
+    check("OpenAI model presets default to GPT-6 Luna with editable custom ID",
+          lambda:require(ai["ai"]["model"]=="gpt-6-luna" and
+            driver.find_element(By.ID,"ai-model").get_attribute("value")=="gpt-6-luna" and
+            driver.find_element(By.ID,"ai-model").get_attribute("list")=="openai-model-presets",
+            "OpenAI model preset is not configured"))
+    check("live trace UI starts hidden without fetching data or a session key",
+          lambda:require(driver.find_element(By.ID,"ai-stream-options").is_displayed() and
+            not driver.find_element(By.ID,"ai-trace").is_displayed() and
+            not driver.find_element(By.ID,"ai-cancel").is_displayed() and
+            driver.execute_script("return typeof window.WorkspaceTraceUI")=="object",
+            "Unexpected trace surface or missing streaming controller"))
+    check("web search is disabled by default; summary effort selectable",
+          lambda:require(not driver.find_element(By.ID,"ai-web-search").is_selected() and
+            driver.find_element(By.ID,"ai-effort").get_attribute("value")=="medium",
+            "The browser selected a potentially billable tool unexpectedly"))
     check("Ask Ayarime is disabled until user explicitly configures the provider",
           lambda:require(not driver.find_element(By.ID,"ai-send").is_enabled(),
             "AI prompt unexpectedly enabled"))
@@ -230,7 +245,7 @@ try:
 
     updater=extension_call({"type":"UPDATE_STATUS"})
     check("release notifications start opt-in and do not claim an installed update",
-          lambda:require(updater["ok"] and updater["update"]["current"]=="0.11.0" and
+          lambda:require(updater["ok"] and updater["update"]["current"]=="0.12.0" and
             not updater["update"]["enabled"] and
             updater["update"]["behavior"]=="notification-only",str(updater)))
     check("release check is disabled before optional GitHub permission",
