@@ -69,3 +69,7 @@ The Hub/sidebar can now manually verify a selected provider's model metadata wit
 ### v0.12 OpenAI streaming and activity trace
 
 Implemented OpenAI Responses SSE and provider-exposed reasoning-summary deltas with a native 1990s OVA-themed live trace; per-stage timers, streaming assistant answer, real tool-event labels and cancellation. Model presets use the currently documented GPT-6 family, with Luna as cost-efficient default. Optional hosted web search is OFF by default. This is simulated/CI-tested pending real BYOK key acceptance, and no raw private CoT is exposed. See [OpenAI streaming](openai-streaming.md).
+
+### v0.13 complimentary offer model groups
+
+The screenshot-specific OpenAI model list is available in two clearly separated 250k/2.5M daily token groups, with deprecated and shutdown markers. Added optional self-reported enrollment and two locally observed token usage meters that reset 00:00 UTC. **Not** authoritative remaining free balance; external API dashboard is the billing source of truth. See [OpenAI complimentary offer](openai-complimentary-offer.md). No account data-sharing setting was changed, and live paid acceptance is still pending.
