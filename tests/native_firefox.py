@@ -157,6 +157,22 @@ try:
     check("Google sign-in is opt-in and disabled before preparation",
           lambda:require(not driver.find_element(By.ID,"google-connect").is_enabled(),
             "Connect Google unexpectedly enabled"))
+    check("Google OAuth client ID field includes the exact Google Auth Platform Clients shortcut",
+          lambda:require(
+            driver.find_element(By.ID,"google-create-client-link").get_attribute("href")==
+              "https://console.cloud.google.com/auth/clients" and
+            driver.find_element(By.ID,"google-create-client-link").get_attribute("target")=="_blank" and
+            "noopener" in (driver.find_element(By.ID,"google-create-client-link").get_attribute("rel") or "") and
+            "noreferrer" in (driver.find_element(By.ID,"google-create-client-link").get_attribute("rel") or "") and
+            driver.find_element(By.ID,"google-create-client-link").is_displayed(),
+            "Missing or insecure Google OAuth client creation link"))
+    check("Google OAuth client guidance distinguishes Desktop client ID from client secret",
+          lambda:require(
+            "Create client" in driver.find_element(By.CSS_SELECTOR,".google-oauth-client-help").text and
+            "Desktop app" in driver.find_element(By.CSS_SELECTOR,".google-oauth-client-help").text and
+            "never the API key or client secret" in driver.find_element(By.CSS_SELECTOR,".google-oauth-client-help").text,
+            "OAuth setup guidance is incomplete"))
+
     client="123456789-abcdefabcdef.apps.googleusercontent.com"
     input=driver.find_element(By.ID,"google-client-id")
     input.send_keys(client)
