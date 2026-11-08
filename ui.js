@@ -476,7 +476,7 @@ if(googleForm) {
     }catch{
       googleMessage("Could not reset the pending sign-in. Reload the Hub "+
         "and prepare a new authorization attempt.",true);
-    }finally{reset.disabled=false;}
+    }finally{reset.disabled=!googleLoginActive&&!googlePreparedUrl;}
   });
   document.querySelector("#google-disconnect").addEventListener("click",async()=>{
     const button=document.querySelector("#google-disconnect");button.disabled=true;
