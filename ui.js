@@ -265,7 +265,7 @@ function explainGoogleLoginFailure(error,stage){
       "If Google opens inside Multi-Account Containers, temporarily disable "+
       "automatic Google container assignment and retry. No token was stored.";
   }
-  const status=/oauth code exchange \\(http (\\d{3})\\)/.exec(raw);
+  const status=/oauth code exchange \(http (\d{3})\)/.exec(raw);
   if(status){
     if(status[1]==="400")return "Google returned to Firefox, but rejected the "+
       "one-time code exchange (HTTP 400). The code may have expired or the "+
