@@ -1,8 +1,6 @@
 #!/usr/bin/env node
-// Stdout belongs exclusively to MCP JSON-RPC, not logs.
+// stdout belongs exclusively to MCP JSON-RPC, not logs.
+// SDK v2 serveStdio manages its own lifecycle and returns void.
 import {serveStdio} from "@modelcontextprotocol/server/stdio";
 import {createServer} from "./server.js";
-void serveStdio(createServer).catch(()=>{
-  console.error("ELF//SHELL Google MCP could not start.");
-  process.exitCode=1;
-});
+serveStdio(createServer);
