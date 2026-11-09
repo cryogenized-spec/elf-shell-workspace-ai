@@ -11,6 +11,12 @@ test("official v2 MCP stdio handshake discovers exactly four dedicated Tasks too
   });
   t.after(()=>{child.kill();});
   const pending=new Map();
+  let childStderr="";
+  child.stderr.on("data",chunk=>{childStderr+=chunk.toString().slice(0,2500);});
+  child.on("exit",(code,signal)=>{
+    for(const cb of pending.values())cb({error:{message:"MCP_CHILD_EXIT",code,signal,stderr:childStderr.slice(0,1800)}});
+    pending.clear();
+  });
   const reader=createInterface({input:child.stdout});
   reader.on("line",line=>{
     const data=JSON.parse(line);const cb=pending.get(data.id);
@@ -19,7 +25,7 @@ test("official v2 MCP stdio handshake discovers exactly four dedicated Tasks too
   let id=0;
   const ask=(method,params={})=>new Promise((resolve,reject)=>{
     const requestId=++id;
-    const timer=setTimeout(()=>reject(Error("MCP_TIMEOUT: "+method)),12000);
+    const timer=setTimeout(()=>reject(Error("MCP_TIMEOUT: "+method+" "+childStderr.slice(0,1500))),12000);
     pending.set(requestId,data=>{clearTimeout(timer);resolve(data);});
     child.stdin.write(JSON.stringify({jsonrpc:"2.0",id:requestId,method,params})+"\n");
   });
