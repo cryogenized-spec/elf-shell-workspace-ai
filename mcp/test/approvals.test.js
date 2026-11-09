@@ -28,3 +28,23 @@ test("approval fingerprint includes notes, account and scheduled date",()=>{
     createTaskAction({...base,scheduledDate:"2026-11-10"}));
   assert.throws(()=>createTaskAction({...base,scheduledDate:"2026-02-31"}));
 });
+
+test("expired approval can be reissued, while still-active approval cannot be overwritten",async()=>{
+  const parent=await mkdtemp(join(tmpdir(),"elfshell-approval-renew-"));
+  const directory=join(parent,"private");
+  const action=createTaskAction({accountId:"default",tasklistId:"demo",title:"Review"});
+  try{
+    await issueLocalApproval(action,{directory,now:1000});
+    await assert.rejects(issueLocalApproval(action,{directory,now:60000}),
+      /WRITE_APPROVAL_ALREADY_ACTIVE/);
+    // Old approval expires at 121000, so the operator can issue a replacement.
+    await issueLocalApproval(action,{directory,now:125000});
+    const gate=createFileApprovalGate({directory,now:()=>126000});
+    assert.equal(await gate.consume(action),true);
+    await assert.rejects(gate.consume(action),/WRITE_APPROVAL_REQUIRED/);
+  }finally{await rm(parent,{recursive:true,force:true});}
+});
+test("operator and tool normalize leading/trailing spaces to one exact approved title",()=>{
+  assert.deepEqual(createTaskAction({tasklistId:"demo",title:"  Test task  "}),
+    createTaskAction({tasklistId:"demo",title:"Test task"}));
+});
