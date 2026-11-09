@@ -1,0 +1,32 @@
+name: Custom Google REST MCP — Tasks
+on:
+  pull_request:
+    paths:
+      - 'mcp/**'
+      - '.github/workflows/mcp-tasks.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'mcp/**'
+      - '.github/workflows/mcp-tasks.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tasks-mcp:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install pinned MCP SDK and schema validator
+        run: npm install --prefix mcp --ignore-scripts --no-audit --no-fund
+      - name: Check independent MCP modules
+        run: |
+          for file in mcp/src/*.js mcp/test/*.js; do node --check "$file"; done
+      - name: Run Tasks adapter, approval and MCP protocol tests
+        run: npm test --prefix mcp
