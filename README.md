@@ -6,6 +6,10 @@ An optional **Firefox Desktop** companion to [ELF//SHELL — Ayarime](https://gi
 
 This companion is independent of the existing Firefox new-tab extension and does not replace its interface. The first alpha implements a native pinned **Super Tab**, a sidebar styled after the original ELF//SHELL palette, and user-initiated restoration of real Google Workspace tabs.
 
+## Own Google REST MCP — development M1
+
+The independently deployable [in-house Google Workspace MCP](mcp/README.md) is being developed in `mcp/`, separate from the Firefox extension. It speaks the standard MCP protocol and exposes **four explicit Tasks REST operations** through our own adapters: list tasklists, list tasks, get a task, and approval-gated task creation. **It does not call Google's official MCP servers.** M1 is local stdio + a developer-only short-lived token configuration; public OAuth onboarding, secure remote ChatGPT registration and additional Google applications are later milestones. See the [sequenced M0–M9 roadmap](docs/custom-google-rest-mcp-roadmap.md).
+
 ## Currently working in the prototype
 
 - Toolbar command **“Ayarime, please bring up my workspace.”**
