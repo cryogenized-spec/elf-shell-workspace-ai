@@ -12,7 +12,7 @@ export const approvalDirectory = () =>
 export function createTaskAction(args) {
   const accountId = args.accountId || "default";
   const tasklistId = args.tasklistId;
-  const title = args.title;
+  const title = typeof args.title==="string" ? args.title.trim() : args.title;
   const notes = args.notes || "";
   const scheduledDate = args.scheduledDate || "";
   if (!/^[A-Za-z0-9_-]{1,64}$/.test(accountId) ||
@@ -45,7 +45,30 @@ export async function issueLocalApproval(action,{directory=approvalDirectory(),n
   await secureDirectory(directory);
   const record={version:1,action,issuedAt:now,expiresAt:now+120000};
   const path=approvalPath(directory,action);
-  await writeFile(path,JSON.stringify(record),{encoding:"utf8",mode:0o600,flag:"wx"});
+  try {
+    await writeFile(path,JSON.stringify(record),{encoding:"utf8",mode:0o600,flag:"wx"});
+  } catch(error) {
+    if(error?.code!=="EEXIST")throw error;
+    // Reject live approvals, but let a local operator reapprove an expired
+    // action without requiring a fake MCP write to consume the old grant.
+    const existing=await open(path,constants.O_RDONLY|constants.O_NOFOLLOW);
+    let prior;
+    try {
+      const stat=await existing.stat();
+      if(!stat.isFile() || (stat.mode & 0o077)!==0)
+        throw Error("WRITE_APPROVAL_INVALID");
+      prior=JSON.parse(await existing.readFile({encoding:"utf8"}));
+    } finally {await existing.close();}
+    if(prior.version!==1 || JSON.stringify(prior.action)!==JSON.stringify(action) ||
+       !Number.isFinite(prior.expiresAt))
+      throw Error("WRITE_APPROVAL_INVALID");
+    if(prior.expiresAt>now)throw Error("WRITE_APPROVAL_ALREADY_ACTIVE");
+    // Move aside the old inactive grant; never overwrite a live grant in place.
+    const old=path+".expired-"+randomUUID();
+    await rename(path,old);
+    try {await writeFile(path,JSON.stringify(record),{encoding:"utf8",mode:0o600,flag:"wx"});}
+    finally {await unlink(old).catch(()=>{});}
+  }
   return {fingerprint:actionFingerprint(action),expiresAt:record.expiresAt};
 }
 
