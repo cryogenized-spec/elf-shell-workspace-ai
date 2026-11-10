@@ -54,8 +54,9 @@
     const prompt=PROVIDERS.userText(message.text);
     // The checkbox is reset after each send; server rereads bounded current
     // session history only when this individual request explicitly opts in.
-    const context=await root.WorkspaceConversationContext.load(
-      browserApi,config.provider,config.model,message);
+    const context=message.includeHistory===true
+      ? await root.WorkspaceConversationContext.load(browserApi,config.provider,config.model,message)
+      : {turns:[]};
     const persona=await personaLoader();
     const system=root.WorkspacePersonaUtils.stylePrompt(persona);
     const result=await PROVIDERS.infer({
