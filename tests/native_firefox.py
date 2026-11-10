@@ -104,6 +104,27 @@ try:
     check("Hub renders the reply saved by same-extension session storage",
           lambda:require("Local QA greeting" in driver.find_element(By.ID,"ai-conversation-list").text,
                          "Hub transcript did not receive session update"))
+    check("multi-turn is always disabled by default",
+          lambda:require(not driver.find_element(By.ID,"ai-context-enable").is_selected() and
+                         "Context OFF" in driver.find_element(By.ID,"ai-context-preview").text,
+                         "Chat history was enabled without opt-in"))
+    extension_call({"type":"AI_CONVERSATION_APPEND","prompt":"Browser QA follow-up",
+      "answer":"Only for testing", "provider":"openai","model":"gpt-5.4-mini"})
+    check("explicit context preview never returns prompt text",
+          lambda:require("Browser QA follow-up" not in json.dumps(
+            extension_call({"type":"AI_CONTEXT_PREVIEW","includeHistory":True,"historyLimit":1})["summary"]),
+            "Preview leaked prompt text"))
+    driver.find_element(By.ID,"ai-context-enable").click()
+    WebDriverWait(driver,10).until(lambda d:
+        "1 previous exchange" in d.find_element(By.ID,"ai-context-preview").text)
+    check("real Hub checkbox displays matching context budget without model request",
+          lambda:require("roughly" in driver.find_element(By.ID,"ai-context-preview").text,
+                         "Context size estimate is missing"))
+    driver.refresh()
+    WebDriverWait(driver,10).until(lambda d:len(d.find_elements(By.ID,"ai-context-enable"))==1)
+    check("opt-in is not saved across Hub reloads",
+          lambda:require(not driver.find_element(By.ID,"ai-context-enable").is_selected(),
+                         "Context must reset on reload"))
     driver.get("moz-extension://"+uuid+"/sidebar.html")
     WebDriverWait(driver,12).until(lambda d:
         "Local QA response" in d.find_element(By.ID,"ai-conversation-list").text)
