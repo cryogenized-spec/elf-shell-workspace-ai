@@ -60,7 +60,7 @@ test("both Hub and sidebar show the same session-only disclosure and controls",(
     const html=read(file);
     for(const id of ["ai-conversation-list","ai-conversation-clear","ai-conversation-count","ai-conversation-status"])
       assert(html.includes('id="'+id+'"'),file+" lacks "+id);
-    assert(html.includes("they are not sent as context"),file+" must disclose that visible history is not reused");
+    assert(html.includes("are not sent as context unless you opt in for that request"),file+" must disclose that history requires an explicit opt-in");
     assert(html.includes('src="ui-conversation.js"'),file+" must load shared transcript UI");
     assert(html.indexOf('src="ui-conversation.js"')<html.indexOf('src="ui.js"'));
   }
