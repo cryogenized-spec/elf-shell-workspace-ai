@@ -10,14 +10,22 @@
   const enable=document.querySelector("#ai-context-enable");
   const limit=document.querySelector("#ai-context-limit");
   const preview=document.querySelector("#ai-context-preview");
-  let generation=0,previewGeneration=0;
-  function contextOptions(){
+  let generation=0,previewGeneration=0,previewReady=false;
+  function rawContextOptions(){
     return {includeHistory:enable?.checked===true,historyLimit:Number(limit?.value||2)};
+  }
+  function contextOptions(){
+    const opts=rawContextOptions();
+    if(opts.includeHistory&&!previewReady)
+      throw Error("Wait for the context preview to finish before sending, or switch context off.");
+    return opts;
   }
   async function refreshPreview(){
     const mine=++previewGeneration;
-    const opts=contextOptions();
+    previewReady=false;
+    const opts=rawContextOptions();
     if(!opts.includeHistory){
+      previewReady=true;
       if(preview)preview.textContent="Context OFF. Only your new prompt and persona are sent.";
       return;
     }
@@ -26,8 +34,9 @@
       const response=await request("AI_CONTEXT_PREVIEW",opts);
       if(mine!==previewGeneration)return;
       const info=response.summary;
+      previewReady=true;
       if(preview)preview.textContent=info.turns
-        ?info.turns+" previous exchange(s) · "+info.characters+
+        ?info.provider+" / "+info.model+" · "+info.turns+" previous exchange(s) · "+info.characters+
           " characters · roughly "+info.approxTokens+
           " text tokens before the new prompt (estimate only; costs vary by model)."
         :"No recent completed exchanges match this provider and model. Only your new prompt will be sent.";
