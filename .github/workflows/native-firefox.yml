@@ -50,16 +50,20 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - name: Fetch ELF//SHELL core feature branch
+      - name: Fetch ELF//SHELL core assistant integration branch
         uses: actions/checkout@v4
         with:
           repository: cryogenized-spec/elf-shell-ayarime
-          ref: feature/local-hardware-telemetry-memory-chatgpt
+          ref: feature/ask-ayarime-entry-056
           path: core
-      - name: Build independent unsigned add-on archives
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Build and test both independent unsigned add-ons
         run: |
           npm test
           npm run package
+          (cd core && npm test)
           python3 core/scripts/package.py
       - name: Install Firefox
         id: firefox
