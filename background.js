@@ -120,13 +120,22 @@ async function currentWindow() {
 async function ensureHub(windowId) {
   const hubUrl = browser.runtime.getURL("hub.html");
   const all = await browser.tabs.query({});
-  let hub = all.find(tab => tab.url === hubUrl && !tab.incognito);
+  let hub = all.find(tab => (tab.url || "").split("#")[0] === hubUrl && !tab.incognito);
   if (!hub) {
     hub = await browser.tabs.create({windowId, url:hubUrl, active:false, pinned:true});
   } else if (!hub.pinned) {
     hub = await browser.tabs.update(hub.id, {pinned:true});
   }
   return hub;
+}
+async function focusAssistant() {
+  // Focus the existing pinned Hub without restoring Google tabs or using an AI key.
+  const win = await currentWindow();
+  const hub = await ensureHub(win.id);
+  const url = browser.runtime.getURL("hub.html") + "#assistant";
+  await browser.tabs.update(hub.id, {url,active:true,loadReplace:true});
+  await browser.windows.update(hub.windowId, {focused:true});
+  return {focused:true,hubTabId:hub.id,view:"assistant"};
 }
 async function ensureGroup(windowId, ids, title=GROUP_TITLE) {
   const unique = [...new Set(ids)].filter(id=>Number.isInteger(id));
@@ -369,13 +378,15 @@ async function handleCoreMessage(message, sender) {
         kind:BRIDGE_KIND,
         version:BRIDGE_PROTOCOL_VERSION,
         companionId:browser.runtime.id,
-        capabilities:["OPEN_WORKSPACE","LIST_RESOURCES","OPEN_RESOURCE"],
+        capabilities:["OPEN_WORKSPACE","OPEN_ASSISTANT","LIST_RESOURCES","OPEN_RESOURCE"],
         dataAccess:"browser-tabs-only"
       };
     case "LIST_RESOURCES":
       return {ok:true, resources:(await resources()).map(item => ({name:item.name,key:item.key}))};
     case "OPEN_WORKSPACE":
       return handle({type:"OPEN_WORKSPACE"});
+    case "OPEN_ASSISTANT":
+      return {ok:true,result:await serialise(focusAssistant)};
     case "OPEN_RESOURCE":
       if (typeof message.key !== "string" || message.key.length > 250) {
         return {ok:false,error:"Invalid resource identifier"};
