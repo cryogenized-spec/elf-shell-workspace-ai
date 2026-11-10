@@ -21,7 +21,7 @@
     if(typeof message.webSearch!=="boolean")throw Error("Web-search consent must be explicit");
     return {effort,webSearch:message.webSearch};
   }
-  function buildRequest({model,key,prompt,system,effort="medium",webSearch=false,signal}){
+  function buildRequest({model,key,prompt,system,effort="medium",webSearch=false,history=[],signal}){
     const id=PROVIDERS.modelId(model),secret=PROVIDERS.keyText(key),
       text=PROVIDERS.userText(prompt);
     if(!EFFORTS.includes(effort)||typeof webSearch!=="boolean")
@@ -33,8 +33,9 @@
       throw Error("This model does not support reasoning effort; choose None");
     if(offer&&offer.group!=="other"&&effort==="max")
       throw Error("Maximum reasoning is unsupported for this offer model; choose High or Extra High");
+    const messages=root.WorkspaceConversationContext.orderedMessages({turns:history},text);
     const body={
-      model:id,input:text,instructions:String(system||"").slice(0,6000),
+      model:id,input:history.length?messages:text,instructions:String(system||"").slice(0,6000),
       store:false,stream:true,max_output_tokens:768,
       ...(effort==="none"?{}:{reasoning:{effort,summary:"auto"}}),
       ...(webSearch?{tools:[{type:"web_search"}],tool_choice:"auto"}:{})
@@ -193,13 +194,15 @@
     const saved=(await browserApi.storage.session.get(SESSION_KEY))[SESSION_KEY];
     if(!saved||saved.provider!=="openai"||!saved.key)
       throw Error("Enter an OpenAI API key for this Firefox session");
+    const context=await root.WorkspaceConversationContext.load(
+      browserApi,config.provider,config.model,message);
     const persona=await personaLoader();
     const system=root.WorkspacePersonaUtils.stylePrompt(persona);
     const req=buildRequest({model:config.model,key:saved.key,prompt:message.text,
-      system,...options,signal});
+      history:context.turns,system,...options,signal});
     if(signal?.aborted)throw Error("Stream cancelled");
     emit({kind:"started",model:config.model,effort:options.effort,
-      webSearch:options.webSearch});
+      webSearch:options.webSearch,contextTurns:context.turns.length});
     let response;
     try{response=await fetchImpl(req.url,req.options);}
     catch(error){
