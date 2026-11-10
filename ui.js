@@ -1080,7 +1080,10 @@ function focusAssistantFromRoute() {
   if (document.body.dataset.view!=="hub" || location.hash!=="#assistant") return;
   const prompt=document.getElementById("ai-prompt");
   if (!prompt) return;
-  document.getElementById("ai-console")?.scrollIntoView({block:"start"});
+  // The console has provider settings above the composer; bring the actual
+  // input into view, with the latest local exchange immediately above it.
+  document.getElementById("ai-conversation-list")?.scrollTo({top:document.getElementById("ai-conversation-list").scrollHeight});
+  prompt.scrollIntoView({block:"center"});
   prompt.focus({preventScroll:true});
   // Clear the route so a later handoff can focus the same existing Hub again.
   history.replaceState(null,"",location.pathname+location.search);
