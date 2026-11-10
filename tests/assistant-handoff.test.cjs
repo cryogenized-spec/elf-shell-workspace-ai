@@ -11,6 +11,7 @@ test("assistant route is a local, explicit UI handoff",()=>{
   assert(ui.includes('openAssistantSidebar.addEventListener("click",()=>{'));
   assert(ui.includes('location.hash!=="#assistant"'));
   assert(ui.includes('prompt.focus({preventScroll:true})'));
+  assert(ui.includes('prompt.scrollIntoView({block:"center"})'),"Handoff must show the actual AI composer, not just top of settings");
   assert(ui.includes('history.replaceState(null,"",location.pathname+location.search)'));
   assert(bg.includes('capabilities:["OPEN_WORKSPACE","OPEN_ASSISTANT"'));
   assert(bg.includes('case "OPEN_ASSISTANT"'));
