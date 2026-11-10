@@ -38,7 +38,9 @@
     const selected=providerName(provider);
     const id=modelId(model),secret=keyText(key),text=userText(prompt);
     const instructions=typeof system==="string"?system.slice(0,6000):"";
-    const messages=root.WorkspaceConversationContext.orderedMessages({turns:history},text);
+    const messages=history.length
+      ? root.WorkspaceConversationContext.orderedMessages({turns:history},text)
+      : [{role:"user",content:text}];
     if(selected==="openai")
       return {url:"https://api.openai.com/v1/responses",
         options:{method:"POST",headers:{"Authorization":"Bearer "+secret,"Content-Type":"application/json"},
