@@ -33,7 +33,9 @@
       throw Error("This model does not support reasoning effort; choose None");
     if(offer&&offer.group!=="other"&&effort==="max")
       throw Error("Maximum reasoning is unsupported for this offer model; choose High or Extra High");
-    const messages=root.WorkspaceConversationContext.orderedMessages({turns:history},text);
+    const messages=history.length
+      ? root.WorkspaceConversationContext.orderedMessages({turns:history},text)
+      : [{role:"user",content:text}];
     const body={
       model:id,input:history.length?messages:text,instructions:String(system||"").slice(0,6000),
       store:false,stream:true,max_output_tokens:768,
@@ -194,8 +196,9 @@
     const saved=(await browserApi.storage.session.get(SESSION_KEY))[SESSION_KEY];
     if(!saved||saved.provider!=="openai"||!saved.key)
       throw Error("Enter an OpenAI API key for this Firefox session");
-    const context=await root.WorkspaceConversationContext.load(
-      browserApi,config.provider,config.model,message);
+    const context=message.includeHistory===true
+      ? await root.WorkspaceConversationContext.load(browserApi,config.provider,config.model,message)
+      : {turns:[]};
     const persona=await personaLoader();
     const system=root.WorkspacePersonaUtils.stylePrompt(persona);
     const req=buildRequest({model:config.model,key:saved.key,prompt:message.text,
