@@ -91,6 +91,34 @@ try:
     WebDriverWait(driver,15).until(lambda d:len(d.find_elements(By.ID,"launch"))==1)
     check("Hub rendered as an extension page",lambda:require("Workspace Hub" in driver.title,driver.title))
 
+    # No provider keys are configured; this exercises only local session history.
+    empty_history=extension_call({"type":"AI_CONVERSATION_LIST"})
+    check("conversation begins empty without requesting provider data",
+          lambda:require(empty_history.get("entries")==[] and
+            driver.find_element(By.ID,"ai-conversation-clear").get_attribute("disabled"),
+            str(empty_history)))
+    extension_call({"type":"AI_CONVERSATION_APPEND","prompt":"Local QA greeting",
+      "answer":"Local QA response","provider":"openai","model":"gpt-6-luna"})
+    WebDriverWait(driver,10).until(lambda d:
+        "Local QA response" in d.find_element(By.ID,"ai-conversation-list").text)
+    check("Hub renders the reply saved by same-extension session storage",
+          lambda:require("Local QA greeting" in driver.find_element(By.ID,"ai-conversation-list").text,
+                         "Hub transcript did not receive session update"))
+    driver.get("moz-extension://"+uuid+"/sidebar.html")
+    WebDriverWait(driver,12).until(lambda d:
+        "Local QA response" in d.find_element(By.ID,"ai-conversation-list").text)
+    check("sidebar shows the very same session conversation",
+          lambda:require("Local QA greeting" in driver.find_element(By.ID,"ai-conversation-list").text,
+                         "Sidebar transcript differs from Hub"))
+    driver.find_element(By.ID,"ai-conversation-clear").click()
+    WebDriverWait(driver,10).until(lambda d:
+        "No replies in this Firefox session" in d.find_element(By.ID,"ai-conversation-list").text)
+    check("Clear conversation removes only the session transcript",
+          lambda:require(extension_call({"type":"AI_CONVERSATION_LIST"})["entries"]==[],
+                         "Clear conversation did not remove session history"))
+    driver.get("moz-extension://"+uuid+"/hub.html")
+    WebDriverWait(driver,10).until(lambda d:len(d.find_elements(By.ID,"launch"))==1)
+
     state=extension_call({"type":"GET_STATE"})
     check("default profile has six Google Workspace application links",
           lambda:require(len(state["resources"])==6 and len(state["profiles"])==1,str(state)))
