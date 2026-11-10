@@ -236,6 +236,11 @@ async function handle(message) {
       case "AI_OFFER_STATUS":
       case "AI_OFFER_SET_ENROLLMENT":
         return await serialise(()=>globalThis.WorkspaceOpenAIComplimentary.handle(browser,message));
+      case "AI_CONVERSATION_LIST":
+      case "AI_CONVERSATION_APPEND":
+      case "AI_CONVERSATION_CLEAR":
+        // Same-extension only; conversation is local UI history, never model context.
+        return await serialise(()=>globalThis.WorkspaceConversationTranscript.handle(browser,message));
       case "AI_STATUS":
       case "AI_SAVE_SETTINGS":
       case "AI_SET_SESSION_KEY":
