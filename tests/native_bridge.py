@@ -159,6 +159,15 @@ try:
           lambda:require(driver.find_element(By.ID,"ai-prompt").is_displayed() and
                          driver.current_url==hub_url,
                          "Hub did not focus or clear its local assistant route"))
+    # A second explicit click inside the companion is a valid Firefox user
+    # gesture to open the native sidebar, unlike the async core bridge.
+    driver.find_element(By.ID,"ai-open-sidebar").click()
+    WebDriverWait(driver,12).until(lambda d:
+        "sidebar opened" in d.find_element(By.ID,"ai-sidebar-status").text.lower() or
+        "could not open sidebar" in d.find_element(By.ID,"ai-sidebar-status").text.lower())
+    sidebar_message=driver.find_element(By.ID,"ai-sidebar-status").text
+    check("companion Hub's direct click opens the Firefox native sidebar",
+          lambda:require("sidebar opened" in sidebar_message.lower(),sidebar_message))
     after_ask=driver.execute_async_script("""
       const done=arguments[arguments.length-1];
       browser.tabs.query({}).then(tabs=>done(tabs.map(t=>t.id)),e=>done({error:String(e)}));
