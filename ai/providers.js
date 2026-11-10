@@ -34,26 +34,29 @@
     try{if(raw&&raw.model)model=modelId(raw.model);}catch{/* fallback on malformed stored config */}
     return {provider:name,model};
   }
-  function buildRequest(provider,model,key,system,prompt){
+  function buildRequest(provider,model,key,system,prompt,history=[]){
     const selected=providerName(provider);
     const id=modelId(model),secret=keyText(key),text=userText(prompt);
     const instructions=typeof system==="string"?system.slice(0,6000):"";
+    const messages=root.WorkspaceConversationContext.orderedMessages({turns:history},text);
     if(selected==="openai")
       return {url:"https://api.openai.com/v1/responses",
         options:{method:"POST",headers:{"Authorization":"Bearer "+secret,"Content-Type":"application/json"},
-          body:JSON.stringify({model:id,input:text,instructions,store:false,max_output_tokens:MAX_OUTPUT_TOKENS}),
+          body:JSON.stringify(history.length
+            ? {model:id,input:messages,instructions,store:false,max_output_tokens:MAX_OUTPUT_TOKENS}
+            : {model:id,input:text,instructions,store:false,max_output_tokens:MAX_OUTPUT_TOKENS}),
           redirect:"error",credentials:"omit",cache:"no-store"}};
     if(selected==="anthropic")
       return {url:"https://api.anthropic.com/v1/messages",
         options:{method:"POST",headers:{"x-api-key":secret,"anthropic-version":"2023-06-01",
           "Content-Type":"application/json"},
           body:JSON.stringify({model:id,system:instructions,max_tokens:MAX_OUTPUT_TOKENS,
-            messages:[{role:"user",content:text}]}),redirect:"error",credentials:"omit",cache:"no-store"}};
+            messages:history.length?messages:[{role:"user",content:text}]}),redirect:"error",credentials:"omit",cache:"no-store"}};
     return {url:"https://generativelanguage.googleapis.com/v1beta/models/"+
       encodeURIComponent(id)+":generateContent",
       options:{method:"POST",headers:{"x-goog-api-key":secret,"Content-Type":"application/json"},
         body:JSON.stringify({systemInstruction:{parts:[{text:instructions}]},
-          contents:[{role:"user",parts:[{text}]}],
+          contents:history.length?messages.map(item=>({role:item.role==="assistant"?"model":"user",parts:[{text:item.content}]})):[{role:"user",parts:[{text}]}],
           generationConfig:{maxOutputTokens:MAX_OUTPUT_TOKENS}}),
         redirect:"error",credentials:"omit",cache:"no-store"}};
   }
@@ -78,8 +81,8 @@
     if(!combined)throw Error("AI provider returned no readable text");
     return {text:combined.slice(0,MAX_RESPONSE),truncated:combined.length>MAX_RESPONSE};
   }
-  async function infer({provider,model,key,system,prompt,fetchImpl}){
-    const request=buildRequest(provider,model,key,system,prompt);
+  async function infer({provider,model,key,system,prompt,history=[],fetchImpl}){
+    const request=buildRequest(provider,model,key,system,prompt,history);
     const response=await fetchImpl(request.url,request.options);
     if(!response||!Number.isInteger(response.status))
       throw Error("AI provider returned an invalid response");
