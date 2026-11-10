@@ -54,6 +54,8 @@
     const prompt=PROVIDERS.userText(message.text);
     // The checkbox is reset after each send; server rereads bounded current
     // session history only when this individual request explicitly opts in.
+    if(message.includeHistory!==undefined&&typeof message.includeHistory!=="boolean")
+      throw Error("Conversation context consent must be a boolean");
     const context=message.includeHistory===true
       ? await root.WorkspaceConversationContext.load(browserApi,config.provider,config.model,message)
       : {turns:[]};
