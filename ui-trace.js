@@ -119,7 +119,8 @@
       if(message.kind==="started"){
         state.model=message.model;
         finishStep("connecting");
-        step("accepted","Model: "+message.model+" · reasoning "+message.effort);
+        step("accepted","Model: "+message.model+" · reasoning "+message.effort+
+          " · "+(message.contextTurns||0)+" prior exchange(s)");
       }else if(message.kind==="phase"){
         for(const [id,item] of state.steps){
           if(id==="accepted"||id.startsWith("phase-"))finishStep(id);
@@ -157,7 +158,8 @@
         });
       });
       state.port.postMessage({type:"start",text:settings.text,
-        effort:settings.effort,webSearch:settings.webSearch});
+        effort:settings.effort,webSearch:settings.webSearch,
+        includeHistory:settings.includeHistory,historyLimit:settings.historyLimit});
     }catch{finish({status:"failed",message:"Firefox could not open the streaming channel."});}
     return true;
   }
