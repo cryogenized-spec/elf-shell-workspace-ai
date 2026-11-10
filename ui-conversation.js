@@ -7,7 +7,39 @@
   const count=document.querySelector("#ai-conversation-count");
   const status=document.querySelector("#ai-conversation-status");
   const clear=document.querySelector("#ai-conversation-clear");
-  let generation=0;
+  const enable=document.querySelector("#ai-context-enable");
+  const limit=document.querySelector("#ai-context-limit");
+  const preview=document.querySelector("#ai-context-preview");
+  let generation=0,previewGeneration=0;
+  function contextOptions(){
+    return {includeHistory:enable?.checked===true,historyLimit:Number(limit?.value||2)};
+  }
+  async function refreshPreview(){
+    const mine=++previewGeneration;
+    const opts=contextOptions();
+    if(!opts.includeHistory){
+      if(preview)preview.textContent="Context OFF. Only your new prompt and persona are sent.";
+      return;
+    }
+    if(preview)preview.textContent="Checking recent matching exchanges locally…";
+    try{
+      const response=await request("AI_CONTEXT_PREVIEW",opts);
+      if(mine!==previewGeneration)return;
+      const info=response.summary;
+      if(preview)preview.textContent=info.turns
+        ?info.turns+" previous exchange(s) · "+info.characters+
+          " characters · roughly "+info.approxTokens+
+          " text tokens before the new prompt (estimate only; costs vary by model)."
+        :"No recent completed exchanges match this provider and model. Only your new prompt will be sent.";
+    }catch{
+      if(mine===previewGeneration&&preview)
+        preview.textContent="Could not verify context. Disable history or try again before sending.";
+    }
+  }
+  function resetContext(){
+    if(enable)enable.checked=false;
+    void refreshPreview();
+  }
   const node=(tag,className,value)=>{
     const el=document.createElement(tag);
     if(className)el.className=className;
@@ -50,6 +82,7 @@
       const result=await request("AI_CONVERSATION_LIST");
       if(my!==generation)return;
       render(result.entries);
+      if(enable?.checked)void refreshPreview();
     }catch {tell("Previous replies could not be loaded from Firefox session storage.");}
   }
   async function record({prompt,answer,provider,model}){
@@ -57,7 +90,8 @@
       const result=await request("AI_CONVERSATION_APPEND",{prompt,answer,provider,model});
       ++generation;
       render(result.entries);
-      tell("Saved for this Firefox session only; earlier messages are not resent to the model.");
+      tell("Saved for this Firefox session only. Previous messages are sent only when you choose to include them.");
+      if(enable?.checked)void refreshPreview();
       return true;
     }catch{
       tell("Reply received, but local conversation storage failed. Current output remains visible.");
@@ -73,8 +107,11 @@
     try{
       const result=await request("AI_CONVERSATION_CLEAR");
       ++generation;render(result.entries);tell("Session conversation cleared. API keys are unchanged.");
+      if(enable?.checked)void refreshPreview();
     }catch{tell("Could not clear the session conversation.");await reload();}
   });
+  enable?.addEventListener("change",()=>void refreshPreview());
+  limit?.addEventListener("change",()=>void refreshPreview());
   const field=document.querySelector("#ai-prompt");
   field?.addEventListener("keydown",event=>{
     if(event.key==="Enter"&&(event.ctrlKey||event.metaKey)){
@@ -87,5 +124,5 @@
     if(area==="session"&&Object.prototype.hasOwnProperty.call(changes,KEY))void reload();
   });
   void reload();
-  root.WorkspaceConversationUI={record,reload};
+  root.WorkspaceConversationUI={record,reload,contextOptions,resetContext,refreshPreview};
 })(globalThis);
