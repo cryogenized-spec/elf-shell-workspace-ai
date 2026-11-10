@@ -243,3 +243,30 @@ footer{display:flex;justify-content:space-between;gap:18px;margin-top:35px;paddi
 .ai-sidebar-button{background:#4a3151;color:#fff0fb;border-color:#cb9dc2;font-weight:700;letter-spacing:.08em;white-space:normal}
 .ai-sidebar-button:hover,.ai-sidebar-button:focus-visible{border-color:var(--lime);background:#614367}
 #ai-sidebar-status{font-size:11px}
+
+/* Unified Station/AI conversation presentation: session-only, local and accessible. */
+.conversation-panel{display:grid;gap:10px;padding:15px;border:1px solid var(--ayarime-outline);background:linear-gradient(145deg,#121827ef,#241c32d9);min-width:0}
+.conversation-toolbar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;border-bottom:1px solid #93d9d748;padding-bottom:10px}
+.conversation-toolbar>div{display:grid;gap:5px}
+.conversation-toolbar .eyebrow{margin:0;color:#e6b4d5}
+.conversation-toolbar small{font:10px ui-monospace,monospace;color:var(--cyan)}
+.conversation-toolbar button{white-space:normal;font-size:10px;letter-spacing:.03em}
+.conversation-list{display:grid;gap:14px;max-height:430px;min-height:110px;overflow:auto;padding:7px 3px;scrollbar-color:#805269 #151a28;scrollbar-width:thin}
+.conversation-exchange{display:grid;gap:9px;min-width:0;border-bottom:1px solid #93d9d729;padding:0 0 16px}
+.conversation-bubble{min-width:0;max-width:96%;padding:12px 13px;border:1px solid #8fb8c47d;background:#182638;color:var(--ivory)}
+.conversation-bubble.you{justify-self:end;background:#412e49;border-color:#c78bb1}
+.conversation-bubble.ayarime{justify-self:start;background:#172a35;border-color:#7ec6cb}
+.conversation-speaker{font:700 10px ui-monospace,monospace;letter-spacing:.17em;color:var(--cyan);margin-bottom:9px}
+.conversation-bubble.you .conversation-speaker{color:#f0b9d6}
+.conversation-text{white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.7 ui-monospace,monospace;user-select:text}
+.conversation-source{justify-self:start;font:10px ui-monospace,monospace;color:#abbccc;letter-spacing:.05em}
+.conversation-empty{align-self:center;padding:24px 14px;text-align:center;font:italic 16px/1.5 Georgia,serif;color:#d9bdcd}
+.conversation-privacy{margin:0;font-size:10px;line-height:1.65}
+.conversation-privacy strong{color:#ffe1ee}
+#ai-conversation-status{min-height:0;margin:0;font-size:10px;color:var(--lime)}
+.prompt-shortcut{font-size:10px;margin:0;color:#b5cbd0}
+.side-shell .conversation-panel{padding:10px}
+.side-shell .conversation-list{max-height:380px}
+.side-shell .conversation-bubble{max-width:100%;padding:9px 10px}
+.side-shell .conversation-text{font-size:11px}
+@media(prefers-reduced-motion:reduce){.conversation-panel *{scroll-behavior:auto!important}}
