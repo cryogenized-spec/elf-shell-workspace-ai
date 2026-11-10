@@ -1079,3 +1079,22 @@ function focusAssistantFromRoute() {
 }
 window.addEventListener("hashchange",focusAssistantFromRoute);
 document.addEventListener("DOMContentLoaded",focusAssistantFromRoute);
+
+/* Firefox only permits opening native sidebars from direct user gestures.
+   This handler is on the companion's own page; no async work runs first. */
+const openAssistantSidebar=document.getElementById("ai-open-sidebar");
+if(openAssistantSidebar)openAssistantSidebar.addEventListener("click",()=>{
+  const message=document.getElementById("ai-sidebar-status");
+  if(!browser.sidebarAction?.open) {
+    if(message)message.textContent="Sidebar not available in this Firefox build.";
+    return;
+  }
+  try {
+    browser.sidebarAction.open().then(
+      ()=>{if(message)message.textContent="Ayarime sidebar opened.";},
+      ()=>{if(message)message.textContent="Could not open sidebar. Use the Workspace AI toolbar button.";}
+    );
+  }catch{
+    if(message)message.textContent="Could not open sidebar. Use the Workspace AI toolbar button.";
+  }
+});
