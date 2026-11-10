@@ -863,6 +863,14 @@ if(aiForm){
       const result=await request({type:"AI_SEND_PROMPT",text:prompt});
       output.textContent=result.result.text;
       if(result.result.truncated)output.append(node("p","quiet","Output preview truncated."));
+      const archived=await globalThis.WorkspaceConversationUI.record({
+        prompt,answer:result.result.text,provider:result.result.provider,model:result.result.model
+      });
+      if(archived){
+        output.replaceChildren();
+        const field=document.querySelector("#ai-prompt");
+        if(field.value===prompt)field.value="";
+      }
       aiMessage("Response received · "+result.result.provider+" / "+result.result.model+
         " · no Google data fetched or transmitted.");
     }catch(error){aiMessage(error.message,true);}
