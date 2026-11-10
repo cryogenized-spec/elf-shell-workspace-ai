@@ -1066,3 +1066,16 @@ refreshAI();
 refreshOpenAIOffer();
 refreshGoogle();
 refresh();
+// Dedicated, local assistant focus route used by the Ayarime Station bridge.
+// The fragment never contains user text, API keys or Google account data.
+function focusAssistantFromRoute() {
+  if (document.body.dataset.view!=="hub" || location.hash!=="#assistant") return;
+  const prompt=document.getElementById("ai-prompt");
+  if (!prompt) return;
+  document.getElementById("ai-console")?.scrollIntoView({block:"start"});
+  prompt.focus({preventScroll:true});
+  // Clear the route so a later handoff can focus the same existing Hub again.
+  history.replaceState(null,"",location.pathname+location.search);
+}
+window.addEventListener("hashchange",focusAssistantFromRoute);
+document.addEventListener("DOMContentLoaded",focusAssistantFromRoute);
