@@ -52,15 +52,19 @@
     if(!saved || saved.provider!==config.provider)
       throw Error("Enter your provider API key for this Firefox session");
     const prompt=PROVIDERS.userText(message.text);
+    // The checkbox is reset after each send; server rereads bounded current
+    // session history only when this individual request explicitly opts in.
+    const context=await root.WorkspaceConversationContext.load(
+      browserApi,config.provider,config.model,message);
     const persona=await personaLoader();
     const system=root.WorkspacePersonaUtils.stylePrompt(persona);
     const result=await PROVIDERS.infer({
       provider:config.provider,model:config.model,key:saved.key,
-      system,prompt,fetchImpl
+      system,prompt,history:context.turns,fetchImpl
     });
     // Only the generated assistant text is returned. No tokens or raw provider payload.
     return {provider:config.provider,model:config.model,
-      text:result.text,truncated:result.truncated};
+      text:result.text,truncated:result.truncated,contextTurns:context.turns.length};
   }
   async function testModel(browserApi,fetchImpl){
     const cfg=await settings(browserApi);
