@@ -848,7 +848,9 @@ if(aiForm){
   document.querySelector("#ai-send").addEventListener("click",async()=>{
     const button=document.querySelector("#ai-send");
     const prompt=document.querySelector("#ai-prompt").value;
-    const context=globalThis.WorkspaceConversationUI.contextOptions();
+    let context;
+    try {context=globalThis.WorkspaceConversationUI.contextOptions();}
+    catch(error){aiMessage(error.message,true);return;}
     if(aiSavedProvider==="openai"){
       const launched=globalThis.WorkspaceTraceUI.start({
         text:prompt,effort:document.querySelector("#ai-effort").value,
