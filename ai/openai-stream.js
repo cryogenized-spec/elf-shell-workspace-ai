@@ -196,6 +196,8 @@
     const saved=(await browserApi.storage.session.get(SESSION_KEY))[SESSION_KEY];
     if(!saved||saved.provider!=="openai"||!saved.key)
       throw Error("Enter an OpenAI API key for this Firefox session");
+    if(message.includeHistory!==undefined&&typeof message.includeHistory!=="boolean")
+      throw Error("Conversation context consent must be a boolean");
     const context=message.includeHistory===true
       ? await root.WorkspaceConversationContext.load(browserApi,config.provider,config.model,message)
       : {turns:[]};
