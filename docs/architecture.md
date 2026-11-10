@@ -82,3 +82,6 @@ Read [Google OAuth developer preview](google-oauth.md). The Hub can request opti
 
 ## Ayarime assistant deep-link (2026-11-10)
 The optional core-to-companion v1 bridge now accepts `OPEN_ASSISTANT` from the allowlisted core sender only. It activates the pinned Workspace Hub at the constant local `hub.html#assistant` fragment; the Hub scrolls its existing BYOK console into view, focuses the prompt and clears the fragment for future handoffs. It does **not** open the native sidebar, restore Google tabs, submit a model request, read account content or transfer prompt/credential data. The separate `OPEN_WORKSPACE` operation retains its previous behavior. No external messages carry arbitrary URLs or text.
+
+### Optional native sidebar continuation
+The Hub's AI Console now offers **Continue in Firefox sidebar**, an ordinary button on the companion's own extension page. Its click handler calls `browser.sidebarAction.open()` synchronously as required by Firefox's user-action restrictions. It never attempts to open a sidebar through an asynchronous cross-extension message. The Hub remains usable if the sidebar cannot open and gives actionable feedback without asking for new permissions.
