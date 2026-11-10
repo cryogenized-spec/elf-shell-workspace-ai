@@ -1,4 +1,4 @@
-:root{color-scheme:dark;--ivory:#f5e9e9;--muted:#c9c0d4;--pink:#d38ea8;--cyan:#93d9d7;--lime:#c3ec80;--dark:#10141f;--panel:rgba(17,23,37,.86)}
+:root{color-scheme:dark;--ivory:#f5e9e9;--muted:#c9c0d4;--pink:#d38ea8;--cyan:#93d9d7;--lime:#c3ec80;--dark:#10141f;--panel:rgba(17,23,37,.86);--ayarime-indigo:#101a29;--ayarime-violet:#40334d;--ayarime-magenta:#ba6e92;--ayarime-outline:#93d9d788}
 *{box-sizing:border-box}
 html,body{min-height:100%;margin:0}
 body{background:radial-gradient(circle at 75% 8%,#40334d 0,transparent 28%),linear-gradient(125deg,#080e1a,#101a29 58%,#241728);color:var(--ivory);font-family:ui-monospace,"Liberation Mono",Consolas,monospace}
@@ -229,3 +229,12 @@ footer{display:flex;justify-content:space-between;gap:18px;margin-top:35px;paddi
 .google-metadata-entry strong{color:var(--ivory)}
 .google-metadata-entry small{display:block;color:var(--muted);font:11px/1.6 ui-monospace,monospace;overflow-wrap:anywhere}
 .google-metadata-entry a{color:var(--cyan);text-decoration:underline;overflow-wrap:anywhere}
+
+/* Coordinated ELF//SHELL station/companion entry and focused console. */
+.assistant-quick-link{margin-left:auto;align-self:center;display:inline-flex;align-items:center;justify-content:center;text-decoration:none;white-space:nowrap;padding:11px 16px;letter-spacing:.13em;font:11px/1.4 ui-monospace,monospace;color:#f8eefa;background:linear-gradient(120deg,rgba(86,53,88,.95),rgba(31,39,63,.92));border:1px solid #d5a5c9;border-radius:4px;box-shadow:0 0 24px #9a648544}
+.assistant-quick-link:hover,.assistant-quick-link:focus-visible{background:#624160;border-color:var(--lime);color:#fff}
+.assistant-quick-link:focus-visible{outline:2px solid var(--lime);outline-offset:3px}
+.masthead .assistant-quick-link + .status-pill{margin-left:0}
+#ai-console{border-color:#b788b4;scroll-margin-top:20px;box-shadow:0 10px 30px #0005,0 0 22px #9c6d9d22}
+#ai-console:focus-within{border-color:#d7a8cb;box-shadow:0 10px 30px #0005,0 0 28px #bb78a83c}
+@media(max-width:650px){.assistant-quick-link{margin-left:0;width:100%;order:2}.masthead .assistant-quick-link + .status-pill{margin-left:auto}}
