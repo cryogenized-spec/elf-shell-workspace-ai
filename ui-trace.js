@@ -96,14 +96,28 @@
       if(message.usage)usage.textContent="Reported tokens · input "+
         (message.usage.inputTokens??"—")+" · output "+
         (message.usage.outputTokens??"—")+".";
+      const completedAnswer=message.status==="completed"?output.textContent:"";
+      const model=state.model||document.querySelector("#ai-model")?.value||"";
       const port=state.port;
       running=null;
+      if(completedAnswer.trim() && root.WorkspaceConversationUI){
+        Promise.resolve(root.WorkspaceConversationUI.record({
+          prompt:settings.text,answer:completedAnswer,provider:"openai",model
+        })).then(saved=>{
+          if(saved && !running && output.textContent===completedAnswer){
+            output.replaceChildren();
+            const field=document.querySelector("#ai-prompt");
+            if(field?.value===settings.text)field.value="";
+          }
+        }).catch(()=>{});
+      }
       try{port?.disconnect();}catch{}
       Promise.resolve(refresh?.()).catch(()=>{});
     }
     function onEvent(message){
       if(state.finished||!message||typeof message.kind!=="string")return;
       if(message.kind==="started"){
+        state.model=message.model;
         finishStep("connecting");
         step("accepted","Model: "+message.model+" · reasoning "+message.effort);
       }else if(message.kind==="phase"){
