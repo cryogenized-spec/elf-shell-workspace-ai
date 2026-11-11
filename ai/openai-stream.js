@@ -5,6 +5,7 @@
   const SESSION_KEY="elfshell.byok.apiKey.v1",SETTINGS_KEY="elfshell.byok.settings.v1";
   const DATA_TYPES=["authenticationInfo","personalCommunications","websiteContent","personallyIdentifyingInfo"];
   const EFFORTS=Object.freeze(["none","low","medium","high","xhigh","max"]);
+  const OUTPUT_LIMITS=Object.freeze([768,2048,4096]);
   const MAX_BYTES=4*1024*1024,MAX_FRAME=128*1024,MAX_OUTPUT=12000,MAX_SUMMARY=16000;
   const TOOL_NAMES=Object.freeze({
     web_search_call:"Web search",file_search_call:"File search",
@@ -19,13 +20,15 @@
     const effort=message.effort===undefined?"medium":message.effort;
     if(!EFFORTS.includes(effort))throw Error("Choose a supported OpenAI reasoning effort");
     if(typeof message.webSearch!=="boolean")throw Error("Web-search consent must be explicit");
-    return {effort,webSearch:message.webSearch};
+    const maxOutputTokens=message.maxOutputTokens===undefined?768:message.maxOutputTokens;
+    if(!OUTPUT_LIMITS.includes(maxOutputTokens))throw Error("Select an approved output-token budget");
+    return {effort,webSearch:message.webSearch,maxOutputTokens};
   }
-  function buildRequest({model,key,prompt,system,effort="medium",webSearch=false,history=[],signal}){
+  function buildRequest({model,key,prompt,system,effort="medium",webSearch=false,maxOutputTokens=768,history=[],signal}){
     const id=PROVIDERS.modelId(model),secret=PROVIDERS.keyText(key),
       text=PROVIDERS.userText(prompt);
-    if(!EFFORTS.includes(effort)||typeof webSearch!=="boolean")
-      throw Error("Invalid streaming settings");
+    if(!EFFORTS.includes(effort)||typeof webSearch!=="boolean"||!OUTPUT_LIMITS.includes(maxOutputTokens))
+      throw Error("Invalid streaming settings or output-token budget");
     const offer=root.WorkspaceOpenAIComplimentary?.lookup(id);
     if(offer?.status==="shut-down")
       throw Error("This legacy model has been shut down by OpenAI; select an available model");
@@ -38,7 +41,7 @@
       : [{role:"user",content:text}];
     const body={
       model:id,input:history.length?messages:text,instructions:String(system||"").slice(0,6000),
-      store:false,stream:true,max_output_tokens:768,
+      store:false,stream:true,max_output_tokens:maxOutputTokens,
       ...(effort==="none"?{}:{reasoning:{effort,summary:"auto"}}),
       ...(webSearch?{tools:[{type:"web_search"}],tool_choice:"auto"}:{})
     };
@@ -173,7 +176,10 @@
           ?usage.output_tokens:null;
         const input=Number.isSafeInteger(usage?.input_tokens)&&usage.input_tokens>=0
           ?usage.input_tokens:null;
-        const totals={usage:{inputTokens:input,outputTokens:output}};
+        const reason=usage?.output_tokens_details?.reasoning_tokens;
+        const reasoningTokens=Number.isSafeInteger(reason)&&reason>=0?reason:undefined;
+        const totals={usage:{inputTokens:input,outputTokens:output,
+          ...(reasoningTokens===undefined?{}:{reasoningTokens})}};
         if(type==="response.completed")status("completed",totals);
         else if(type==="response.incomplete")status("incomplete",{
           message:"OpenAI stopped before completing the answer (possibly output token limit).",...totals
