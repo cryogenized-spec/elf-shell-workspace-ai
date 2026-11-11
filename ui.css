@@ -314,3 +314,16 @@ footer{display:flex;justify-content:space-between;gap:18px;margin-top:35px;paddi
 .trace-budget{display:grid;gap:6px;font:11px ui-monospace,monospace;color:var(--cyan)}
 .trace-budget select{width:100%;min-width:0}
 @media(prefers-reduced-motion:reduce){.trace-indicator,.trace-row.active .trace-marker{animation:none!important}}
+
+/* Source-backed tool activity icons: circular, local, no third-party requests. */
+.trace-row:has(.trace-tool-icon){grid-template-columns:30px minmax(0,1fr) auto;align-items:center;min-height:40px}
+.trace-tool-icon{display:inline-grid;place-items:center;width:29px;height:29px;border-radius:50%;background:#313349;color:#e5e6f4;border:1px solid #a1a7c7;box-shadow:inset 0 0 0 2px #171e34;font:700 14px/1 ui-monospace,monospace;letter-spacing:-.07em;flex:none;user-select:none}
+.trace-tool-icon.tone-search{background:#264355;border-color:#8cc7d9;color:#caeeff}
+.trace-tool-icon.tone-file{background:#2b3c55;border-color:#86acdf;color:#d6e6ff}
+.trace-tool-icon.tone-code{background:#384055;border-color:#a5bad1;color:#e0ebff}
+.trace-tool-icon.tone-function{background:#403353;border-color:#bd9ed2;color:#f1dafa}
+.trace-tool-icon.tone-computer{background:#2b4550;border-color:#80b7bc;color:#cefcf6}
+.trace-tool-icon.tone-image{background:#50324b;border-color:#cc9eba;color:#ffe2f0}
+.trace-tool-icon.tone-shell{background:#3e414b;border-color:#abb8c2;color:#edf1ff;font-size:11px}
+.trace-tool-icon.tone-mcp{background:#3d3154;border-color:#baa0d9;color:#e9d6ff}
+.trace-tool-icon.tone-generic{background:#343547;border-color:#a4a3b9}
