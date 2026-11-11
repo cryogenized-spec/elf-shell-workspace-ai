@@ -314,7 +314,7 @@ try:
           lambda:require(
             driver.find_element(By.ID,"ai-output-budget").get_attribute("value")=="768" and
             driver.find_element(By.ID,"ai-trace").get_attribute("hidden") is not None and
-            driver.find_element(By.ID,"ai-reasoning-label").text=="Thinking…" and
+            driver.find_element(By.ID,"ai-reasoning-label").get_attribute("textContent")=="Thinking…" and
             "Provider reasoning summary" in
               driver.find_element(By.ID,"ai-summary-details").get_attribute("outerHTML"),
             "Reasoning panel has incorrect default state"))
@@ -323,7 +323,7 @@ try:
             driver.find_element(By.ID,"ai-activity-details").tag_name=="details" and
             driver.find_element(By.ID,"ai-summary-details").tag_name=="details" and
             "not private internal reasoning" in
-              driver.find_element(By.ID,"ai-reasoning-source").text,
+              driver.find_element(By.ID,"ai-reasoning-source").get_attribute("textContent"),
             "Reasoning source disclosure is missing"))
     ai=extension_call({"type":"AI_STATUS"})
     check("BYOK defaults to disconnected without provider permission or a key",
