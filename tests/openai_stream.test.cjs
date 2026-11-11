@@ -115,6 +115,8 @@ test("tool steps appear only from real tool events",()=>{
   trace.handle({type:"response.completed",response:{}});
   assert.deepEqual(sent.filter(x=>x.kind==="tool").map(x=>x.state),
     ["active","active","done","done"]);
+  assert(sent.filter(x=>x.kind==="tool").every(x=>x.toolType==="web_search_call"));
+  assert(!sent.filter(x=>x.kind==="tool").some(x=>"iconUrl" in x),"Tool event must not pass arbitrary URLs");
   assert.equal(sent.at(-1).toolCount,1);
 });
 test("incomplete and failed are not successful; raw provider errors not surfaced",()=>{
