@@ -104,6 +104,13 @@
       <option value="xhigh">Extra high</option>
       <option value="max">Maximum · more tokens and potential cost</option>
     </select>
+    <label class="trace-budget" for="ai-output-budget">Maximum output tokens (includes internal reasoning)
+      <select id="ai-output-budget" aria-label="Maximum output tokens for this request">
+        <option value="768" selected>768 · economical / default</option>
+        <option value="2048">2,048 · longer thinking / more cost</option>
+        <option value="4096">4,096 · extended / higher cost</option>
+      </select>
+    </label>
     <label class="trace-check" for="ai-web-search"><input id="ai-web-search" type="checkbox" /> Allow OpenAI hosted web search for this request (additional charges may apply)</label>
     <p class="quiet">Responses API streaming with provider-exposed reasoning summaries. Raw private chain-of-thought is not available. Tool steps appear only when the provider actually emits them.</p>
   </div>
@@ -126,15 +133,24 @@
   <p class="quiet prompt-shortcut">Ctrl+Enter sends the current prompt · Enter adds a line</p>
   <button id="ai-send" type="button" class="secondary">Ask Ayarime ↗</button>
   <button id="ai-cancel" type="button" class="mini danger" hidden>Stop OpenAI generation</button>
-  <section id="ai-trace" class="trace-board" aria-label="OpenAI live activity" hidden>
-    <div class="trace-head"><strong>AYARIME / LIVE ACTIVITY</strong><span id="ai-elapsed" class="trace-clock" aria-label="Total elapsed time">0.0s</span></div>
-    <div id="ai-trace-steps" class="trace-steps" aria-live="polite"></div>
+  <section id="ai-trace" class="trace-board" aria-label="Provider reasoning summary and activity" data-stage="idle" hidden>
+    <div class="trace-head" aria-live="polite">
+      <span class="trace-head-title"><span class="trace-indicator" aria-hidden="true">✧</span><strong id="ai-reasoning-label">Thinking…</strong></span>
+      <span id="ai-elapsed" class="trace-clock" aria-label="Total elapsed time">0.0s</span>
+    </div>
     <details id="ai-summary-details" class="trace-summary" open>
-      <summary>Provider reasoning summaries</summary>
-      <p id="ai-summary-status" class="quiet">Waiting for the provider.</p>
+      <summary><span>Provider reasoning summary</span><span id="ai-summary-hint" class="trace-summary-hint">LIVE</span></summary>
+      <p id="ai-summary-status" class="quiet">Waiting for a provider-exposed summary.</p>
       <div id="ai-summary-text" class="trace-summary-body"></div>
     </details>
-    <small id="ai-trace-usage" class="quiet">Token usage appears after OpenAI completes.</small>
+    <details id="ai-activity-details" class="trace-activity">
+      <summary>Model activity <span id="ai-activity-count">0 events</span></summary>
+      <div id="ai-trace-steps" class="trace-steps" aria-live="off"></div>
+    </details>
+    <div class="trace-footer">
+      <small id="ai-reasoning-source" class="quiet">Provider summary only — not private internal reasoning.</small>
+      <small id="ai-trace-usage" class="quiet">Usage appears when the provider reports it.</small>
+    </div>
   </section>
 
   <button id="ai-check-model" type="button" class="mini" disabled>Verify model access · no generation</button>
