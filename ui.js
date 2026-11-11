@@ -854,6 +854,7 @@ if(aiForm){
     if(aiSavedProvider==="openai"){
       const launched=globalThis.WorkspaceTraceUI.start({
         text:prompt,effort:document.querySelector("#ai-effort").value,
+        maxOutputTokens:Number(document.querySelector("#ai-output-budget").value),
         webSearch:document.querySelector("#ai-web-search").checked,
         ...context
       },async()=>{
