@@ -6,6 +6,7 @@ class Element{
   constructor(tag="div"){this.tagName=tag;this.hidden=false;this.open=false;this.disabled=false;this.value="";this.dataset={};this.children=[];this.textContent="";this.className="";const classes=new Set();this.classList={add:(x)=>classes.add(x),remove:(x)=>classes.delete(x),toggle:(x,flag)=>flag===undefined?(classes.has(x)?classes.delete(x):classes.add(x)):flag?classes.add(x):classes.delete(x),contains:(x)=>classes.has(x)};}
   replaceChildren(...x){this.children=[...x];this.textContent="";}
   append(...x){this.children.push(...x);}
+  setAttribute(name,value){this[name]=value;}
 }
 function harness(){
   const ids=["ai-output","ai-status","ai-trace","ai-trace-steps","ai-summary-text",
@@ -71,6 +72,24 @@ test("thinking streams summaries live, then collapses on answer with accurate ti
   assert.match(n["ai-reasoning-label"].textContent,/Thought for 4\.0s/);
   assert.match(n["ai-trace-usage"].textContent,/internal reasoning 50/);
   assert.match(n["ai-summary-status"].textContent,/not private chain-of-thought/);
+});
+test("actual tool events render circular, accessible category icons; unknown tools use neutral fallback",()=>{
+  const h=harness(),n=h.nodes;
+  h.ctx.WorkspaceTraceUI.start({text:"Find docs",effort:"medium",webSearch:true,maxOutputTokens:768},()=>{});
+  h.emit({kind:"started",model:"gpt-6-luna",effort:"medium"});
+  h.emit({kind:"tool",id:"web-1",title:"Web search",toolType:"web_search_call",state:"active"});
+  const web=n["ai-trace-steps"].children.at(-1);
+  assert.equal(web.children[0].className,"trace-tool-icon tone-search");
+  assert.equal(web.children[0].role,"img");
+  assert.match(web.children[0]["aria-label"],/Web search activity icon/);
+  h.emit({kind:"tool",id:"mcp-1",title:"MCP tool",toolType:"mcp_call",state:"active"});
+  const mcp=n["ai-trace-steps"].children.at(-1);
+  assert.equal(mcp.children[0].className,"trace-tool-icon tone-mcp");
+  h.emit({kind:"tool",id:"unknown-1",title:"Unknown tool",toolType:"random_untrusted_icon",state:"done"});
+  const unknown=n["ai-trace-steps"].children.at(-1);
+  assert.equal(unknown.children[0].className,"trace-tool-icon tone-generic");
+  assert(!JSON.stringify(unknown.children[0]).includes("http"),"No remote icon URL should be requested");
+  assert.equal(n["ai-activity-count"].textContent,"6 events");
 });
 test("user-expanded summary is not forcibly collapsed; missing summary is never fabricated",()=>{
   const h=harness(),n=h.nodes;
