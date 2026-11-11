@@ -308,6 +308,23 @@ try:
     check("OAuth preparation is blocked until Google API origins are granted",
           lambda:require(not blocked["ok"] and "Grant" in blocked.get("error",""),str(blocked)))
 
+    # Public provider reasoning is shown only after a real event. The optional
+    # larger output budget is never selected on a fresh installation.
+    check("reasoning presentation exists in Hub without fabricating model thought",
+          lambda:require(
+            driver.find_element(By.ID,"ai-output-budget").get_attribute("value")=="768" and
+            driver.find_element(By.ID,"ai-trace").get_attribute("hidden") is not None and
+            driver.find_element(By.ID,"ai-reasoning-label").text=="Thinking…" and
+            "Provider reasoning summary" in
+              driver.find_element(By.ID,"ai-summary-details").get_attribute("outerHTML"),
+            "Reasoning panel has incorrect default state"))
+    check("activity and thinking are separate expandable panels",
+          lambda:require(
+            driver.find_element(By.ID,"ai-activity-details").tag_name=="details" and
+            driver.find_element(By.ID,"ai-summary-details").tag_name=="details" and
+            "not private internal reasoning" in
+              driver.find_element(By.ID,"ai-reasoning-source").text,
+            "Reasoning source disclosure is missing"))
     ai=extension_call({"type":"AI_STATUS"})
     check("BYOK defaults to disconnected without provider permission or a key",
           lambda:require(ai["ok"] and not ai["ai"]["hasSessionKey"] and
