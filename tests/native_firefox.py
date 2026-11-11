@@ -340,6 +340,8 @@ try:
         left:read(".rose-tile--left"),
         up:read(".rose-tile--up"),
         spirit:read(".rose-spirit"),
+        spiritDuration:getComputedStyle(selector(".rose-spirit")).animationDuration,
+        tileDuration:getComputedStyle(selector(".rose-tile--right")).animationDuration,
         spark:read(".rose-spark--cyan"),
         tileArt:getComputedStyle(selector(".rose-tile--right"),"::before").backgroundImage,
         loader:!!selector(".ayarime-rose-loader")
@@ -356,6 +358,8 @@ try:
             rose_style["left"]=="rose-fold-left" and
             rose_style["up"]=="rose-fold-up" and
             rose_style["spirit"]=="rose-alternate-axes" and
+            rose_style["spiritDuration"]=="7.6s" and
+            rose_style["tileDuration"]=="3.8s" and
             rose_style["spark"]=="rose-magic-spark" and
             "ayarime-rose-outline.svg" in rose_style["tileArt"],
             "Rose animation or bundled vector did not load: "+str(rose_style)))
