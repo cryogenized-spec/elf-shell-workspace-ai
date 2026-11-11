@@ -38,19 +38,50 @@
     const summary=document.querySelector("#ai-summary-text"),summaryInfo=document.querySelector("#ai-summary-status");
     const clock=document.querySelector("#ai-elapsed"),usage=document.querySelector("#ai-trace-usage");
     const send=document.querySelector("#ai-send"),stop=document.querySelector("#ai-cancel");
+    const headline=document.querySelector("#ai-reasoning-label");
+    const hint=document.querySelector("#ai-summary-hint");
+    const details=document.querySelector("#ai-summary-details");
+    const activityCount=document.querySelector("#ai-activity-count");
+    let renderHandle=null;
     if(!output||!board||!events||!summary||!send||!stop)return false;
     const started=performance.now();
     const state={started,port:null,finished:false,steps:new Map(),parts:new Map(),
-      summaries:new Map(),hasSummary:false,refresh,timer:null};
+      summaries:new Map(),hasSummary:false,refresh,timer:null,firstAnswerAt:null,
+      summaryTouched:false,model:null};
     running=state;
     output.replaceChildren();events.replaceChildren();summary.replaceChildren();
     board.hidden=false;
-    summaryInfo.textContent="Waiting for provider-exposed reasoning summaries…";
+    board.dataset.stage="connecting";
+    if(headline)headline.textContent="Connecting…";
+    if(hint)hint.textContent="WAITING";
+    if(activityCount)activityCount.textContent="0 events";
+    if(details){
+      details.open=true;
+      details.addEventListener("click",event=>{
+        if(event.target.closest("summary"))state.summaryTouched=true;
+      },{signal:undefined});
+    }
+    const activity=document.querySelector("#ai-activity-details");
+    if(activity)activity.open=false;
+    summaryInfo.textContent="Waiting for a provider-exposed reasoning summary…";
     usage.textContent="No token usage available yet.";
     send.disabled=true;stop.hidden=false;stop.disabled=false;
     status.textContent="Connecting to OpenAI · waiting for streamed events…";
     status.classList.remove("error");
     const now=()=>performance.now();
+    const textSummary=()=>[...state.summaries.values()].join("\n\n").slice(0,16000);
+    function flushSummary(){
+      if(renderHandle!==null&&typeof cancelAnimationFrame==="function"){
+        cancelAnimationFrame(renderHandle);
+      }
+      renderHandle=null;
+      renderSummary(summary,textSummary());
+    }
+    function queueSummary(){
+      if(renderHandle!==null)return;
+      if(typeof requestAnimationFrame!=="function"){flushSummary();return;}
+      renderHandle=requestAnimationFrame(()=>{renderHandle=null;renderSummary(summary,textSummary());});
+    }
     function updateClocks(){
       const current=now();
       clock.textContent=seconds(current-started);
@@ -65,7 +96,9 @@
       const time=el("span","trace-time","0.0s");
       row.append(marker,label,time);events.append(row);
       const item={row,marker,label,time,start:now(),end:null};
-      state.steps.set(id,item);updateClocks();
+      state.steps.set(id,item);
+      if(activityCount)activityCount.textContent=state.steps.size+" events";
+      updateClocks();
       return item;
     }
     function finishStep(id){
@@ -80,8 +113,19 @@
       state.finished=true;
       for(const id of state.steps.keys())finishStep(id);
       if(state.timer!==null)clearInterval(state.timer);
+      flushSummary();
       updateClocks();
       stop.hidden=true;
+      board.dataset.stage=message.status||"failed";
+      const total=now()-started;
+      const preAnswer=(state.firstAnswerAt===null?total:state.firstAnswerAt-started);
+      if(headline)headline.textContent=message.status==="completed"
+        ?(state.hasSummary?"Thought for "+seconds(preAnswer):"Completed in "+seconds(total))
+        :message.status==="cancelled"?"Stopped after "+seconds(total)
+        :message.status==="incomplete"?"Incomplete after "+seconds(total)
+        :"Failed after "+seconds(total);
+      if(hint)hint.textContent=state.hasSummary?"SUMMARY": "NOT PROVIDED";
+      if(details&&!state.summaryTouched)details.open=false;
       const ended=step("terminal",message.status==="completed"?"Completed":
         message.status==="cancelled"?"Cancelled":
         message.status==="incomplete"?"Incomplete":"Failed");
@@ -92,10 +136,12 @@
         :message.message||"OpenAI stream ended: "+message.status;
       status.classList.toggle("error",message.status==="failed");
       if(!state.hasSummary)
-        summaryInfo.textContent="OpenAI did not supply a reasoning summary for this response.";
+        summaryInfo.textContent="This model did not expose a reasoning summary. Activity and time are shown, but private internal thoughts are not available.";
       if(message.usage)usage.textContent="Reported tokens · input "+
         (message.usage.inputTokens??"—")+" · output "+
-        (message.usage.outputTokens??"—")+".";
+        (message.usage.outputTokens??"—")+
+        (message.usage.reasoningTokens===undefined?"":" · internal reasoning "+message.usage.reasoningTokens)+
+        " (reasoning tokens are not readable text).";
       const completedAnswer=message.status==="completed"?output.textContent:"";
       const model=state.model||document.querySelector("#ai-model")?.value||"";
       const port=state.port;
@@ -118,6 +164,9 @@
       if(state.finished||!message||typeof message.kind!=="string")return;
       if(message.kind==="started"){
         state.model=message.model;
+        board.dataset.stage="thinking";
+        if(headline)headline.textContent="Thinking…";
+        if(hint)hint.textContent="LIVE";
         finishStep("connecting");
         step("accepted","Model: "+message.model+" · reasoning "+message.effort+
           " · "+(message.contextTurns||0)+" prior exchange(s)");
@@ -128,13 +177,22 @@
         step("phase-"+state.steps.size,message.name||"Processing");
       }else if(message.kind==="summary"){
         state.hasSummary=true;
+        if(hint)hint.textContent=message.done?"UPDATED":"STREAMING";
         const id=message.id||"summary";
         state.summaries.set(id,message.text||"");
         step("summary-"+id,"Provider reasoning summary");
         if(message.done)finishStep("summary-"+id);
-        renderSummary(summary,[...state.summaries.values()].join("\n\n").slice(0,16000));
+        queueSummary();
         summaryInfo.textContent="OpenAI-provided summary · not private chain-of-thought.";
       }else if(message.kind==="answer"){
+        if(state.firstAnswerAt===null){
+          state.firstAnswerAt=now();
+          board.dataset.stage="answering";
+          if(headline)headline.textContent="Responding…";
+          if(hint)hint.textContent=state.hasSummary?"SUMMARY":"NO SUMMARY";
+          flushSummary();
+          if(details&&!state.summaryTouched)details.open=false;
+        }
         const id=message.id||"answer";
         state.parts.set(id,message.text||"");
         step("answer-"+id,"Writing response");
@@ -159,6 +217,7 @@
       });
       state.port.postMessage({type:"start",text:settings.text,
         effort:settings.effort,webSearch:settings.webSearch,
+        maxOutputTokens:settings.maxOutputTokens,
         includeHistory:settings.includeHistory,historyLimit:settings.historyLimit});
     }catch{finish({status:"failed",message:"Firefox could not open the streaming channel."});}
     return true;
