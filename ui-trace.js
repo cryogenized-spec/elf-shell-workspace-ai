@@ -57,9 +57,9 @@
     if(activityCount)activityCount.textContent="0 events";
     if(details){
       details.open=true;
-      details.addEventListener("click",event=>{
+      details.onclick=event=>{
         if(event.target.closest("summary"))state.summaryTouched=true;
-      },{signal:undefined});
+      };
     }
     const activity=document.querySelector("#ai-activity-details");
     if(activity)activity.open=false;
