@@ -2,6 +2,25 @@
 (function(root){
   "use strict";
   const PORT="elfshell.openai.trace.v1";
+  // Reviewed UI identifiers, not provider-supplied URLs. Branded assets will
+  // require explicit logo licensing and a trusted tool registry.
+  const TOOL_VISUALS=Object.freeze({
+    web_search_call:{glyph:"⌕",tone:"search",name:"Web search"},
+    file_search_call:{glyph:"▤",tone:"file",name:"File search"},
+    code_interpreter_call:{glyph:"⌘",tone:"code",name:"Code interpreter"},
+    function_call:{glyph:"ƒ",tone:"function",name:"Function"},
+    computer_call:{glyph:"▣",tone:"computer",name:"Computer"},
+    image_generation_call:{glyph:"✧",tone:"image",name:"Image generation"},
+    shell_call:{glyph:">_",tone:"shell",name:"Shell"},
+    apply_patch_call:{glyph:"±",tone:"code",name:"Patch"},
+    mcp_call:{glyph:"⬡",tone:"mcp",name:"MCP tool"},
+    generic:{glyph:"◇",tone:"generic",name:"Tool"}
+  });
+  function toolVisual(key){
+    return Object.prototype.hasOwnProperty.call(TOOL_VISUALS,key)
+      ? TOOL_VISUALS[key] : TOOL_VISUALS.generic;
+  }
+
   let running=null;
   function el(tag,className,value){
     const element=document.createElement(tag);
@@ -89,10 +108,18 @@
       for(const step of state.steps.values())
         step.time.textContent=seconds((step.end===null?current:step.end)-step.start);
     }
-    function step(id,title){
+    function step(id,title,toolType=null){
       if(state.steps.has(id))return state.steps.get(id);
       const row=el("div","trace-row active");
-      const marker=el("span","trace-marker","◉");
+      const visual=toolType?toolVisual(toolType):null;
+      const marker=visual
+        ?el("span","trace-tool-icon tone-"+visual.tone,visual.glyph)
+        :el("span","trace-marker","◉");
+      if(visual){
+        marker.setAttribute("role","img");
+        marker.setAttribute("aria-label",visual.name+" activity icon");
+        marker.title=visual.name+" — generic icon, not a vendor logo";
+      }
       const label=el("span","trace-label",title);
       const time=el("span","trace-time","0.0s");
       row.append(marker,label,time);events.append(row);
@@ -201,7 +228,7 @@
         output.textContent=[...state.parts.values()].join("\n");
       }else if(message.kind==="tool"){
         const id="tool-"+(message.id||message.title);
-        const item=step(id,message.title||"Provider tool");
+        const item=step(id,message.title||"Provider tool",message.toolType);
         if(message.state==="done")finishStep(id);
         else item.row.classList.add("active");
       }else if(message.kind==="terminal")finish(message);
