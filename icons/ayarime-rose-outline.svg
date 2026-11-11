@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none" aria-hidden="true">
+  <title>Ayarime rose seal — original vector outline</title>
+  <g stroke="#f5d9ea" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Five outer petals with a slight irregularity, like hand-inked cel artwork. -->
+    <path d="M63 23C55 13 39 18 34 33C20 30 14 44 25 58C17 72 27 87 42 85C47 96 61 100 73 91C87 101 101 89 97 77C110 70 110 55 99 47C104 32 91 24 81 29C78 18 69 16 63 23Z"/>
+    <path d="M63 23C58 30 57 34 57 40M34 33C42 35 47 39 48 47M25 58C36 56 43 60 46 66M42 85C49 78 55 79 61 84M73 91C77 82 83 78 97 77M99 47C90 52 88 58 87 66"/>
+    <!-- The curled rosebud is deliberately asymmetrical and recognizable when small. -->
+    <path d="M66 35C54 29 44 36 45 48C45 57 52 63 62 61C73 60 76 49 67 46C59 43 55 51 61 54C64 56 67 53 66 50"/>
+    <path d="M46 50C37 52 37 65 48 71C60 79 78 73 80 58C82 47 76 39 69 37"/>
+    <path d="M39 60C41 69 48 79 61 82C72 85 84 77 88 67"/>
+    <!-- A small stem and leaves, crossing the lower two grid fragments. -->
+    <path d="M64 85C62 94 61 104 62 116"/>
+    <path d="M62 104C54 96 44 97 40 106C50 113 58 111 62 104Z"/>
+    <path d="M62 104C70 96 80 98 86 109C73 113 67 111 62 104Z"/>
+  </g>
+  <g fill="#a3dce9" opacity=".9">
+    <circle cx="37" cy="41" r="1.6"/>
+    <circle cx="88" cy="40" r="1.5"/>
+  </g>
+</svg>
