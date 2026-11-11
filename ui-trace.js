@@ -12,6 +12,7 @@
   function seconds(ms){return (Math.max(0,ms)/1000).toFixed(1)+"s";}
   function renderSummary(host,value){
     host.replaceChildren();
+    if(!String(value).trim())return;
     for(const raw of String(value).split(/\r?\n/).slice(0,180)){
       const line=raw.trim();
       if(!line){host.append(el("div","trace-gap",""));continue;}
