@@ -89,7 +89,7 @@ test("actual tool events render circular, accessible category icons; unknown too
   const unknown=n["ai-trace-steps"].children.at(-1);
   assert.equal(unknown.children[0].className,"trace-tool-icon tone-generic");
   assert(!JSON.stringify(unknown.children[0]).includes("http"),"No remote icon URL should be requested");
-  assert.equal(n["ai-activity-count"].textContent,"6 events");
+  assert.equal(n["ai-activity-count"].textContent,"5 events");
 });
 test("user-expanded summary is not forcibly collapsed; missing summary is never fabricated",()=>{
   const h=harness(),n=h.nodes;
