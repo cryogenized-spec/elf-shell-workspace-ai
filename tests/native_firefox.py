@@ -413,6 +413,37 @@ try:
             rose_style["spark"]=="rose-magic-spark" and
             "ayarime-rose-outline.svg" in rose_style["tileArt"],
             "Rose animation or bundled vector did not load: "+str(rose_style)))
+    # Verify the actual Firefox reduced-motion media preference disables the
+    # Rose Seal animation in both active and idle stages, with no model request.
+    with driver.context(driver.CONTEXT_CHROME):
+        driver.execute_script('Services.prefs.setIntPref("ui.prefersReducedMotion",1)')
+    driver.refresh()
+    WebDriverWait(driver,12).until(lambda d:len(d.find_elements(By.ID,"ai-trace"))==1)
+    reduced_rose=driver.execute_script("""
+      const board=document.getElementById("ai-trace");
+      board.hidden=false;
+      board.dataset.stage="thinking";
+      const read=selector=>getComputedStyle(document.querySelector(selector));
+      const result={enabled:matchMedia("(prefers-reduced-motion: reduce)").matches,
+        tile:read(".rose-tile--right").animationName,
+        spirit:read(".rose-spirit").animationName,
+        spark:read(".rose-spark--cyan").animationName,
+        tileOpacity:read(".rose-tile--right").opacity,
+        spiritOpacity:read(".rose-spirit").opacity};
+      board.dataset.stage="idle";board.hidden=true;
+      return result;
+    """)
+    check("Firefox reduced motion leaves a complete still Rose Seal",
+          lambda:require(reduced_rose["enabled"] and
+            all(reduced_rose[k]=="none" for k in ("tile","spirit","spark"))
+            and reduced_rose["tileOpacity"]=="1"
+            and reduced_rose["spiritOpacity"]=="0",
+            "Rose Seal ignored reduced motion: "+str(reduced_rose)))
+    with driver.context(driver.CONTEXT_CHROME):
+        driver.execute_script('Services.prefs.clearUserPref("ui.prefersReducedMotion")')
+    driver.refresh()
+    WebDriverWait(driver,12).until(lambda d:len(d.find_elements(By.ID,"ai-trace"))==1)
+
     ai=extension_call({"type":"AI_STATUS"})
     check("BYOK defaults to disconnected without provider permission or a key",
           lambda:require(ai["ok"] and not ai["ai"]["hasSessionKey"] and
