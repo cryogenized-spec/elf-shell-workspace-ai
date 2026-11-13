@@ -20,7 +20,7 @@ test("sidebar jump-to-chat is keyboard accessible and targets the actual AI cons
 test("sidebar collapses redundant provider settings without hiding the conversation composer",()=>{
   const d=sidebar.indexOf('<details class="sidebar-provider-details">');
   const end=sidebar.indexOf("</details>",d);
-  const form=sidebar.indexOf('id="ai-settings-form"'),key=sidebar.indexOf('id="ai-key-controls"');
+  const form=sidebar.indexOf('id="ai-settings-form"'),key=sidebar.indexOf('class="ai-key-controls"');
   const offer=sidebar.indexOf('id="ai-offer-panel"'),conversation=sidebar.indexOf('id="ai-conversation-list"');
   const prompt=sidebar.indexOf('id="ai-prompt"');
   assert(d>0&&end>d&&form>d&&form<end&&key>d&&key<end&&offer>d&&offer<end);
