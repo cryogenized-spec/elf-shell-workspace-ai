@@ -103,7 +103,15 @@ try:
     responsive=driver.execute_script("""
       return {width:innerWidth,stacked:matchMedia("(max-width:850px)").matches,
         columns:getComputedStyle(document.querySelector(".columns")).gridTemplateColumns,
-        overflow:document.documentElement.scrollWidth-innerWidth};
+        overflow:document.documentElement.scrollWidth-innerWidth,
+        offenders:[...document.querySelectorAll("body *")].map(node=>{
+          const r=node.getBoundingClientRect();
+          return {tag:node.tagName.toLowerCase(),id:node.id||"",
+            cls:String(node.className?.baseVal||node.className||"").slice(0,80),
+            left:Math.round(r.left),right:Math.round(r.right),
+            width:Math.round(r.width)};
+        }).filter(n=>n.right>innerWidth+3&&n.width>0)
+          .sort((a,b)=>b.right-a.right).slice(0,12)};
     """)
     check("Hub stacks its columns without horizontal page overflow",
           lambda:require(responsive["width"]<=850 and responsive["stacked"]
