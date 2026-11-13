@@ -18,6 +18,7 @@ h1 span{color:#ba6e92}
 .lead{max-width:49ch;font:18px/1.7 Georgia,serif;color:#efe2eb;margin:22px 0 27px}
 button{cursor:pointer;color:var(--ivory);font:inherit}
 button:focus-visible,input:focus-visible{outline:2px solid var(--lime);outline-offset:3px}
+a:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid var(--lime);outline-offset:3px}
 button:disabled{opacity:.55;cursor:wait}
 .primary,.secondary{width:100%;padding:14px 17px;background:#49304d;border:1px solid var(--pink);font-size:12px;line-height:1.4;letter-spacing:.055em}
 .primary:hover,.secondary:hover{background:#67415f;border-color:var(--lime)}
@@ -231,6 +232,7 @@ footer{display:flex;justify-content:space-between;gap:18px;margin-top:35px;paddi
 .google-metadata-entry a{color:var(--cyan);text-decoration:underline;overflow-wrap:anywhere}
 
 /* Coordinated ELF//SHELL station/companion entry and focused console. */
+.assistant-route-anchor{display:block;height:0;scroll-margin-top:20px}
 .assistant-quick-link{margin-left:auto;align-self:center;display:inline-flex;align-items:center;justify-content:center;text-decoration:none;white-space:nowrap;padding:11px 16px;letter-spacing:.13em;font:11px/1.4 ui-monospace,monospace;color:#f8eefa;background:linear-gradient(120deg,rgba(86,53,88,.95),rgba(31,39,63,.92));border:1px solid #d5a5c9;border-radius:4px;box-shadow:0 0 24px #9a648544}
 .assistant-quick-link:hover,.assistant-quick-link:focus-visible{background:#624160;border-color:var(--lime);color:#fff}
 .assistant-quick-link:focus-visible{outline:2px solid var(--lime);outline-offset:3px}
@@ -265,6 +267,17 @@ footer{display:flex;justify-content:space-between;gap:18px;margin-top:35px;paddi
 .conversation-privacy strong{color:#ffe1ee}
 #ai-conversation-status{min-height:0;margin:0;font-size:10px;color:var(--lime)}
 .prompt-shortcut{font-size:10px;margin:0;color:#b5cbd0}
+/* Prefer a quick route to chat; keep duplicated provider settings collapsed,
+   fully keyboard-accessible and locally editable when expanded. */
+.sidebar-chat-nav{margin:-7px 0 14px}
+.sidebar-chat-nav a{display:block;border:1px solid var(--ayarime-magenta);padding:12px;color:var(--ivory);background:#36273dcf;text-decoration:none;text-align:center;font:700 11px/1.5 ui-monospace,monospace;letter-spacing:.08em}
+.sidebar-chat-nav a:hover,.sidebar-chat-nav a:focus-visible{background:#604363;border-color:var(--lime)}
+.sidebar-provider-details{min-width:0;max-width:100%;border:1px solid #a779ac88;background:#161b2bd9;padding:0 10px 10px}
+.sidebar-provider-details>summary{cursor:pointer;color:#f1cde6;padding:12px 5px;line-height:1.45;font-size:11px;font-weight:700}
+.sidebar-provider-details:not([open]){padding-bottom:0}
+.sidebar-provider-details>.quiet{margin:0 0 12px}
+.side-shell .sidebar-provider-details input,.side-shell .sidebar-provider-details select{max-width:100%;min-width:0}
+.sidebar-provider-details .offer-panel{min-width:0}
 .side-shell .conversation-panel{padding:10px}
 .side-shell .conversation-list{max-height:380px}
 .side-shell .conversation-bubble{max-width:100%;padding:9px 10px}
