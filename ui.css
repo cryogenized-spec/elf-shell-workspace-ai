@@ -44,7 +44,7 @@ button:disabled{opacity:.55;cursor:wait}
 .add-form input{width:100%;padding:11px;background:#0b1222;color:var(--ivory);font:12px ui-monospace,monospace;border:1px solid #6f8994}
 .add-form button{margin-top:8px}
 footer{display:flex;justify-content:space-between;gap:18px;margin-top:35px;padding-top:16px;border-top:1px solid #93d9d75c;font-size:10px;letter-spacing:.12em;color:#b0c7d4}
-.side-shell{padding:17px;min-width:225px}
+.side-shell{padding:17px;min-width:0;max-width:100%}
 .sidebar-header{display:flex;align-items:center;gap:15px;margin-bottom:24px}
 .sidebar-header h1{font-size:27px}
 .sidebar-header .slashes{font-size:30px;letter-spacing:-10px;padding-right:11px}
@@ -108,7 +108,7 @@ footer{display:flex;justify-content:space-between;gap:18px;margin-top:35px;paddi
     white-space:normal;overflow-wrap:anywhere;line-height:1.45;
   }
 }
-@media(max-width:350px){.side-shell{padding:8px}.side-panel{padding:12px}.resource-row{padding:9px 6px}}
+@media(max-width:350px){.side-shell{padding:8px;min-width:0}.sidebar-header{flex-wrap:wrap;gap:8px}.sidebar-header h1{font-size:23px}.side-panel{padding:12px}.resource-row{padding:9px 6px}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
 /* Multi-workspace profile controls, built from the same locally themed palette. */
 .profile-manager{display:grid;grid-template-columns:minmax(180px,1fr) minmax(230px,1.3fr);gap:18px;margin-bottom:20px;padding:18px 25px}
