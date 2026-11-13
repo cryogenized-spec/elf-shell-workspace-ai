@@ -7,6 +7,7 @@
     gemini:Object.freeze({host:"https://generativelanguage.googleapis.com/*",origin:"https://generativelanguage.googleapis.com",defaultModel:"gemini-3.8-flash"})
   });
   const MAX_PROMPT=6000,MAX_RESPONSE=12000,MAX_OUTPUT_TOKENS=512;
+  const REQUEST_TIMEOUT_MS=30000,MAX_PROVIDER_JSON_BYTES=256*1024;
   const PROVIDER_LABELS=Object.freeze({openai:"OpenAI",anthropic:"Anthropic",gemini:"Google Gemini"});
   function providerName(value){
     if(typeof value!=="string"||!Object.prototype.hasOwnProperty.call(PROVIDERS,value))
@@ -83,20 +84,82 @@
     if(!combined)throw Error("AI provider returned no readable text");
     return {text:combined.slice(0,MAX_RESPONSE),truncated:combined.length>MAX_RESPONSE};
   }
-  async function infer({provider,model,key,system,prompt,history=[],fetchImpl}){
-    const request=buildRequest(provider,model,key,system,prompt,history);
-    const response=await fetchImpl(request.url,request.options);
-    if(!response||!Number.isInteger(response.status))
-      throw Error("AI provider returned an invalid response");
-    if(!response.ok){
-      // Don't relay response bodies: an error may contain user prompts or credentials.
-      if(response.status===401||response.status===403)throw Error("AI provider rejected authentication or model access");
-      if(response.status===429)throw Error("AI provider rate or credit limit reached");
-      throw Error("AI provider request failed (HTTP "+response.status+")");
+  async function boundedJson(response){
+    // Parse only a bounded body; real Firefox fetch responses have a stream.
+    // Never display a provider JSON parse error, which might contain prompt data.
+    const size=response.headers?.get?.("Content-Length");
+    if(size && (!/^\\d+$/.test(size)||Number(size)>MAX_PROVIDER_JSON_BYTES))
+      throw Error("AI provider response exceeded the safety limit");
+    if(!response.body?.getReader){
+      // Compatibility with synthetic tests and non-stream response shims.
+      try{
+        const json=await response.json();
+        if(JSON.stringify(json).length>MAX_PROVIDER_JSON_BYTES)
+          throw Error("AI provider response exceeded the safety limit");
+        return json;
+      }catch(error){
+        if(error?.message==="AI provider response exceeded the safety limit")throw error;
+        throw Error("AI provider returned invalid JSON");
+      }
     }
-    return extract(provider,await response.json());
+    const reader=response.body.getReader(), parts=[];
+    let sizeRead=0;
+    try{
+      for(;;){
+        const {done,value}=await reader.read();
+        if(done)break;
+        if(!(value instanceof Uint8Array))throw Error("AI provider response is invalid");
+        sizeRead+=value.byteLength;
+        if(sizeRead>MAX_PROVIDER_JSON_BYTES)
+          throw Error("AI provider response exceeded the safety limit");
+        parts.push(value);
+      }
+    }finally{
+      try{await reader.cancel();}catch{}
+      reader.releaseLock();
+    }
+    const data=new Uint8Array(sizeRead);
+    let pos=0;for(const part of parts){data.set(part,pos);pos+=part.byteLength;}
+    try{return JSON.parse(new TextDecoder("utf-8",{fatal:true}).decode(data));}
+    catch{throw Error("AI provider returned invalid JSON");}
   }
-  root.WorkspaceBYOKProviders={PROVIDERS,PROVIDER_LABELS,MAX_PROMPT,
+  async function infer({provider,model,key,system,prompt,history=[],fetchImpl,signal}){
+    const request=buildRequest(provider,model,key,system,prompt,history);
+    if(signal?.aborted)throw Error("AI request cancelled");
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),REQUEST_TIMEOUT_MS);
+    const abort=()=>controller.abort();
+    signal?.addEventListener?.("abort",abort,{once:true});
+    let response;
+    try{
+      // The request body contains the approved prompt only; no Google data or tools.
+      response=await fetchImpl(request.url,{...request.options,signal:controller.signal});
+      if(!response||!Number.isInteger(response.status))
+        throw Error("AI provider returned an invalid response");
+      if(!response.ok){
+        // Never read failed provider response bodies (may echo keys/prompts).
+        if(response.status===401||response.status===403)
+          throw Error("AI provider rejected authentication or model access");
+        if(response.status===429)throw Error("AI provider rate or credit limit reached");
+        throw Error("AI provider request failed (HTTP "+response.status+")");
+      }
+      return extract(provider,await boundedJson(response));
+    }catch(error){
+      // Preserve only our own safe, fixed error categories.
+      const safe=error?.message;
+      if(controller.signal.aborted){
+        if(signal?.aborted)throw Error("AI request cancelled");
+        throw Error("AI provider request timed out");
+      }
+      if(typeof safe==="string"&&/^(AI provider (returned (an invalid response|invalid JSON|no readable text)|response exceeded the safety limit|rejected authentication or model access|rate or credit limit reached|request failed \\(HTTP [0-9]{3}\\)))$/.test(safe))
+        throw error;
+      throw Error("AI provider request could not be completed");
+    }finally{
+      clearTimeout(timer);
+      signal?.removeEventListener?.("abort",abort);
+    }
+  }
+  root.WorkspaceBYOKProviders={PROVIDERS,PROVIDER_LABELS,MAX_PROMPT,REQUEST_TIMEOUT_MS,MAX_PROVIDER_JSON_BYTES,
     providerName,modelId,keyText,userText,normalizedSettings,buildRequest,extract,infer};
   if(typeof module!=="undefined"&&module.exports)module.exports=root.WorkspaceBYOKProviders;
 })(globalThis);
