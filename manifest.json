@@ -20,6 +20,7 @@
       "google/catalog.js",
       "briefing/engine.js",
       "google/session.js",
+      "google/master-read-client.js",
       "ai/providers.js",
       "ai/openai-complimentary.js",
       "diagnostics/connection.js",

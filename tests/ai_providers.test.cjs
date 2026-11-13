@@ -66,3 +66,51 @@ test("provider output preview is capped and does not execute HTML",()=>{
   assert(r.text.startsWith("<script>"));
   // Consumer renders this only with textContent; no DOM parsing.
 });
+
+test("BYOK provider success body is bounded before parsing",async()=>{
+  const big=JSON.stringify({output_text:"x".repeat(300_000)});
+  const response=new Response(big,{status:200,headers:{"Content-Type":"application/json"}});
+  await assert.rejects(P.infer({provider:"openai",model:MODELS.openai,key:"TESTKEY123456",
+    system:"",prompt:"Hello",fetchImpl:async()=>response}),/safety limit/);
+});
+test("BYOK response parser rejects invalid or secret-bearing provider JSON safely",async()=>{
+  await assert.rejects(P.infer({provider:"openai",model:MODELS.openai,key:"TESTKEY123456",
+    system:"",prompt:"Hello",fetchImpl:async()=>new Response("BAD_PROMPT_SECRET",{status:200})}),
+  err=>err.message==="AI provider returned invalid JSON" && !err.message.includes("BAD_PROMPT_SECRET"));
+  await assert.rejects(P.infer({provider:"openai",model:MODELS.openai,key:"TESTKEY123456",
+    system:"",prompt:"Hello",fetchImpl:async()=>{throw Error("PRIVATE_KEY_SHOULD_NOT_LEAK")}}),
+  err=>err.message==="AI provider request could not be completed");
+});
+test("non-stream BYOK honors cancellation before network and during fetch",async()=>{
+  const ctrl=new AbortController(),options={provider:"gemini",model:MODELS.gemini,
+    key:"TESTKEY123456",system:"",prompt:"Hi"};
+  ctrl.abort();
+  let called=0;
+  await assert.rejects(P.infer({...options,signal:ctrl.signal,
+    fetchImpl:async()=>{called++;throw Error("Forbidden")}}),/cancelled/);
+  assert.equal(called,0);
+  const running=new AbortController();
+  const job=P.infer({...options,signal:running.signal,fetchImpl:async(_url,init)=>{
+    assert.equal(init.redirect,"error");
+    assert.equal(init.credentials,"omit");
+    return await new Promise((_resolve,reject)=>{
+      init.signal.addEventListener("abort",()=>reject(Error("Synthetic provider cancelled")),{once:true});
+    });
+  }});
+  running.abort();
+  await assert.rejects(job,/AI request cancelled/);
+});
+test("BYOK successful response has 30s abort bound, no remote tools or Google tokens",async()=>{
+  let saved;
+  const value=await P.infer({provider:"anthropic",model:MODELS.anthropic,
+    key:"TESTKEY123456",system:"Friendly",prompt:"Hello",
+    fetchImpl:async(_url,options)=>{
+      saved=options;
+      return new Response(JSON.stringify({content:[{type:"text",text:"Hello"}]}),{status:200});
+    }});
+  assert.equal(value.text,"Hello");
+  assert(saved.signal instanceof AbortSignal);
+  assert.equal(P.REQUEST_TIMEOUT_MS,30_000);
+  assert.equal(P.MAX_PROVIDER_JSON_BYTES,262_144);
+  assert(!saved.body.includes("tools"));
+});

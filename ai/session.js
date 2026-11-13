@@ -44,7 +44,7 @@
     await browserApi.storage.session.remove(KEY_SESSION);
     return status(browserApi);
   }
-  async function send(browserApi,fetchImpl,personaLoader,message){
+  async function send(browserApi,fetchImpl,personaLoader,message,signal){
     const config=await settings(browserApi);
     if(!await allowed(browserApi,config.provider))
       throw Error("AI provider network or data-sharing permission is not granted");
@@ -63,7 +63,7 @@
     const system=root.WorkspacePersonaUtils.stylePrompt(persona);
     const result=await PROVIDERS.infer({
       provider:config.provider,model:config.model,key:saved.key,
-      system,prompt,history:context.turns,fetchImpl
+      system,prompt,history:context.turns,fetchImpl,signal
     });
     // Only the generated assistant text is returned. No tokens or raw provider payload.
     return {provider:config.provider,model:config.model,
@@ -82,14 +82,14 @@
       provider:cfg.provider,model:cfg.model,key:saved.key,fetchImpl
     });
   }
-  async function handle(browserApi,fetchImpl,personaLoader,message){
+  async function handle(browserApi,fetchImpl,personaLoader,message,signal){
     switch(message.type){
       case "AI_STATUS":return {ok:true,ai:await status(browserApi)};
       case "AI_SAVE_SETTINGS":return {ok:true,ai:await saveSettings(browserApi,message)};
       case "AI_SET_SESSION_KEY":return {ok:true,ai:await setKey(browserApi,message)};
       case "AI_CLEAR_SESSION_KEY":return {ok:true,ai:await dropKey(browserApi)};
       case "AI_CHECK_MODEL":return {ok:true,result:await testModel(browserApi,fetchImpl)};
-      case "AI_SEND_PROMPT":return {ok:true,result:await send(browserApi,fetchImpl,personaLoader,message)};
+      case "AI_SEND_PROMPT":return {ok:true,result:await send(browserApi,fetchImpl,personaLoader,message,signal)};
       default:throw Error("Unknown BYOK request");
     }
   }

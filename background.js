@@ -9,6 +9,20 @@ const MAX_RESOURCES = 80;
 const REGISTRY_KEY = "elfshell.workspace.tabRegistry.v1";
 const PERSONA_KEY = "elfshell.workspace.persona.v1";
 const PERSONA = globalThis.WorkspacePersonaUtils;
+let activeOneShot=null;
+function cancelOneShot(){
+  if(!activeOneShot)return false;
+  activeOneShot.abort();
+  return true;
+}
+// Clearing a credential or revoking browser consent must stop an in-flight
+// Anthropic/Gemini request; the encrypted/provider account data stay untouched.
+browser.storage?.onChanged?.addListener((changes,area)=>{
+  if(area==="session" && Object.hasOwn(changes,"elfshell.byok.apiKey.v1") &&
+     !changes["elfshell.byok.apiKey.v1"].newValue)cancelOneShot();
+});
+browser.permissions?.onRemoved?.addListener(()=>{cancelOneShot();});
+
 async function readPersona() {
   const saved=(await browser.storage.local.get(PERSONA_KEY))[PERSONA_KEY];
   return PERSONA.normalize(saved);
@@ -244,12 +258,29 @@ async function handle(message) {
       case "AI_CONVERSATION_CLEAR":
         // Same-extension only; session transcript is never exposed through the external bridge.
         return await serialise(()=>globalThis.WorkspaceConversationTranscript.handle(browser,message));
+      case "AI_CANCEL_REQUEST":
+        // Never serialise cancellation behind an in-flight network call.
+        return {ok:true,cancelled:cancelOneShot()};
+      case "AI_SEND_PROMPT": {
+        if(activeOneShot)return {ok:false,error:"An AI request is already active"};
+        const controller=new AbortController();
+        activeOneShot=controller;
+        try{
+          // Do not block Forget Key or later cancellation behind the request.
+          return await globalThis.WorkspaceBYOKSession.handle(
+            browser,fetch,readPersona,message,controller.signal);
+        }finally{
+          if(activeOneShot===controller)activeOneShot=null;
+        }
+      }
+      case "AI_CLEAR_SESSION_KEY":
+        cancelOneShot();
+        return await globalThis.WorkspaceBYOKSession.handle(
+          browser,fetch,readPersona,message);
       case "AI_STATUS":
       case "AI_SAVE_SETTINGS":
       case "AI_SET_SESSION_KEY":
-      case "AI_CLEAR_SESSION_KEY":
       case "AI_CHECK_MODEL":
-      case "AI_SEND_PROMPT":
         // This is unavailable to the external core bridge. Explicit only.
         return await serialise(()=>globalThis.WorkspaceBYOKSession.handle(
           browser,fetch,readPersona,message));

@@ -842,8 +842,17 @@ if(aiForm){
     }catch(error){output.textContent="Model check unavailable: "+error.message;}
     finally{await refreshAI();}
   });
-  document.querySelector("#ai-cancel").addEventListener("click",()=>{
-    globalThis.WorkspaceTraceUI.cancel();
+  document.querySelector("#ai-cancel").addEventListener("click",async()=>{
+    if(globalThis.WorkspaceTraceUI.isRunning()){
+      globalThis.WorkspaceTraceUI.cancel();
+      return;
+    }
+    const stop=document.querySelector("#ai-cancel");
+    stop.disabled=true;
+    try{
+      const reply=await request({type:"AI_CANCEL_REQUEST"});
+      aiMessage(reply.cancelled?"Stopping the active provider request…":"No request is running.");
+    }catch{aiMessage("Could not stop the provider request.",true);}
   });
   document.querySelector("#ai-send").addEventListener("click",async()=>{
     const button=document.querySelector("#ai-send");
@@ -865,6 +874,8 @@ if(aiForm){
       return;
     }
     const output=document.querySelector("#ai-output");output.replaceChildren();
+    const stop=document.querySelector("#ai-cancel");
+    stop.hidden=false;stop.disabled=false;stop.textContent="Stop request";
     button.disabled=true;aiMessage("Sending your explicit text prompt to the selected provider…");
     globalThis.WorkspaceConversationUI.resetContext();
     try{
@@ -883,7 +894,10 @@ if(aiForm){
       aiMessage("Response received · "+result.result.provider+" / "+result.result.model+
         " · "+result.result.contextTurns+" previous exchange(s) used · no Google data fetched.");
     }catch(error){aiMessage(error.message,true);}
-    finally{await refreshAI();}
+    finally{
+      stop.hidden=true;stop.disabled=false;stop.textContent="Stop OpenAI generation";
+      await refreshAI();
+    }
   });
 }
 function coffeeStatus(message,isError=false){
