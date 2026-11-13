@@ -5,6 +5,7 @@
   const SESSION_KEY="elfshell.byok.apiKey.v1",SETTINGS_KEY="elfshell.byok.settings.v1";
   const DATA_TYPES=["authenticationInfo","personalCommunications","websiteContent","personallyIdentifyingInfo"];
   const EFFORTS=Object.freeze(["none","low","medium","high","xhigh","max"]);
+  const OUTPUT_LIMITS=Object.freeze([768,2048,4096]);
   const MAX_BYTES=4*1024*1024,MAX_FRAME=128*1024,MAX_OUTPUT=12000,MAX_SUMMARY=16000;
   const TOOL_NAMES=Object.freeze({
     web_search_call:"Web search",file_search_call:"File search",
@@ -19,13 +20,15 @@
     const effort=message.effort===undefined?"medium":message.effort;
     if(!EFFORTS.includes(effort))throw Error("Choose a supported OpenAI reasoning effort");
     if(typeof message.webSearch!=="boolean")throw Error("Web-search consent must be explicit");
-    return {effort,webSearch:message.webSearch};
+    const maxOutputTokens=message.maxOutputTokens===undefined?768:message.maxOutputTokens;
+    if(!OUTPUT_LIMITS.includes(maxOutputTokens))throw Error("Select an approved output-token budget");
+    return {effort,webSearch:message.webSearch,maxOutputTokens};
   }
-  function buildRequest({model,key,prompt,system,effort="medium",webSearch=false,signal}){
+  function buildRequest({model,key,prompt,system,effort="medium",webSearch=false,maxOutputTokens=768,history=[],signal}){
     const id=PROVIDERS.modelId(model),secret=PROVIDERS.keyText(key),
       text=PROVIDERS.userText(prompt);
-    if(!EFFORTS.includes(effort)||typeof webSearch!=="boolean")
-      throw Error("Invalid streaming settings");
+    if(!EFFORTS.includes(effort)||typeof webSearch!=="boolean"||!OUTPUT_LIMITS.includes(maxOutputTokens))
+      throw Error("Invalid streaming settings or output-token budget");
     const offer=root.WorkspaceOpenAIComplimentary?.lookup(id);
     if(offer?.status==="shut-down")
       throw Error("This legacy model has been shut down by OpenAI; select an available model");
@@ -33,9 +36,12 @@
       throw Error("This model does not support reasoning effort; choose None");
     if(offer&&offer.group!=="other"&&effort==="max")
       throw Error("Maximum reasoning is unsupported for this offer model; choose High or Extra High");
+    const messages=history.length
+      ? root.WorkspaceConversationContext.orderedMessages({turns:history},text)
+      : [{role:"user",content:text}];
     const body={
-      model:id,input:text,instructions:String(system||"").slice(0,6000),
-      store:false,stream:true,max_output_tokens:768,
+      model:id,input:history.length?messages:text,instructions:String(system||"").slice(0,6000),
+      store:false,stream:true,max_output_tokens:maxOutputTokens,
       ...(effort==="none"?{}:{reasoning:{effort,summary:"auto"}}),
       ...(webSearch?{tools:[{type:"web_search"}],tool_choice:"auto"}:{})
     };
@@ -154,13 +160,13 @@
         if(!Object.hasOwn(TOOL_NAMES,item.type))return;
         const id=cleanId(item.id)||"index-"+cleanIndex(event.output_index);
         if(type.endsWith(".added"))toolCount++;
-        emit({kind:"tool",id,title:TOOL_NAMES[item.type],
+        emit({kind:"tool",id,title:TOOL_NAMES[item.type],toolType:item.type,
           state:type.endsWith(".done")?"done":"active"});
         return;
       }
       const match=/^response\.(web_search_call|file_search_call|code_interpreter_call)\.(in_progress|searching|interpreting|completed)$/.exec(type||"");
       if(match){
-        emit({kind:"tool",id:cleanId(event.item_id),title:TOOL_NAMES[match[1]],
+        emit({kind:"tool",id:cleanId(event.item_id),title:TOOL_NAMES[match[1]],toolType:match[1],
           state:match[2]==="completed"?"done":"active"});
         return;
       }
@@ -170,7 +176,10 @@
           ?usage.output_tokens:null;
         const input=Number.isSafeInteger(usage?.input_tokens)&&usage.input_tokens>=0
           ?usage.input_tokens:null;
-        const totals={usage:{inputTokens:input,outputTokens:output}};
+        const reason=usage?.output_tokens_details?.reasoning_tokens;
+        const reasoningTokens=Number.isSafeInteger(reason)&&reason>=0?reason:undefined;
+        const totals={usage:{inputTokens:input,outputTokens:output,
+          ...(reasoningTokens===undefined?{}:{reasoningTokens})}};
         if(type==="response.completed")status("completed",totals);
         else if(type==="response.incomplete")status("incomplete",{
           message:"OpenAI stopped before completing the answer (possibly output token limit).",...totals
@@ -193,13 +202,18 @@
     const saved=(await browserApi.storage.session.get(SESSION_KEY))[SESSION_KEY];
     if(!saved||saved.provider!=="openai"||!saved.key)
       throw Error("Enter an OpenAI API key for this Firefox session");
+    if(message.includeHistory!==undefined&&typeof message.includeHistory!=="boolean")
+      throw Error("Conversation context consent must be a boolean");
+    const context=message.includeHistory===true
+      ? await root.WorkspaceConversationContext.load(browserApi,config.provider,config.model,message)
+      : {turns:[]};
     const persona=await personaLoader();
     const system=root.WorkspacePersonaUtils.stylePrompt(persona);
     const req=buildRequest({model:config.model,key:saved.key,prompt:message.text,
-      system,...options,signal});
+      history:context.turns,system,...options,signal});
     if(signal?.aborted)throw Error("Stream cancelled");
     emit({kind:"started",model:config.model,effort:options.effort,
-      webSearch:options.webSearch});
+      webSearch:options.webSearch,contextTurns:context.turns.length});
     let response;
     try{response=await fetchImpl(req.url,req.options);}
     catch(error){

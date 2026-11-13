@@ -133,6 +133,48 @@ try:
     """)
     check("repeat cross-extension command reuses already-open Google tabs",
           lambda:require(again and again.get("opened")==0 and again.get("reused")==6,str(again)))
+    # The second command must focus the existing AI console, not restore or
+    # duplicate Google tabs or request any provider key.
+    driver.switch_to.window(handle)
+    query=driver.find_element(By.ID,"search-input")
+    query.click()
+    query.send_keys(Keys.CONTROL,"a")
+    query.send_keys("Ask Ayarime")
+    WebDriverWait(driver,12).until(lambda d:
+        "ask ayarime" in d.find_element(By.ID,"search-results").text.lower())
+    check("core offers dedicated Ask Ayarime command",
+          lambda:require(driver.find_element(By.ID,"palette-option-0").is_displayed(),
+                         "Ask Ayarime suggestion is missing"))
+    query.send_keys(Keys.ENTER)
+    WebDriverWait(driver,20).until(lambda d:
+        "AI console opened" in d.find_element(By.ID,"workspace-bridge-status").text or
+        "Assistant unavailable" in d.find_element(By.ID,"workspace-bridge-status").text)
+    ask_status=driver.find_element(By.ID,"workspace-bridge-status").text
+    check("Ask Ayarime invokes the companion OPEN_ASSISTANT bridge",
+          lambda:require("AI console opened" in ask_status,ask_status))
+    driver.switch_to.window(hubs[0])
+    WebDriverWait(driver,18).until(lambda d:
+        d.execute_script("return document.activeElement?.id")=="ai-prompt")
+    check("existing pinned Hub focuses its AI prompt",
+          lambda:require(driver.find_element(By.ID,"ai-prompt").is_displayed() and
+                         driver.current_url==hub_url,
+                         "Hub did not focus or clear its local assistant route"))
+    # A second explicit click inside the companion is a valid Firefox user
+    # gesture to open the native sidebar, unlike the async core bridge.
+    driver.find_element(By.ID,"ai-open-sidebar").click()
+    WebDriverWait(driver,12).until(lambda d:
+        "sidebar opened" in d.find_element(By.ID,"ai-sidebar-status").text.lower() or
+        "could not open sidebar" in d.find_element(By.ID,"ai-sidebar-status").text.lower())
+    sidebar_message=driver.find_element(By.ID,"ai-sidebar-status").text
+    check("companion Hub's direct click opens the Firefox native sidebar",
+          lambda:require("sidebar opened" in sidebar_message.lower(),sidebar_message))
+    after_ask=driver.execute_async_script("""
+      const done=arguments[arguments.length-1];
+      browser.tabs.query({}).then(tabs=>done(tabs.map(t=>t.id)),e=>done({error:String(e)}));
+    """)
+    check("assistant handoff opens no new Google tabs",
+          lambda:require(set(after_ask)=={t["id"] for t in tab_data["tabs"]},str(after_ask)))
+
     results["status"]="PASS"
     driver.save_screenshot(str(ARTIFACTS/"two-extensions.png"))
 except Exception as exc:

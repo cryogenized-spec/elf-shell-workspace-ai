@@ -24,6 +24,8 @@
       "ai/openai-complimentary.js",
       "diagnostics/connection.js",
       "ai/session.js",
+      "ai/transcript.js",
+      "ai/context.js",
       "updater/release.js",
       "updater/checker.js",
       "ai/openai-stream.js",
