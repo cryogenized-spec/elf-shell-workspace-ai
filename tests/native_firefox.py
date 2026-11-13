@@ -308,6 +308,61 @@ try:
     check("OAuth preparation is blocked until Google API origins are granted",
           lambda:require(not blocked["ok"] and "Grant" in blocked.get("error",""),str(blocked)))
 
+    # Public provider reasoning is shown only after a real event. The optional
+    # larger output budget is never selected on a fresh installation.
+    check("reasoning presentation exists in Hub without fabricating model thought",
+          lambda:require(
+            driver.find_element(By.ID,"ai-output-budget").get_attribute("value")=="768" and
+            driver.find_element(By.ID,"ai-trace").get_attribute("hidden") is not None and
+            driver.find_element(By.ID,"ai-reasoning-label").get_attribute("textContent")=="Thinking…" and
+            "Provider reasoning summary" in
+              driver.find_element(By.ID,"ai-summary-details").get_attribute("outerHTML"),
+            "Reasoning panel has incorrect default state"))
+    check("activity and thinking are separate expandable panels",
+          lambda:require(
+            driver.find_element(By.ID,"ai-activity-details").tag_name=="details" and
+            driver.find_element(By.ID,"ai-summary-details").tag_name=="details" and
+            "not private internal reasoning" in
+              driver.find_element(By.ID,"ai-reasoning-source").get_attribute("textContent"),
+            "Reasoning source disclosure is missing"))
+    # Exercise only the local loading presentation; no paid inference or
+    # Google content is touched. Restore the idle state after reading styles.
+    rose_style=driver.execute_script("""
+      const board=document.getElementById("ai-trace");
+      const selector=name=>document.querySelector(name);
+      board.hidden=false;
+      board.dataset.stage="thinking";
+      const read=name=>getComputedStyle(selector(name)).animationName;
+      const output={
+        tileCount:selector("#ai-trace").querySelectorAll(".rose-tile").length,
+        right:read(".rose-tile--right"),
+        down:read(".rose-tile--down"),
+        left:read(".rose-tile--left"),
+        up:read(".rose-tile--up"),
+        spirit:read(".rose-spirit"),
+        spiritDuration:getComputedStyle(selector(".rose-spirit")).animationDuration,
+        tileDuration:getComputedStyle(selector(".rose-tile--right")).animationDuration,
+        spark:read(".rose-spark--cyan"),
+        tileArt:getComputedStyle(selector(".rose-tile--right"),"::before").backgroundImage,
+        loader:!!selector(".ayarime-rose-loader")
+      };
+      board.dataset.stage="idle";
+      board.hidden=true;
+      return output;
+    """)
+    check("Ayarime rose has four animated quadrants and alternating axis rotation",
+          lambda:require(
+            rose_style["loader"] and rose_style["tileCount"]==4 and
+            rose_style["right"]=="rose-fold-right" and
+            rose_style["down"]=="rose-fold-down" and
+            rose_style["left"]=="rose-fold-left" and
+            rose_style["up"]=="rose-fold-up" and
+            rose_style["spirit"]=="rose-alternate-axes" and
+            rose_style["spiritDuration"]=="7.6s" and
+            rose_style["tileDuration"]=="3.8s" and
+            rose_style["spark"]=="rose-magic-spark" and
+            "ayarime-rose-outline.svg" in rose_style["tileArt"],
+            "Rose animation or bundled vector did not load: "+str(rose_style)))
     ai=extension_call({"type":"AI_STATUS"})
     check("BYOK defaults to disconnected without provider permission or a key",
           lambda:require(ai["ok"] and not ai["ai"]["hasSessionKey"] and
