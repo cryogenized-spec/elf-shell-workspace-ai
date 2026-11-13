@@ -105,6 +105,12 @@ try:
         columns:getComputedStyle(document.querySelector(".columns")).gridTemplateColumns,
         overflow:document.documentElement.scrollWidth-innerWidth,
         ancestors:(()=>{let p=document.getElementById("ai-settings-form"),out=[];while(p&&out.length<8){const r=p.getBoundingClientRect(),s=getComputedStyle(p);out.push({tag:p.tagName,id:p.id,cls:String(p.className||"").slice(0,45),left:r.left,right:r.right,width:r.width,scroll:p.scrollWidth,client:p.clientWidth,grid:s.gridTemplateColumns,minWidth:s.minWidth,maxWidth:s.maxWidth});p=p.parentElement;}return out;})(),
+        overflowNodes:[...document.querySelectorAll("body *")].map(node=>({
+          tag:node.tagName.toLowerCase(),id:node.id||"",
+          cls:String(node.className?.baseVal||node.className||"").slice(0,45),
+          scroll:node.scrollWidth,client:node.clientWidth,
+          gap:node.scrollWidth-node.clientWidth
+        })).filter(n=>n.gap>3).sort((a,b)=>b.gap-a.gap).slice(0,18),
         offenders:[...document.querySelectorAll("body *")].map(node=>{
           const r=node.getBoundingClientRect();
           return {tag:node.tagName.toLowerCase(),id:node.id||"",
