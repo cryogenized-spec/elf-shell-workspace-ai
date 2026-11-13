@@ -43,7 +43,7 @@ test("Hub and sidebar remain independent documents with unique control ids",()=>
 test("reduced-motion, responsive defaults and focus indications are CSS only",()=>{
   assert.match(css, /@media\(prefers-reduced-motion:reduce\)/);
   assert.match(css, /\.ayarime-rose-loader \*\{animation:none!important;transition:none!important\}/);
-  assert.match(css, /@media\(max-width:850px\)\{\.columns\{grid-template-columns:1fr\}/);
+  assert.match(css, /@media\(max-width:850px\)\{\.columns\{grid-template-columns:minmax\(0,1fr\)\}/);
   assert.match(css, /@media\(max-width:350px\)\{\.side-shell\{padding:8px\}/);
   assert.match(css, /\.sidebar-provider-details\{min-width:0;max-width:100%/);
   assert(!hub.includes('src="https://')&&!sidebar.includes('src="https://'),"Visual assets must be locally bundled");
