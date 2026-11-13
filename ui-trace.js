@@ -132,7 +132,12 @@
     function finishStep(id){
       const item=state.steps.get(id);
       if(item&&item.end===null){
-        item.end=now();item.marker.textContent="✓";
+        item.end=now();
+        // Keep the trusted tool category glyph after completion; the
+        // separate row completion state supplies the tick indicator.
+        if(item.marker.classList.contains("trace-tool-icon"))
+          item.row.classList.add("done");
+        else item.marker.textContent="✓";
         item.row.classList.remove("active");
       }
     }
