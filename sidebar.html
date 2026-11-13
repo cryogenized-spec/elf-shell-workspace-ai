@@ -89,7 +89,7 @@
     <div id="ai-conversation-list" class="conversation-list" role="log" aria-live="polite" aria-relevant="additions text">
       <p class="conversation-empty">No replies in this Firefox session. Ask Ayarime to begin.</p>
     </div>
-    <p class="quiet conversation-privacy">Your prompts and replies are kept in Firefox session storage (not encrypted) and cleared when the session ends or you choose Clear. Previous messages are shown here only; <strong>they are not sent as context</strong> with the next prompt.</p>
+    <p class="quiet conversation-privacy">Your prompts and replies are kept in Firefox session storage (not encrypted) and cleared when the session ends or you choose Clear. Previous exchanges <strong>are not sent as context unless you opt in for that request</strong>.</p>
     <p id="ai-conversation-status" class="quiet" role="status" aria-live="polite"></p>
   </section>
   <label for="ai-prompt" class="eyebrow">EXPLICIT TEXT PROMPT</label>
@@ -104,28 +104,75 @@
       <option value="xhigh">Extra high</option>
       <option value="max">Maximum · more tokens and potential cost</option>
     </select>
+    <label class="trace-budget" for="ai-output-budget">Maximum output tokens (includes internal reasoning)
+      <select id="ai-output-budget" aria-label="Maximum output tokens for this request">
+        <option value="768" selected>768 · economical / default</option>
+        <option value="2048">2,048 · longer thinking / more cost</option>
+        <option value="4096">4,096 · extended / higher cost</option>
+      </select>
+    </label>
     <label class="trace-check" for="ai-web-search"><input id="ai-web-search" type="checkbox" /> Allow OpenAI hosted web search for this request (additional charges may apply)</label>
     <p class="quiet">Responses API streaming with provider-exposed reasoning summaries. Raw private chain-of-thought is not available. Tool steps appear only when the provider actually emits them.</p>
   </div>
+  <fieldset class="ai-context-panel" aria-label="Previous conversation context">
+    <legend>// CONTEXT / PER-REQUEST OPT-IN</legend>
+    <label class="ai-context-optin" for="ai-context-enable">
+      <input id="ai-context-enable" type="checkbox" />
+      <span>Include recent conversation in <strong>this request only</strong></span>
+    </label>
+    <label for="ai-context-limit">Previous completed exchanges to include
+      <select id="ai-context-limit" aria-label="Number of previous exchanges">
+        <option value="1">1 exchange</option>
+        <option value="2" selected>2 exchanges</option>
+        <option value="3">3 exchanges</option>
+      </select>
+    </label>
+    <p id="ai-context-preview" class="quiet" role="status" aria-live="polite">Context OFF. Only your new prompt and persona are sent.</p>
+    <p class="quiet">History must match the current provider and model, up to 12,000 characters in total. More context can increase tokens, cost and latency. The checkbox resets after each send. Previous messages are never sent unless you opt in.</p>
+  </fieldset>
   <p class="quiet prompt-shortcut">Ctrl+Enter sends the current prompt · Enter adds a line</p>
   <button id="ai-send" type="button" class="secondary">Ask Ayarime ↗</button>
   <button id="ai-cancel" type="button" class="mini danger" hidden>Stop OpenAI generation</button>
-  <section id="ai-trace" class="trace-board" aria-label="OpenAI live activity" hidden>
-    <div class="trace-head"><strong>AYARIME / LIVE ACTIVITY</strong><span id="ai-elapsed" class="trace-clock" aria-label="Total elapsed time">0.0s</span></div>
-    <div id="ai-trace-steps" class="trace-steps" aria-live="polite"></div>
+  <section id="ai-trace" class="trace-board" aria-label="Provider reasoning summary and activity" data-stage="idle" hidden>
+    <div class="trace-head" aria-live="polite">
+      <span class="trace-head-title">
+        <span class="ayarime-rose-loader" aria-hidden="true">
+          <span class="rose-seal-grid">
+            <span class="rose-tile rose-tile--right"></span>
+            <span class="rose-tile rose-tile--down"></span>
+            <span class="rose-tile rose-tile--left"></span>
+            <span class="rose-tile rose-tile--up"></span>
+            <span class="rose-spirit"></span>
+          </span>
+          <span class="rose-spark rose-spark--cyan"></span>
+          <span class="rose-spark rose-spark--pink"></span>
+          <span class="rose-spark rose-spark--violet"></span>
+          <span class="rose-spark rose-spark--gold"></span>
+        </span>
+        <strong id="ai-reasoning-label">Thinking…</strong>
+      </span>
+      <span id="ai-elapsed" class="trace-clock" aria-label="Total elapsed time">0.0s</span>
+    </div>
     <details id="ai-summary-details" class="trace-summary" open>
-      <summary>Provider reasoning summaries</summary>
-      <p id="ai-summary-status" class="quiet">Waiting for the provider.</p>
+      <summary><span>Provider reasoning summary</span><span id="ai-summary-hint" class="trace-summary-hint">LIVE</span></summary>
+      <p id="ai-summary-status" class="quiet">Waiting for a provider-exposed summary.</p>
       <div id="ai-summary-text" class="trace-summary-body"></div>
     </details>
-    <small id="ai-trace-usage" class="quiet">Token usage appears after OpenAI completes.</small>
+    <details id="ai-activity-details" class="trace-activity">
+      <summary>Model activity <span id="ai-activity-count">0 events</span></summary>
+      <div id="ai-trace-steps" class="trace-steps" aria-live="off"></div>
+    </details>
+    <div class="trace-footer">
+      <small id="ai-reasoning-source" class="quiet">Provider summary only — not private internal reasoning.</small>
+      <small id="ai-trace-usage" class="quiet">Usage appears when the provider reports it.</small>
+    </div>
   </section>
 
   <button id="ai-check-model" type="button" class="mini" disabled>Verify model access · no generation</button>
   <p class="quiet" id="ai-check-result" role="status" aria-live="polite">Model verification not run. This uses a provider metadata GET, not an inference request.</p>
   <p id="ai-status" class="status" role="status" aria-live="polite">AI not configured.</p>
   <div id="ai-output" class="ai-output" aria-live="polite"></div>
-  <p class="quiet">Only submitted text and persona go to the selected provider, after optional data-sharing consent. API usage may incur charges. No Google file data is sent automatically.</p>
+  <p class="quiet">Only the prompt, persona and any explicitly selected prior exchanges go to the selected provider after Firefox consent. API usage may incur charges. No Google file data is sent automatically.</p>
 </section>
 <section class="frame updater-panel" aria-label="Extension release notifications">
   <p class="eyebrow">// 09 · SOFTWARE RELEASES</p>

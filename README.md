@@ -10,6 +10,10 @@ This companion is independent of the existing Firefox new-tab extension and does
 
 The independently deployable [in-house Google Workspace MCP](mcp/README.md) is being developed in `mcp/`, separate from the Firefox extension. It speaks the standard MCP protocol and exposes **four explicit Tasks REST operations** through our own adapters: list tasklists, list tasks, get a task, and approval-gated task creation. **It does not call Google's official MCP servers.** M1 is local stdio + a developer-only short-lived token configuration; public OAuth onboarding, secure remote ChatGPT registration and additional Google applications are later milestones. See the [sequenced M0–M9 roadmap](docs/custom-google-rest-mcp-roadmap.md).
 
+## New developer preview: explicit conversation context
+
+The Hub and native Firefox sidebar can display recent completed exchanges and, **only when manually enabled for that individual request**, include 1–3 previous exchanges from the same model/provider in a follow-up prompt. Context is bounded, previewed locally, and disabled again after sending. More context may increase API cost. Details: [context design and privacy](docs/multi-turn-context.md). This remains unsigned and has no live paid-provider end-to-end acceptance yet.
+
 ## Currently working in the prototype
 
 - Toolbar command **“Ayarime, please bring up my workspace.”**

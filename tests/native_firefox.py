@@ -104,6 +104,27 @@ try:
     check("Hub renders the reply saved by same-extension session storage",
           lambda:require("Local QA greeting" in driver.find_element(By.ID,"ai-conversation-list").text,
                          "Hub transcript did not receive session update"))
+    check("multi-turn is always disabled by default",
+          lambda:require(not driver.find_element(By.ID,"ai-context-enable").is_selected() and
+                         "Context OFF" in driver.find_element(By.ID,"ai-context-preview").text,
+                         "Chat history was enabled without opt-in"))
+    extension_call({"type":"AI_CONVERSATION_APPEND","prompt":"Browser QA follow-up",
+      "answer":"Only for testing", "provider":"openai","model":"gpt-5.4-mini"})
+    check("explicit context preview never returns prompt text",
+          lambda:require("Browser QA follow-up" not in json.dumps(
+            extension_call({"type":"AI_CONTEXT_PREVIEW","includeHistory":True,"historyLimit":1})["summary"]),
+            "Preview leaked prompt text"))
+    driver.find_element(By.ID,"ai-context-enable").click()
+    WebDriverWait(driver,10).until(lambda d:
+        "1 previous exchange" in d.find_element(By.ID,"ai-context-preview").text)
+    check("real Hub checkbox displays matching context budget without model request",
+          lambda:require("roughly" in driver.find_element(By.ID,"ai-context-preview").text,
+                         "Context size estimate is missing"))
+    driver.refresh()
+    WebDriverWait(driver,10).until(lambda d:len(d.find_elements(By.ID,"ai-context-enable"))==1)
+    check("opt-in is not saved across Hub reloads",
+          lambda:require(not driver.find_element(By.ID,"ai-context-enable").is_selected(),
+                         "Context must reset on reload"))
     driver.get("moz-extension://"+uuid+"/sidebar.html")
     WebDriverWait(driver,12).until(lambda d:
         "Local QA response" in d.find_element(By.ID,"ai-conversation-list").text)
@@ -287,6 +308,61 @@ try:
     check("OAuth preparation is blocked until Google API origins are granted",
           lambda:require(not blocked["ok"] and "Grant" in blocked.get("error",""),str(blocked)))
 
+    # Public provider reasoning is shown only after a real event. The optional
+    # larger output budget is never selected on a fresh installation.
+    check("reasoning presentation exists in Hub without fabricating model thought",
+          lambda:require(
+            driver.find_element(By.ID,"ai-output-budget").get_attribute("value")=="768" and
+            driver.find_element(By.ID,"ai-trace").get_attribute("hidden") is not None and
+            driver.find_element(By.ID,"ai-reasoning-label").get_attribute("textContent")=="Thinking…" and
+            "Provider reasoning summary" in
+              driver.find_element(By.ID,"ai-summary-details").get_attribute("outerHTML"),
+            "Reasoning panel has incorrect default state"))
+    check("activity and thinking are separate expandable panels",
+          lambda:require(
+            driver.find_element(By.ID,"ai-activity-details").tag_name=="details" and
+            driver.find_element(By.ID,"ai-summary-details").tag_name=="details" and
+            "not private internal reasoning" in
+              driver.find_element(By.ID,"ai-reasoning-source").get_attribute("textContent"),
+            "Reasoning source disclosure is missing"))
+    # Exercise only the local loading presentation; no paid inference or
+    # Google content is touched. Restore the idle state after reading styles.
+    rose_style=driver.execute_script("""
+      const board=document.getElementById("ai-trace");
+      const selector=name=>document.querySelector(name);
+      board.hidden=false;
+      board.dataset.stage="thinking";
+      const read=name=>getComputedStyle(selector(name)).animationName;
+      const output={
+        tileCount:selector("#ai-trace").querySelectorAll(".rose-tile").length,
+        right:read(".rose-tile--right"),
+        down:read(".rose-tile--down"),
+        left:read(".rose-tile--left"),
+        up:read(".rose-tile--up"),
+        spirit:read(".rose-spirit"),
+        spiritDuration:getComputedStyle(selector(".rose-spirit")).animationDuration,
+        tileDuration:getComputedStyle(selector(".rose-tile--right")).animationDuration,
+        spark:read(".rose-spark--cyan"),
+        tileArt:getComputedStyle(selector(".rose-tile--right"),"::before").backgroundImage,
+        loader:!!selector(".ayarime-rose-loader")
+      };
+      board.dataset.stage="idle";
+      board.hidden=true;
+      return output;
+    """)
+    check("Ayarime rose has four animated quadrants and alternating axis rotation",
+          lambda:require(
+            rose_style["loader"] and rose_style["tileCount"]==4 and
+            rose_style["right"]=="rose-fold-right" and
+            rose_style["down"]=="rose-fold-down" and
+            rose_style["left"]=="rose-fold-left" and
+            rose_style["up"]=="rose-fold-up" and
+            rose_style["spirit"]=="rose-alternate-axes" and
+            rose_style["spiritDuration"]=="7.6s" and
+            rose_style["tileDuration"]=="3.8s" and
+            rose_style["spark"]=="rose-magic-spark" and
+            "ayarime-rose-outline.svg" in rose_style["tileArt"],
+            "Rose animation or bundled vector did not load: "+str(rose_style)))
     ai=extension_call({"type":"AI_STATUS"})
     check("BYOK defaults to disconnected without provider permission or a key",
           lambda:require(ai["ok"] and not ai["ai"]["hasSessionKey"] and

@@ -30,6 +30,32 @@ test("streaming request opts into summaries without automatically enabling tools
   assert.equal(r.options.redirect,"error");assert.equal(r.options.credentials,"omit");
   assert(!r.options.body.includes("sk_TEST"));
 });
+test("larger reasoning budget requires explicit selection and remains bounded",()=>{
+  const base=STREAM.buildRequest({model:"gpt-6-luna",key:"sk_TEST_SECRET_ONLY",
+    prompt:"Analyze carefully",system:"",effort:"high",webSearch:false});
+  assert.equal(JSON.parse(base.options.body).max_output_tokens,768);
+  for(const maxOutputTokens of [2048,4096]){
+    const request=STREAM.buildRequest({model:"gpt-6-luna",key:"sk_TEST_SECRET_ONLY",
+      prompt:"Analyze carefully",system:"",effort:"high",webSearch:false,maxOutputTokens});
+    assert.equal(JSON.parse(request.options.body).max_output_tokens,maxOutputTokens);
+  }
+  for(const maxOutputTokens of [0,512,100000,"2048",null]){
+    assert.throws(()=>STREAM.optionsFrom({text:"Hello",effort:"high",webSearch:false,maxOutputTokens}),
+      /budget/);
+    assert.throws(()=>STREAM.buildRequest({model:"gpt-6-luna",key:"sk_TEST_SECRET_ONLY",
+      prompt:"Hello",system:"",effort:"high",webSearch:false,maxOutputTokens}),/budget/);
+  }
+});
+test("reasoning token totals reflect provider usage without showing private text",()=>{
+  const sent=[],presenter=STREAM.presenter(x=>sent.push(x));
+  presenter.handle({type:"response.reasoning_text.delta",delta:"HIDDEN_NOT_FORWARDABLE"});
+  presenter.handle({type:"response.reasoning_summary_text.delta",item_id:"rs",summary_index:0,delta:"Checking options"});
+  presenter.handle({type:"response.output_text.delta",item_id:"msg",content_index:0,delta:"Answer"});
+  presenter.handle({type:"response.completed",response:{usage:{input_tokens:42,output_tokens:110,
+    output_tokens_details:{reasoning_tokens:75}}}});
+  assert.deepEqual(sent.at(-1).usage,{inputTokens:42,outputTokens:110,reasoningTokens:75});
+  assert(!JSON.stringify(sent).includes("HIDDEN_NOT_FORWARDABLE"));
+});
 test("web search needs explicit opt-in; reasoning none does not request summaries",()=>{
   const r=STREAM.buildRequest({model:"gpt-6.1-sol",key:"sk_TEST_SECRET_ONLY",
     prompt:"Hello",system:"",effort:"none",webSearch:true});
@@ -89,6 +115,8 @@ test("tool steps appear only from real tool events",()=>{
   trace.handle({type:"response.completed",response:{}});
   assert.deepEqual(sent.filter(x=>x.kind==="tool").map(x=>x.state),
     ["active","active","done","done"]);
+  assert(sent.filter(x=>x.kind==="tool").every(x=>x.toolType==="web_search_call"));
+  assert(!sent.filter(x=>x.kind==="tool").some(x=>"iconUrl" in x),"Tool event must not pass arbitrary URLs");
   assert.equal(sent.at(-1).toolCount,1);
 });
 test("incomplete and failed are not successful; raw provider errors not surfaced",()=>{

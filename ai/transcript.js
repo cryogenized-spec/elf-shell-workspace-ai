@@ -11,7 +11,7 @@
       typeof item.provider==="string"&&/^(openai|anthropic|gemini)$/.test(item.provider)&&
       typeof item.model==="string"&&item.model.length<=90&&
       Number.isSafeInteger(item.at)&&item.at>=0
-    ).slice(-MAX_TURNS);
+    ).slice(-MAX_TURNS).map(item=>({...item,truncated:item.truncated===true}));
   }
   async function handle(browserApi,message){
     if(!browserApi.storage?.session)throw Error("Firefox session transcript storage is unavailable");
@@ -23,13 +23,14 @@
     }
     if(message.type!=="AI_CONVERSATION_APPEND")throw Error("Unsupported conversation operation");
     const {prompt,answer,provider,model}=message;
+    const truncated=message.truncated===true;
     if(typeof prompt!=="string"||!prompt.trim()||prompt.length>6000 ||
        typeof answer!=="string"||!answer.trim()||answer.length>12000 ||
        !["openai","anthropic","gemini"].includes(provider) ||
        typeof model!=="string"||model.length<2||model.length>90 ||
        !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(model))
       throw Error("Invalid local transcript entry");
-    const next=[...current,{prompt:prompt.trim(),answer:answer.trim(),provider,model,at:Date.now()}];
+    const next=[...current,{prompt:prompt.trim(),answer:answer.trim(),provider,model,truncated,at:Date.now()}];
     while(next.length>MAX_TURNS||next.reduce((n,item)=>n+item.prompt.length+item.answer.length,0)>MAX_CHARS)next.shift();
     await browserApi.storage.session.set({[KEY]:next});
     return {ok:true,entries:next};
