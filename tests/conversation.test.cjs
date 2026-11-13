@@ -80,3 +80,20 @@ test("visible transcript is never silently sent as provider context",()=>{
   assert(stream.includes("prompt:message.text"));
   assert(!ui.includes("fetch("));
 });
+
+test("truncated provider previews remain labelled after archiving and reloading",async()=>{
+  const h=harness();
+  const entry={type:"AI_CONVERSATION_APPEND",prompt:"Long response",
+    answer:"A".repeat(12000),provider:"anthropic",model:"claude-sonnet-4-5",truncated:true};
+  const appended=await h.request(entry);
+  assert.equal(appended.entries[0].truncated,true);
+  const reloaded=await h.request({type:"AI_CONVERSATION_LIST"});
+  assert.equal(reloaded.entries[0].truncated,true);
+  const normal=await h.request({...entry,prompt:"Brief",answer:"Done",truncated:false});
+  assert.equal(normal.entries.at(-1).truncated,false);
+  const ui=read("ui-conversation.js"),caller=read("ui.js");
+  assert(ui.includes("item.truncated===true"));
+  assert(ui.includes("Response preview truncated"));
+  assert(ui.includes("truncated:truncated===true"));
+  assert(caller.includes("truncated:result.result.truncated===true"));
+});

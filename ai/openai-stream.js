@@ -160,13 +160,13 @@
         if(!Object.hasOwn(TOOL_NAMES,item.type))return;
         const id=cleanId(item.id)||"index-"+cleanIndex(event.output_index);
         if(type.endsWith(".added"))toolCount++;
-        emit({kind:"tool",id,title:TOOL_NAMES[item.type],
+        emit({kind:"tool",id,title:TOOL_NAMES[item.type],toolType:item.type,
           state:type.endsWith(".done")?"done":"active"});
         return;
       }
       const match=/^response\.(web_search_call|file_search_call|code_interpreter_call)\.(in_progress|searching|interpreting|completed)$/.exec(type||"");
       if(match){
-        emit({kind:"tool",id:cleanId(event.item_id),title:TOOL_NAMES[match[1]],
+        emit({kind:"tool",id:cleanId(event.item_id),title:TOOL_NAMES[match[1]],toolType:match[1],
           state:match[2]==="completed"?"done":"active"});
         return;
       }
