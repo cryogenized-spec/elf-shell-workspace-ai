@@ -872,7 +872,8 @@ if(aiForm){
       output.textContent=result.result.text;
       if(result.result.truncated)output.append(node("p","quiet","Output preview truncated."));
       const archived=await globalThis.WorkspaceConversationUI.record({
-        prompt,answer:result.result.text,provider:result.result.provider,model:result.result.model
+        prompt,answer:result.result.text,provider:result.result.provider,model:result.result.model,
+        truncated:result.result.truncated===true
       });
       if(archived){
         output.replaceChildren();
