@@ -135,7 +135,22 @@
   <button id="ai-cancel" type="button" class="mini danger" hidden>Stop OpenAI generation</button>
   <section id="ai-trace" class="trace-board" aria-label="Provider reasoning summary and activity" data-stage="idle" hidden>
     <div class="trace-head" aria-live="polite">
-      <span class="trace-head-title"><span class="trace-indicator" aria-hidden="true">✧</span><strong id="ai-reasoning-label">Thinking…</strong></span>
+      <span class="trace-head-title">
+        <span class="ayarime-rose-loader" aria-hidden="true">
+          <span class="rose-seal-grid">
+            <span class="rose-tile rose-tile--right"></span>
+            <span class="rose-tile rose-tile--down"></span>
+            <span class="rose-tile rose-tile--left"></span>
+            <span class="rose-tile rose-tile--up"></span>
+            <span class="rose-spirit"></span>
+          </span>
+          <span class="rose-spark rose-spark--cyan"></span>
+          <span class="rose-spark rose-spark--pink"></span>
+          <span class="rose-spark rose-spark--violet"></span>
+          <span class="rose-spark rose-spark--gold"></span>
+        </span>
+        <strong id="ai-reasoning-label">Thinking…</strong>
+      </span>
       <span id="ai-elapsed" class="trace-clock" aria-label="Total elapsed time">0.0s</span>
     </div>
     <details id="ai-summary-details" class="trace-summary" open>

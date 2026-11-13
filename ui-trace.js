@@ -123,7 +123,7 @@
       const label=el("span","trace-label",title);
       const time=el("span","trace-time","0.0s");
       row.append(marker,label,time);events.append(row);
-      const item={row,marker,label,time,start:now(),end:null};
+      const item={row,marker,label,time,start:now(),end:null,isTool:Boolean(visual)};
       state.steps.set(id,item);
       if(activityCount)activityCount.textContent=state.steps.size+" events";
       updateClocks();
@@ -132,7 +132,12 @@
     function finishStep(id){
       const item=state.steps.get(id);
       if(item&&item.end===null){
-        item.end=now();item.marker.textContent="✓";
+        item.end=now();
+        // Keep the trusted tool category glyph after completion; the
+        // separate row completion state supplies the tick indicator.
+        if(item.isTool)
+          item.row.classList.add("done");
+        else item.marker.textContent="✓";
         item.row.classList.remove("active");
       }
     }

@@ -72,6 +72,9 @@
         const label=node("div","conversation-speaker",role==="you"?"YOU":"AYARIME");
         const body=node("div","conversation-text",text);
         article.append(label,body);
+        if(role==="ayarime"&&item.truncated===true)
+          article.append(node("small","conversation-truncation",
+            "Response preview truncated — the provider returned more than 12,000 characters."));
         pair.append(article);
       }
       const source=node("small","conversation-source",item.provider+" / "+item.model);
@@ -94,9 +97,9 @@
       if(enable?.checked)void refreshPreview();
     }catch {tell("Previous replies could not be loaded from Firefox session storage.");}
   }
-  async function record({prompt,answer,provider,model}){
+  async function record({prompt,answer,provider,model,truncated=false}){
     try {
-      const result=await request("AI_CONVERSATION_APPEND",{prompt,answer,provider,model});
+      const result=await request("AI_CONVERSATION_APPEND",{prompt,answer,provider,model,truncated:truncated===true});
       ++generation;
       render(result.entries);
       tell("Saved for this Firefox session only. Previous messages are sent only when you choose to include them.");

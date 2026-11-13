@@ -286,13 +286,7 @@ footer{display:flex;justify-content:space-between;gap:18px;margin-top:35px;paddi
 .trace-board{border:1px solid #9580a386;border-radius:11px;clip-path:none;background:linear-gradient(135deg,#171c2df2,#211b32ef);padding:15px;box-shadow:0 7px 24px #0005}
 .trace-head{display:flex;align-items:center;justify-content:space-between;gap:9px;margin:0 0 13px;letter-spacing:.015em}
 .trace-head-title{display:inline-flex;align-items:center;gap:10px;min-width:0;font:600 13px/1.4 ui-monospace,monospace;color:#eee1f3}
-.trace-head-title strong{overflow-wrap:anywhere}
-.trace-indicator{display:grid;place-items:center;width:27px;height:27px;border-radius:50%;background:#4a335c99;border:1px solid #ab90be;color:#e6c9fa}
-.trace-board[data-stage="connecting"] .trace-indicator,.trace-board[data-stage="thinking"] .trace-indicator{animation:ayarime-thinking-pulse 1.8s ease-in-out infinite alternate}
-.trace-board[data-stage="answering"] .trace-indicator{border-color:#8bc5c7;color:#acece5}
-.trace-board[data-stage="completed"] .trace-indicator{border-color:#79b9a5;color:#b3e5c9}
-.trace-board[data-stage="failed"] .trace-indicator,.trace-board[data-stage="cancelled"] .trace-indicator,.trace-board[data-stage="incomplete"] .trace-indicator{border-color:#df9aa1;color:#ffbfc6}
-@keyframes ayarime-thinking-pulse{from{box-shadow:0 0 0 #b88cff00;opacity:.57}to{box-shadow:0 0 15px #ba8ed888;opacity:1}}
+.trace-head-title strong{overflow-wrap:anywhere;min-width:0}
 .trace-clock{font:600 12px ui-monospace,monospace;color:#cbbbd7;white-space:nowrap;letter-spacing:.03em}
 .trace-summary{border:1px solid #7d718b80;border-radius:8px;padding:0;background:#0b1222b5;margin:0}
 .trace-summary>summary,.trace-activity>summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;padding:11px 12px;color:#e9cfe4;font:600 11px/1.4 ui-monospace,monospace}
@@ -313,7 +307,7 @@ footer{display:flex;justify-content:space-between;gap:18px;margin-top:35px;paddi
 .trace-footer small{font:10px/1.6 ui-monospace,monospace;color:#b8b6c6}
 .trace-budget{display:grid;gap:6px;font:11px ui-monospace,monospace;color:var(--cyan)}
 .trace-budget select{width:100%;min-width:0}
-@media(prefers-reduced-motion:reduce){.trace-indicator,.trace-row.active .trace-marker{animation:none!important}}
+@media(prefers-reduced-motion:reduce){.trace-row.active .trace-marker{animation:none!important}}
 
 /* Source-backed tool activity icons: circular, local, no third-party requests. */
 .trace-row:has(.trace-tool-icon){grid-template-columns:30px minmax(0,1fr) auto;align-items:center;min-height:40px}
@@ -327,3 +321,63 @@ footer{display:flex;justify-content:space-between;gap:18px;margin-top:35px;paddi
 .trace-tool-icon.tone-shell{background:#3e414b;border-color:#abb8c2;color:#edf1ff;font-size:11px}
 .trace-tool-icon.tone-mcp{background:#3d3154;border-color:#baa0d9;color:#e9d6ff}
 .trace-tool-icon.tone-generic{background:#343547;border-color:#a4a3b9}
+.trace-row.done .trace-tool-icon{position:relative}
+.trace-row.done .trace-tool-icon::after{content:"✓";position:absolute;right:-4px;bottom:-5px;display:grid;place-items:center;width:12px;height:12px;border-radius:50%;background:#1c4b3f;border:1px solid #a7e3c9;color:#ecfff8;font:700 9px/1 ui-monospace,monospace}
+
+/* AYARIME ROSE SEAL — original locally bundled vector. A two-cycle animation:
+   1) right/down/left/up fold outward, the rose rolls -360° around X,
+      then up/left/down/right return;
+   2) the same sequence, with a +360° Y-axis rose turn.
+   No runtime images, canvas animation, third-party assets or JS timers. */
+.ayarime-rose-loader{--rose-cycle:3.8s;position:relative;display:block;width:64px;height:64px;flex:0 0 64px;isolation:isolate;contain:layout style;overflow:visible;user-select:none;pointer-events:none}
+.rose-seal-grid{position:absolute;inset:9px;width:46px;height:46px;transform-style:preserve-3d;perspective:240px;filter:drop-shadow(0 0 6px #c784cc55)}
+.rose-tile{position:absolute;display:block;width:50%;height:50%;box-sizing:border-box;border:1px solid #a88aaf91;border-radius:2px;background:linear-gradient(150deg,#48334fba,#191b33e5);box-shadow:inset 0 0 8px #e5b2eb20,0 0 4px #d395d02c;backface-visibility:visible;transform-style:preserve-3d;opacity:1}
+.rose-tile::before{content:"";position:absolute;inset:0;background-image:url("icons/ayarime-rose-outline.svg");background-repeat:no-repeat;background-size:200% 200%;opacity:.98}
+.rose-tile--right{top:0;right:0;transform-origin:left center}
+.rose-tile--right::before{background-position:right top}
+.rose-tile--down{right:0;bottom:0;transform-origin:center top}
+.rose-tile--down::before{background-position:right bottom}
+.rose-tile--left{bottom:0;left:0;transform-origin:right center}
+.rose-tile--left::before{background-position:left bottom}
+.rose-tile--up{top:0;left:0;transform-origin:center bottom}
+.rose-tile--up::before{background-position:left top}
+.rose-spirit{position:absolute;inset:0;display:block;opacity:0;backface-visibility:visible;background:url("icons/ayarime-rose-outline.svg") center/contain no-repeat;filter:drop-shadow(0 0 5px #ffbce9);transform-style:preserve-3d;transform-origin:50% 50%}
+.rose-spark{position:absolute;display:block;width:8px;height:8px;opacity:0;color:#a8eaf2;transform:scale(.3);filter:drop-shadow(0 0 4px currentColor)}
+.rose-spark::before,.rose-spark::after{content:"";position:absolute;left:50%;top:50%;background:currentColor;border-radius:2px;transform:translate(-50%,-50%)}
+.rose-spark::before{width:8px;height:1.5px}.rose-spark::after{width:1.5px;height:8px}
+.rose-spark--cyan{top:5px;right:4px;color:#9deff5;animation-delay:-.4s!important}
+.rose-spark--pink{bottom:4px;right:6px;color:#fac5e1;animation-delay:-1.6s!important}
+.rose-spark--violet{bottom:8px;left:1px;color:#b8a8ff;animation-delay:-2.9s!important}
+.rose-spark--gold{top:7px;left:5px;color:#fce6b2;animation-delay:-.95s!important}
+.trace-board:is([data-stage="connecting"],[data-stage="thinking"],[data-stage="answering"]) .rose-tile--right{animation:rose-fold-right var(--rose-cycle) cubic-bezier(.37,.05,.18,.98) infinite}
+.trace-board:is([data-stage="connecting"],[data-stage="thinking"],[data-stage="answering"]) .rose-tile--down{animation:rose-fold-down var(--rose-cycle) cubic-bezier(.37,.05,.18,.98) infinite}
+.trace-board:is([data-stage="connecting"],[data-stage="thinking"],[data-stage="answering"]) .rose-tile--left{animation:rose-fold-left var(--rose-cycle) cubic-bezier(.37,.05,.18,.98) infinite}
+.trace-board:is([data-stage="connecting"],[data-stage="thinking"],[data-stage="answering"]) .rose-tile--up{animation:rose-fold-up var(--rose-cycle) cubic-bezier(.37,.05,.18,.98) infinite}
+.trace-board:is([data-stage="connecting"],[data-stage="thinking"],[data-stage="answering"]) .rose-spirit{animation:rose-alternate-axes calc(var(--rose-cycle) * 2) ease-in-out infinite}
+.trace-board:is([data-stage="connecting"],[data-stage="thinking"],[data-stage="answering"]) .rose-seal-grid{animation:rose-reveal-flicker var(--rose-cycle) linear infinite}
+.trace-board:is([data-stage="connecting"],[data-stage="thinking"],[data-stage="answering"]) .rose-spark{animation-name:rose-magic-spark;animation-duration:var(--rose-cycle);animation-timing-function:ease-in-out;animation-iteration-count:infinite}
+/* Directional hinges follow the requested order: right, down, left, up. */
+@keyframes rose-fold-right{0%,8%,83%,100%{transform:translate3d(0,0,0) rotateY(0);opacity:1}14%,76%{transform:translate3d(18px,-1px,0) rotateY(-125deg);opacity:.25}}
+@keyframes rose-fold-down{0%,14%,76%,100%{transform:translate3d(0,0,0) rotateX(0);opacity:1}20%,69%{transform:translate3d(1px,18px,0) rotateX(-125deg);opacity:.25}}
+@keyframes rose-fold-left{0%,20%,69%,100%{transform:translate3d(0,0,0) rotateY(0);opacity:1}26%,62%{transform:translate3d(-18px,1px,0) rotateY(125deg);opacity:.25}}
+@keyframes rose-fold-up{0%,26%,62%,100%{transform:translate3d(0,0,0) rotateX(0);opacity:1}32%,55%{transform:translate3d(-1px,-18px,0) rotateX(125deg);opacity:.25}}
+@keyframes rose-alternate-axes{
+  0%,15.9%{opacity:0;transform:perspective(160px) rotateX(0deg) scale(.85)}
+  17%{opacity:1;transform:perspective(160px) rotateX(-24deg) scale(1)}
+  27.3%{opacity:1;transform:perspective(160px) rotateX(-360deg) scale(1)}
+  29%,50%,65.9%{opacity:0;transform:perspective(160px) rotateY(0deg) scale(.85)}
+  67%{opacity:1;transform:perspective(160px) rotateY(24deg) scale(1)}
+  77.3%{opacity:1;transform:perspective(160px) rotateY(360deg) scale(1)}
+  79%,100%{opacity:0;transform:perspective(160px) rotateY(360deg) scale(.85)}
+}
+@keyframes rose-reveal-flicker{0%,83%,100%{opacity:1}86%{opacity:.37}88%{opacity:1}91%{opacity:.76}94%{opacity:1}}
+@keyframes rose-magic-spark{0%,9%,53%,79%,100%{opacity:0;transform:scale(.25) rotate(-20deg)}20%,38%,63%{opacity:.92;transform:scale(1.08) rotate(25deg)}30%,71%{opacity:.18;transform:scale(.5) rotate(55deg)}}
+.trace-board[data-stage="completed"] .rose-tile{border-color:#92c9bcab}
+.trace-board:is([data-stage="cancelled"],[data-stage="failed"],[data-stage="incomplete"]) .rose-tile{border-color:#d899aaab}
+.side-shell .ayarime-rose-loader{width:54px;height:54px;flex-basis:54px}
+.side-shell .rose-seal-grid{transform:scale(.81);transform-origin:top left;left:8px;top:8px}
+@media(prefers-reduced-motion:reduce){
+  .ayarime-rose-loader *{animation:none!important;transition:none!important}
+  .rose-tile{transform:none!important;opacity:1!important}
+  .rose-spirit,.rose-spark{opacity:0!important}
+}
