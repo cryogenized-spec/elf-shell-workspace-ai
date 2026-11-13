@@ -89,7 +89,14 @@ test("actual tool events render circular, accessible category icons; unknown too
   const unknown=n["ai-trace-steps"].children.at(-1);
   assert.equal(unknown.children[0].className,"trace-tool-icon tone-generic");
   assert(!JSON.stringify(unknown.children[0]).includes("http"),"No remote icon URL should be requested");
-  assert.equal(n["ai-activity-count"].textContent,"5 events");
+  assert.equal(unknown.children[0].textContent,"◇","A tool first received as done keeps its category glyph");
+  h.emit({kind:"tool",id:"web-1",title:"Web search",toolType:"web_search_call",state:"done"});
+  assert.equal(web.children[0].textContent,"⌕","Completed web search must retain its category icon");
+  assert.equal(web.classList.contains("done"),true,"A separate completion state is displayed");
+  h.emit({kind:"terminal",status:"completed"});
+  assert.equal(mcp.children[0].textContent,"⬡","Terminal completion must retain an active tool's category glyph");
+  assert.equal(mcp.classList.contains("done"),true);
+  assert.equal(n["ai-activity-count"].textContent,"6 events");
 });
 test("user-expanded summary is not forcibly collapsed; missing summary is never fabricated",()=>{
   const h=harness(),n=h.nodes;
