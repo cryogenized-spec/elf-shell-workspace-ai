@@ -175,7 +175,14 @@ try:
     driver.set_window_size(440,800)
     side_dimensions=driver.execute_script("""
       return {width:innerWidth,overflow:document.documentElement.scrollWidth-innerWidth,
-        hasShortcut:!!document.querySelector(".sidebar-chat-nav a[href='#ai-console']")};
+        hasShortcut:!!document.querySelector(".sidebar-chat-nav a[href='#ai-console']"),
+        overwide:[...document.querySelectorAll("body *")].map(n=>{
+          const r=n.getBoundingClientRect();
+          return {tag:n.tagName,id:n.id||"",cls:String(n.className||"").slice(0,40),
+            right:Math.round(r.right),left:Math.round(r.left),width:Math.round(r.width),
+            client:n.clientWidth,scroll:n.scrollWidth};
+        }).filter(x=>x.right>innerWidth+2 || x.scroll>x.client+10)
+          .sort((a,b)=>(b.right-b.client)-(a.right-a.client)).slice(0,20)};
     """)
     check("narrow Firefox sidebar has a chat shortcut and no horizontal overflow",
           lambda:require(side_dimensions["width"]<=500 and side_dimensions["overflow"]<=2
