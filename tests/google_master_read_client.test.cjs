@@ -93,3 +93,17 @@ test("large and malformed responses are rejected without echoing remote data",as
   await assert.rejects(unauthorized.client.read("tasks_list_tasks",{tasklistId:"t"}),
     e=>e.message==="CLIENT_UNAUTHORIZED");
 });
+
+test("OAuth and optional-permission callback failures never echo secrets",async()=>{
+  for(const [overrides,code] of [
+    [{approveRead:async()=>{throw Error("SENSITIVE_USER_CONTEXT")}},"USER_CONSENT_REQUIRED"],
+    [{hasHostPermission:async()=>{throw Error("SENSITIVE_BROWSER_CONTEXT")}},"FIREFOX_HOST_PERMISSION_REQUIRED"],
+    [{getAccessToken:async()=>{throw Error("SENSITIVE_OAUTH_CALLBACK_URL")}},"MCP_TOKEN_REQUIRED"]
+  ]){
+    const {client,events}=fixture(overrides);
+    await assert.rejects(client.read("tasks_list_tasklists"),err=>
+      err.name==="WorkspaceGoogleMasterError" && err.message===code &&
+      !err.message.includes("SENSITIVE"));
+    assert.equal(events.network,0);
+  }
+});
