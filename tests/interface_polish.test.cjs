@@ -25,7 +25,7 @@ test("sidebar collapses redundant provider settings without hiding the conversat
   const prompt=sidebar.indexOf('id="ai-prompt"');
   assert(d>0&&end>d&&form>d&&form<end&&key>d&&key<end&&offer>d&&offer<end);
   assert(conversation>end&&prompt>end,"Chat and local history must remain outside collapsed configuration");
-  assert(!sidebar.slice(d,end).includes("<details"),"Avoid nested settings details");
+  assert.equal((sidebar.slice(d,end).match(/<details\\b/g)||[]).length,1,"Avoid nested settings details");
   assert.match(sidebar, /<summary>Provider, model &amp; API key settings<\/summary>/);
   assert.match(css, /\.sidebar-provider-details>summary/);
 });
