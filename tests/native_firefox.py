@@ -90,6 +90,26 @@ try:
     driver.get("moz-extension://"+uuid+"/hub.html")
     WebDriverWait(driver,15).until(lambda d:len(d.find_elements(By.ID,"launch"))==1)
     check("Hub rendered as an extension page",lambda:require("Workspace Hub" in driver.title,driver.title))
+    # The HTML provides a real hash target, while the existing Ayarime
+    # focus route takes keyboard users directly to the actual composer.
+    driver.find_element(By.CSS_SELECTOR,".assistant-quick-link").click()
+    WebDriverWait(driver,8).until(
+        lambda d:d.execute_script('return document.activeElement?.id')=="ai-prompt")
+    check("Hub Ask Ayarime shortcut focuses the composer and clears its route",
+          lambda:require(driver.execute_script('return location.hash')=="" and
+            driver.find_element(By.ID,"assistant").tag_name=="span",
+            "Assistant deep-link did not focus the prompt or supply a static target"))
+    driver.set_window_size(590,800)
+    responsive=driver.execute_script("""
+      return {width:innerWidth,stacked:matchMedia("(max-width:850px)").matches,
+        columns:getComputedStyle(document.querySelector(".columns")).gridTemplateColumns,
+        overflow:document.documentElement.scrollWidth-innerWidth};
+    """)
+    check("Hub stacks its columns without horizontal page overflow",
+          lambda:require(responsive["width"]<=850 and responsive["stacked"]
+            and len(responsive["columns"].split())==1 and responsive["overflow"]<=2,
+            "Narrow Hub layout needs work: "+str(responsive)))
+    driver.set_window_size(1366,800)
 
     # No provider keys are configured; this exercises only local session history.
     empty_history=extension_call({"type":"AI_CONVERSATION_LIST"})
@@ -131,6 +151,36 @@ try:
     check("sidebar shows the very same session conversation",
           lambda:require("Local QA greeting" in driver.find_element(By.ID,"ai-conversation-list").text,
                          "Sidebar transcript differs from Hub"))
+    check("sidebar defaults provider settings collapsed but leaves chat visible",
+          lambda:require(
+            driver.find_element(By.CSS_SELECTOR,".sidebar-provider-details").get_attribute("open") is None and
+            not driver.find_element(By.ID,"ai-settings-form").is_displayed() and
+            driver.find_element(By.ID,"ai-prompt").is_displayed(),
+            "Redundant setup dominates chat on sidebar load"))
+    driver.set_window_size(440,800)
+    side_dimensions=driver.execute_script("""
+      return {width:innerWidth,overflow:document.documentElement.scrollWidth-innerWidth,
+        hasShortcut:!!document.querySelector(".sidebar-chat-nav a[href='#ai-console']")};
+    """)
+    check("narrow Firefox sidebar has a chat shortcut and no horizontal overflow",
+          lambda:require(side_dimensions["width"]<=500 and side_dimensions["overflow"]<=2
+            and side_dimensions["hasShortcut"],
+            "Sidebar width/shortcut failed: "+str(side_dimensions)))
+    driver.find_element(By.CSS_SELECTOR,".sidebar-chat-nav a").click()
+    WebDriverWait(driver,8).until(lambda d:
+        d.execute_script('return location.hash')=="#ai-console")
+    check("sidebar shortcut navigates directly to its chat section",
+          lambda:require(driver.execute_script(
+            'return document.getElementById("ai-console").getBoundingClientRect().top')
+            < driver.execute_script("return innerHeight"),
+            "Sidebar shortcut did not reveal the AI console"))
+    driver.find_element(By.CSS_SELECTOR,".sidebar-provider-details summary").click()
+    check("sidebar advanced provider controls remain available on demand",
+          lambda:require(driver.find_element(By.ID,"ai-settings-form").is_displayed()
+            and driver.find_element(By.ID,"ai-key").is_displayed(),
+            "Provider settings unavailable when expanded"))
+    driver.find_element(By.CSS_SELECTOR,".sidebar-provider-details summary").click()
+    driver.set_window_size(1366,800)
     driver.find_element(By.ID,"ai-conversation-clear").click()
     WebDriverWait(driver,10).until(lambda d:
         "No replies in this Firefox session" in d.find_element(By.ID,"ai-conversation-list").text)
