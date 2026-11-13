@@ -99,12 +99,21 @@
       throw fail("INVALID_TIMEOUT");
     async function request(path,method,input,operation){
       // Consent is per call and MUST precede fetching or obtaining a bearer.
-      if(await approveRead(Object.freeze({operation,risk:"read",
-            inputKeys:Object.freeze(Object.keys(input||{}).sort())}))!==true)
-        throw fail("USER_CONSENT_REQUIRED");
-      if(await hasHostPermission(origin)!==true)
-        throw fail("FIREFOX_HOST_PERMISSION_REQUIRED");
-      const token=await getAccessToken();
+      // Callback error details may contain local account or token information:
+      // always return a fixed safe category to callers.
+      let approved=false;
+      try{
+        approved=await approveRead(Object.freeze({operation,risk:"read",
+          inputKeys:Object.freeze(Object.keys(input||{}).sort())}));
+      }catch{throw fail("USER_CONSENT_REQUIRED");}
+      if(approved!==true)throw fail("USER_CONSENT_REQUIRED");
+      let permitted=false;
+      try{permitted=await hasHostPermission(origin);}
+      catch{throw fail("FIREFOX_HOST_PERMISSION_REQUIRED");}
+      if(permitted!==true)throw fail("FIREFOX_HOST_PERMISSION_REQUIRED");
+      let token;
+      try{token=await getAccessToken();}
+      catch{throw fail("MCP_TOKEN_REQUIRED");}
       if(typeof token!=="string"||token.length<8||token.length>8192||
          /[^\x21-\x7e]/.test(token))throw fail("MCP_TOKEN_REQUIRED");
       const controller=new AbortController();
