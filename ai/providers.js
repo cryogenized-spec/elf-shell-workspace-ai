@@ -88,7 +88,7 @@
     // Parse only a bounded body; real Firefox fetch responses have a stream.
     // Never display a provider JSON parse error, which might contain prompt data.
     const size=response.headers?.get?.("Content-Length");
-    if(size && (!/^\\d+$/.test(size)||Number(size)>MAX_PROVIDER_JSON_BYTES))
+    if(size && (!/^[0-9]+$/.test(size)||Number(size)>MAX_PROVIDER_JSON_BYTES))
       throw Error("AI provider response exceeded the safety limit");
     if(!response.body?.getReader){
       // Compatibility with synthetic tests and non-stream response shims.
@@ -151,7 +151,7 @@
         if(signal?.aborted)throw Error("AI request cancelled");
         throw Error("AI provider request timed out");
       }
-      if(typeof safe==="string"&&/^(AI provider (returned (an invalid response|invalid JSON|no readable text)|response exceeded the safety limit|rejected authentication or model access|rate or credit limit reached|request failed \\(HTTP [0-9]{3}\\)))$/.test(safe))
+      if(typeof safe==="string" && (new Set(["AI provider returned an invalid response","AI provider returned invalid JSON","AI provider returned no readable text","AI provider response exceeded the safety limit","AI provider rejected authentication or model access","AI provider rate or credit limit reached"]).has(safe) || /^AI provider request failed [(]HTTP [0-9]{3}[)]$/.test(safe)))
         throw error;
       throw Error("AI provider request could not be completed");
     }finally{
