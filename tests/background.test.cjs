@@ -1036,3 +1036,55 @@ test("Gmail metadata fails closed if Firefox permission/communications consent i
   assert.equal(reply.ok,false);
   assert.equal(calls,0);
 });
+
+test("Stage 5: non-stream cancellation is immediate, redacted, and cannot queue a second request",async()=>{
+  let notified;
+  const started=new Promise(resolve=>{notified=resolve;});
+  const h=createHarness({}, {aiPermission:true,mockFetch:async(url,opts)=>{
+    assert.equal(url,"https://api.anthropic.com/v1/messages");
+    notified();
+    return await new Promise((_resolve,reject)=>{
+      opts.signal.addEventListener("abort",()=>reject(Error("PRIVATE_PROVIDER_ERROR_BODY")),{once:true});
+    });
+  }});
+  const settings=await h.dispatch({type:"AI_SAVE_SETTINGS",provider:"anthropic",model:"claude-sonnet-4-5"});
+  assert.equal(settings.ok,true);
+  const key=await h.dispatch({type:"AI_SET_SESSION_KEY",key:"TEST_SESSION_KEY_012345"});
+  assert.equal(key.ok,true);
+  const pending=h.dispatch({type:"AI_SEND_PROMPT",text:"Synthetic prompt"});
+  await started;
+  const duplicate=await h.dispatch({type:"AI_SEND_PROMPT",text:"Should not send"});
+  assert.equal(duplicate.ok,false);
+  assert.match(duplicate.error,/already active/);
+  const cancelled=await h.dispatch({type:"AI_CANCEL_REQUEST"});
+  assert.equal(cancelled.ok,true);
+  assert.equal(cancelled.cancelled,true);
+  const outcome=await pending;
+  assert.equal(outcome.ok,false);
+  assert.match(outcome.error,/cancelled/);
+  assert(!JSON.stringify(outcome).includes("PRIVATE_PROVIDER_ERROR_BODY"));
+  assert.equal(h.fetchCalls.length,1);
+});
+test("Stage 5: Forget session key aborts an outstanding Gemini request",async()=>{
+  let notified;
+  const started=new Promise(resolve=>{notified=resolve;});
+  const h=createHarness({}, {aiPermission:true,mockFetch:async(url,opts)=>{
+    assert(url.includes("generativelanguage.googleapis.com"));
+    notified();
+    return await new Promise((_resolve,reject)=>{
+      opts.signal.addEventListener("abort",()=>reject(Error("SENSITIVE_FALLBACK")),{once:true});
+    });
+  }});
+  assert.equal((await h.dispatch({type:"AI_SAVE_SETTINGS",provider:"gemini",model:"gemini-3.8-flash"})).ok,true);
+  assert.equal((await h.dispatch({type:"AI_SET_SESSION_KEY",key:"TEST_SESSION_KEY_012345"})).ok,true);
+  const pending=h.dispatch({type:"AI_SEND_PROMPT",text:"No private content"});
+  await started;
+  const cleared=await h.dispatch({type:"AI_CLEAR_SESSION_KEY"});
+  assert.equal(cleared.ok,true);
+  assert.equal(cleared.ai.hasSessionKey,false);
+  const outcome=await pending;
+  assert.equal(outcome.ok,false);
+  assert.match(outcome.error,/cancelled/);
+  assert.equal(h.sessionSettings["elfshell.byok.apiKey.v1"],undefined);
+  assert.equal((await h.dispatch({type:"AI_CANCEL_REQUEST"})).cancelled,false);
+});
