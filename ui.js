@@ -747,6 +747,7 @@ function showAIState(ai){
     !ai.hasSessionKey||!ai.hostGranted||globalThis.WorkspaceTraceUI.isRunning();
   document.querySelector("#ai-check-model").disabled=!ai.hasSessionKey||!ai.hostGranted;
   document.querySelector("#ai-clear-key").disabled=!ai.hasSessionKey;
+  void globalThis.WorkspaceConversationUI?.refreshPreview();
   aiMessage(ai.hasSessionKey
     ? "Session key ready · "+ai.provider+" / "+ai.model+" · manual prompts only"
     : ai.hostGranted
@@ -847,24 +848,40 @@ if(aiForm){
   document.querySelector("#ai-send").addEventListener("click",async()=>{
     const button=document.querySelector("#ai-send");
     const prompt=document.querySelector("#ai-prompt").value;
+    let context;
+    try {context=globalThis.WorkspaceConversationUI.contextOptions();}
+    catch(error){aiMessage(error.message,true);return;}
     if(aiSavedProvider==="openai"){
       const launched=globalThis.WorkspaceTraceUI.start({
         text:prompt,effort:document.querySelector("#ai-effort").value,
-        webSearch:document.querySelector("#ai-web-search").checked
+        maxOutputTokens:Number(document.querySelector("#ai-output-budget").value),
+        webSearch:document.querySelector("#ai-web-search").checked,
+        ...context
       },async()=>{
         await Promise.all([refreshAI(),refreshOpenAIOffer()]);
       });
       if(!launched)aiMessage("An OpenAI stream is already active.",true);
+      else globalThis.WorkspaceConversationUI.resetContext();
       return;
     }
     const output=document.querySelector("#ai-output");output.replaceChildren();
     button.disabled=true;aiMessage("Sending your explicit text prompt to the selected provider…");
+    globalThis.WorkspaceConversationUI.resetContext();
     try{
-      const result=await request({type:"AI_SEND_PROMPT",text:prompt});
+      const result=await request({type:"AI_SEND_PROMPT",text:prompt,...context});
       output.textContent=result.result.text;
       if(result.result.truncated)output.append(node("p","quiet","Output preview truncated."));
+      const archived=await globalThis.WorkspaceConversationUI.record({
+        prompt,answer:result.result.text,provider:result.result.provider,model:result.result.model,
+        truncated:result.result.truncated===true
+      });
+      if(archived){
+        output.replaceChildren();
+        const field=document.querySelector("#ai-prompt");
+        if(field.value===prompt)field.value="";
+      }
       aiMessage("Response received · "+result.result.provider+" / "+result.result.model+
-        " · no Google data fetched or transmitted.");
+        " · "+result.result.contextTurns+" previous exchange(s) used · no Google data fetched.");
     }catch(error){aiMessage(error.message,true);}
     finally{await refreshAI();}
   });
@@ -1072,7 +1089,10 @@ function focusAssistantFromRoute() {
   if (document.body.dataset.view!=="hub" || location.hash!=="#assistant") return;
   const prompt=document.getElementById("ai-prompt");
   if (!prompt) return;
-  document.getElementById("ai-console")?.scrollIntoView({block:"start"});
+  // The console has provider settings above the composer; bring the actual
+  // input into view, with the latest local exchange immediately above it.
+  document.getElementById("ai-conversation-list")?.scrollTo({top:document.getElementById("ai-conversation-list").scrollHeight});
+  prompt.scrollIntoView({block:"center"});
   prompt.focus({preventScroll:true});
   // Clear the route so a later handoff can focus the same existing Hub again.
   history.replaceState(null,"",location.pathname+location.search);

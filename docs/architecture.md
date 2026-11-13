@@ -85,3 +85,7 @@ The optional core-to-companion v1 bridge now accepts `OPEN_ASSISTANT` from the a
 
 ### Optional native sidebar continuation
 The Hub's AI Console now offers **Continue in Firefox sidebar**, an ordinary button on the companion's own extension page. Its click handler calls `browser.sidebarAction.open()` synchronously as required by Firefox's user-action restrictions. It never attempts to open a sidebar through an asynchronous cross-extension message. The Hub remains usable if the sidebar cannot open and gives actionable feedback without asking for new permissions.
+
+## Explicit per-send multi-turn model context (developer preview)
+
+See [the multi-turn privacy, cost and payload specification](multi-turn-context.md). The Hub/sidebar context control begins unchecked and resets after submission; only an explicitly selected, bounded set of complete matching same-provider/model turns is included. The companion background, not page scripts, selects history using a 12,000-character / three-exchange cap. The core extension bridge cannot request history. OpenAI, Anthropic and Gemini use appropriate role-shaped arrays when context is selected, and their existing single-turn body formats when off. This feature is not provider-side persistent conversation storage.
