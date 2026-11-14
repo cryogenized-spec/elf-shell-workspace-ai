@@ -98,6 +98,11 @@ try:
             driver.find_element(By.ID,"master-connect").get_attribute("disabled") and
             "Not connected" in driver.find_element(By.ID,"master-status").text,
             "Master OAuth was unexpectedly offered without user-granted hosts"))
+    reported_origin=driver.find_element(By.ID,"master-origin").get_attribute("textContent")
+    check("Hub shows the true moz-extension UUID for exact Worker CORS allowlisting",
+          lambda:require("moz-extension://"+uuid in reported_origin and
+            "origin null" not in reported_origin,
+            "The Hub did not show the real Firefox extension origin"))
     identity_url=driver.execute_script("return browser.identity.getRedirectURL()")
     check("Firefox provides a stable OAuth identity redirect for the companion",
           lambda:require(
