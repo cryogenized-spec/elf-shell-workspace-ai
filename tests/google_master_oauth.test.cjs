@@ -1,8 +1,8 @@
 "use strict";
 const test=require("node:test"),assert=require("node:assert/strict");
 const cryptoApi=require("node:crypto").webcrypto;
-const OAuth=require("../google/master-oauth.js");
 require("../google/master-read-client.js");
+const OAuth=require("../google/master-oauth.js");
 const TOKEN="FAKE_MCP_READ_ONLY_SESSION_TOKEN_0123456789";
 const CLIENT="client_test_firefox_pkce_123456789";
 const REDIRECT="https://devredirect.extensions.allizom.org/";
