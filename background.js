@@ -284,6 +284,33 @@ async function handle(message) {
         // This is unavailable to the external core bridge. Explicit only.
         return await serialise(()=>globalThis.WorkspaceBYOKSession.handle(
           browser,fetch,readPersona,message));
+      case "MASTER_STATUS":
+        // Read only local session metadata. Opening Hub never contacts Worker.
+        return {ok:true,master:await globalThis.WorkspaceMasterOAuth.status(browser)};
+      case "MASTER_CONNECT":
+        // Browser interactive OAuth must never be queued behind an unrelated
+        // task or run without the user's separate Firefox permission grant.
+        return {ok:true,master:await globalThis.WorkspaceMasterOAuth.connect(
+          browser,fetch,crypto)};
+      case "MASTER_DISCONNECT":
+        return {ok:true,master:await globalThis.WorkspaceMasterOAuth.disconnect(
+          browser,fetch)};
+      case "MASTER_PROBE": {
+        // Explicit Hub button: fetches the read-only operation catalogue
+        // without reading Gmail, Tasks, Drive or any Google account data.
+        const resource=globalThis.WorkspaceGoogleMasterRead.RESOURCE;
+        const client=globalThis.WorkspaceGoogleMasterRead.create({
+          resourceUrl:resource,
+          hasHostPermission:async()=>globalThis.WorkspaceMasterOAuth.status(browser)
+            .then(x=>x.permissionsGranted),
+          getAccessToken:()=>globalThis.WorkspaceMasterOAuth.accessToken(browser),
+          approveRead:async()=>true,
+          fetchImpl:fetch
+        });
+        const capabilities=await client.capabilities();
+        return {ok:true,count:capabilities.length,
+          operations:capabilities.map(x=>x.name)};
+      }
       case "GOOGLE_AUTH_STATUS":
       case "GOOGLE_AUTH_CONFIG":
       case "GOOGLE_AUTH_SECRET_SET":
@@ -391,6 +418,12 @@ async function handle(message) {
     return {ok:false,error:error instanceof Error ? error.message : "Operation failed"};
   }
 }
+browser.permissions?.onRemoved?.addListener(()=>{
+  // Revocation of the MCP Worker host or data-sharing categories discards
+  // MCP OAuth credentials without making a network request.
+  globalThis.WorkspaceMasterOAuth.clearOnPermissionChange(browser)
+    .catch(()=>console.warn("MCP session permission cleanup unavailable"));
+});
 browser.runtime.onMessage.addListener((message,sender) => {
   if (sender.id !== browser.runtime.id) return {ok:false,error:"Unauthorized sender"};
   return handle(message);
