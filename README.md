@@ -1,3 +1,8 @@
+> [!IMPORTANT]
+> **Repository superseded — source and issues migrated.** ELF//SHELL and Ayarime are now maintained together in **[cryogenized-spec/elf-shell-ayarime](https://github.com/cryogenized-spec/elf-shell-ayarime)**. The full Ayarime AI engine, Hub, tests and Google Master Firefox client have moved into the canonical repository's `assistant/` directory. All 15 open issues from this repository were copied to the unified issue tracker and the originals closed with links. This repository remains available as **historical source**; do not open new issues or start separate Ayarime Firefox releases here. See the [monorepo maintenance guide](https://github.com/cryogenized-spec/elf-shell-ayarime/blob/feature/unified-stages-5-6-preview/docs/MONOREPO_MAINTENANCE.md). This GitHub repository has not been administratively archived yet.
+
+---
+
 # ELF//SHELL — Workspace AI
 
 An optional **Firefox Desktop** companion to [ELF//SHELL — Ayarime](https://github.com/cryogenized-spec/elf-shell-ayarime).
