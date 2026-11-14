@@ -2,7 +2,7 @@
 <html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ELF//SHELL — Workspace Hub</title><link rel="stylesheet" href="ui.css">
-<script defer src="ai/openai-complimentary.js"></script><script defer src="ui-trace.js"></script><script defer src="google/login-ui.js"></script><script defer src="ui-conversation.js"></script><script defer src="ui.js"></script></head>
+<script defer src="google/master-ui.js"></script><script defer src="ai/openai-complimentary.js"></script><script defer src="ui-trace.js"></script><script defer src="google/login-ui.js"></script><script defer src="ui-conversation.js"></script><script defer src="ui.js"></script></head>
 <body data-view="hub">
 <div class="backdrop" aria-hidden="true"></div>
 <main class="shell">
@@ -136,6 +136,26 @@
     <div id="google-file-results" class="google-results" aria-live="polite"></div>
   </div>
   <p class="quiet">This prototype discards refresh tokens and stores only a temporary access token in Firefox session storage. It does not persist account contents. Sign-in may require Google OAuth app verification and is not yet validated against a live Google account.</p>
+</section>
+<section class="frame master-panel" aria-label="Google Master Worker private connection">
+  <p class="eyebrow">// 09 · PRIVATE GOOGLE MASTER / READ-ONLY MCP</p>
+  <h2>Google Master · Private connection</h2>
+  <p class="quiet">This is separate from the Google Desktop OAuth controls above. The protected Google Master Worker already has its own account authorization; Ayarime requests a distinct <code>mcp:read</code> client session. No Google access token or private Workspace content is sent to an AI provider.</p>
+  <p class="quiet">Connection is manual. Approve the exact Worker host and optional Firefox data-sharing permission, then use the browser's interactive OAuth window. No background sync, automatic reads or write capabilities are enabled.</p>
+  <div class="google-controls">
+    <button id="master-grant" class="mini" type="button">1 · Allow private Worker host</button>
+    <button id="master-connect" class="secondary" type="button">2 · Connect read-only OAuth</button>
+    <button id="master-probe" class="mini" type="button">Verify available read operations</button>
+    <button id="master-disconnect" class="mini danger" type="button">Disconnect and forget session</button>
+  </div>
+  <p id="master-status" class="status" role="status" aria-live="polite">Not connected. No Google Master requests have been made.</p>
+  <p id="master-probe-result" class="quiet" role="status" aria-live="polite">Capability check not requested.</p>
+  <details>
+    <summary>Firefox origin, OAuth permissions and connection requirements</summary>
+    <p id="master-origin" class="quiet">Only an installed extension's exact origin can be allowlisted by the protected Worker. Temporary installs may have a different origin.</p>
+    <p class="quiet">You must configure <code>GMW_ALLOWED_BROWSER_ORIGINS</code> for the installed <code>moz-extension://…</code> origin separately. Do not use a wildcard. The server and extension will refuse to operate without the required OAuth and browser permission boundaries.</p>
+    <p class="quiet">The bearer is stored only in Firefox session storage, not your notes, project configuration or local export. Disconnect removes the local session and attempts remote token revocation where available. Model chat and Gmail/Drive data are not included in any request automatically.</p>
+  </details>
 </section>
 <section class="frame coffee-panel" aria-label="Morning Coffee daily briefing">
   <p class="eyebrow">// 08 · AYARIME / MORNING COFFEE</p>
