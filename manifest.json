@@ -21,6 +21,7 @@
       "briefing/engine.js",
       "google/session.js",
       "google/master-read-client.js",
+      "google/master-oauth.js",
       "ai/providers.js",
       "ai/openai-complimentary.js",
       "diagnostics/connection.js",
@@ -63,7 +64,7 @@
     }
   },
   "content_security_policy": {
-    "extension_pages": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'; connect-src 'self' https://api.github.com https://oauth2.googleapis.com https://www.googleapis.com https://tasks.googleapis.com https://docs.googleapis.com https://sheets.googleapis.com https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://gmail.googleapis.com"
+    "extension_pages": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'; connect-src 'self' https://api.github.com https://oauth2.googleapis.com https://www.googleapis.com https://tasks.googleapis.com https://docs.googleapis.com https://sheets.googleapis.com https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://gmail.googleapis.com" https://google-master-auth.cryogenized.workers.dev https://google-master-mcp.cryogenized.workers.dev
   },
   "externally_connectable": {
     "ids": [
@@ -80,6 +81,8 @@
     "https://api.anthropic.com/*",
     "https://generativelanguage.googleapis.com/*",
     "https://api.github.com/*",
-    "https://gmail.googleapis.com/*"
+    "https://gmail.googleapis.com/*",
+    "https://google-master-auth.cryogenized.workers.dev/*",
+    "https://google-master-mcp.cryogenized.workers.dev/*"
   ]
 }
