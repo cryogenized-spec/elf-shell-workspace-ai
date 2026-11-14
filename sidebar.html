@@ -3,6 +3,7 @@
 <title>Ayarime — Workspace</title><link rel="stylesheet" href="ui.css"><script defer src="ai/openai-complimentary.js"></script><script defer src="ui-trace.js"></script><script defer src="ui-conversation.js"></script><script defer src="ui.js"></script></head>
 <body data-view="sidebar"><main class="side-shell">
 <header class="sidebar-header"><div class="slashes" aria-hidden="true">///</div><div><h1>AYARIME</h1><p>WORKSPACE / CONTROL</p></div></header>
+<nav class="sidebar-chat-nav" aria-label="Quick navigation"><a href="#ai-console">✧ JUMP TO CHAT</a></nav>
 <section class="frame side-panel"><label for="profile-select" class="eyebrow">// ACTIVE WORKSPACE</label>
 <select id="profile-select" class="profile-choice" aria-label="Active Workspace profile"></select></section>
 <section class="frame side-panel"><p class="eyebrow">// CONSOLE</p>
@@ -28,9 +29,12 @@
   <div id="coffee-results" class="coffee-results" aria-live="polite"></div>
   <p class="quiet">Google Tasks scheduled dates do not necessarily mean deadlines. Results are limited to today's primary calendar and the first few incomplete task lists; any incomplete coverage is labelled.</p>
 </section>
-<section class="frame ai-console" aria-label="Ayarime AI console">
+<section id="ai-console" class="frame ai-console" tabindex="-1" aria-label="Ayarime AI console">
   <p class="eyebrow">// AYARIME · BYOK</p>
   <h2>AI Console</h2>
+  <details class="sidebar-provider-details">
+    <summary>Provider, model &amp; API key settings</summary>
+    <p class="quiet">Expand to configure your provider or session key. The same settings are available in the Workspace Hub.</p>
   <form id="ai-settings-form" class="ai-form">
     <label for="ai-provider">Provider</label>
     <select id="ai-provider"><option value="openai">OpenAI</option><option value="anthropic">Anthropic / Claude</option><option value="gemini">Google Gemini</option></select>
@@ -81,6 +85,7 @@
     <p class="quiet">Not a free-balance guarantee. Other projects or apps share the same allowance. OpenAI may bill an entire request that exceeds the quota; tool calls are excluded. Actual eligibility, use and costs are confirmed in OpenAI's dashboard.</p>
     <p class="offer-links"><a href="https://platform.openai.com/settings/organization/data-controls/sharing" target="_blank" rel="noopener noreferrer">OpenAI data-sharing settings</a> · <a href="https://platform.openai.com/usage/chat-completions" target="_blank" rel="noopener noreferrer">Usage / service tier</a></p>
   </section>
+</details>
     <section class="conversation-panel" aria-label="Session conversation history">
     <div class="conversation-toolbar">
       <div><span class="eyebrow">// CONVERSATION / LOCAL SESSION</span><small id="ai-conversation-count">0 / 10 exchanges</small></div>
@@ -196,5 +201,5 @@
   </div>
   <p class="quiet">The release check downloads only small JSON metadata. Firefox code updates still require a complete, Mozilla-signed XPI. There is no unsupported hot-patching or remote code execution.</p>
 </section>
-<footer>ELF//SHELL · ALPHA 0.13</footer>
+<footer>ELF//SHELL · ALPHA 0.14</footer>
 </main></body></html>

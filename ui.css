@@ -11,13 +11,14 @@ h1 span{color:#ba6e92}
 .masthead p,.sidebar-header p{font-size:10px;letter-spacing:.23em;color:var(--cyan);margin:12px 0}
 .status-pill{margin-left:auto;color:var(--lime);font-size:10px;letter-spacing:.13em;border:1px solid #8abdad60;padding:9px 12px}
 .columns{display:grid;grid-template-columns:minmax(300px,1fr) minmax(370px,1.1fr);gap:22px}
-.frame{border:1px solid #93d9d788;background:var(--panel);padding:clamp(19px,2.4vw,32px);box-shadow:0 10px 30px #0005;backdrop-filter:blur(10px);clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px)}
+.frame{min-width:0;border:1px solid #93d9d788;background:var(--panel);padding:clamp(19px,2.4vw,32px);box-shadow:0 10px 30px #0005;backdrop-filter:blur(10px);clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px)}
 .eyebrow{color:var(--cyan);font-size:11px;letter-spacing:.2em;margin:0 0 16px}
 .hero h2{font:normal clamp(39px,5vw,76px)/.98 Georgia,serif;letter-spacing:-.025em;margin:22px 0}
 .hero h2 em{color:#daabc7}
 .lead{max-width:49ch;font:18px/1.7 Georgia,serif;color:#efe2eb;margin:22px 0 27px}
 button{cursor:pointer;color:var(--ivory);font:inherit}
 button:focus-visible,input:focus-visible{outline:2px solid var(--lime);outline-offset:3px}
+a:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid var(--lime);outline-offset:3px}
 button:disabled{opacity:.55;cursor:wait}
 .primary,.secondary{width:100%;padding:14px 17px;background:#49304d;border:1px solid var(--pink);font-size:12px;line-height:1.4;letter-spacing:.055em}
 .primary:hover,.secondary:hover{background:#67415f;border-color:var(--lime)}
@@ -43,7 +44,7 @@ button:disabled{opacity:.55;cursor:wait}
 .add-form input{width:100%;padding:11px;background:#0b1222;color:var(--ivory);font:12px ui-monospace,monospace;border:1px solid #6f8994}
 .add-form button{margin-top:8px}
 footer{display:flex;justify-content:space-between;gap:18px;margin-top:35px;padding-top:16px;border-top:1px solid #93d9d75c;font-size:10px;letter-spacing:.12em;color:#b0c7d4}
-.side-shell{padding:17px;min-width:225px}
+.side-shell{padding:17px;min-width:0;max-width:100%}
 .sidebar-header{display:flex;align-items:center;gap:15px;margin-bottom:24px}
 .sidebar-header h1{font-size:27px}
 .sidebar-header .slashes{font-size:30px;letter-spacing:-10px;padding-right:11px}
@@ -52,8 +53,62 @@ footer{display:flex;justify-content:space-between;gap:18px;margin-top:35px;paddi
 .side-panel .resource-row{flex-wrap:wrap}
 .side-panel .resource-actions{margin-left:auto}
 .side-shell footer{font-size:9px}
-@media(max-width:850px){.columns{grid-template-columns:1fr}.resource-list{max-height:none}.masthead{flex-wrap:wrap}.status-pill{margin-left:0}}
-@media(max-width:350px){.side-shell{padding:8px}.side-panel{padding:12px}.resource-row{padding:9px 6px}}
+@media(max-width:850px){.columns{grid-template-columns:minmax(0,1fr)}.resource-list{max-height:none}.masthead{flex-wrap:wrap}.status-pill{margin-left:0}}
+/* Narrow Firefox panes must not inherit auto minimum-content widths from
+   nested grids, long resource URLs, or model selectors. */
+@media(max-width:550px){
+  .shell{padding:10px}
+  .frame{padding:14px}
+  .profile-manager{padding:14px;gap:12px}
+  .masthead{gap:11px;margin-bottom:20px}
+  .masthead h1{font-size:clamp(24px,9vw,32px)}
+  .assistant-quick-link{white-space:normal;overflow-wrap:anywhere}
+  .columns,.resource-list,.resources,.hero,.persona-form,.google-form,
+  .google-section,.ai-console,.offer-selector,.conversation-panel,
+  .ai-context-panel,.trace-board{min-width:0;max-width:100%}
+  .resource-row{flex-wrap:wrap}
+  .resource-main{flex-basis:100%;min-width:0}
+  .resource-main strong{overflow-wrap:anywhere}
+  .resource-actions{flex-wrap:wrap}
+  .resource-actions button{white-space:normal;overflow-wrap:anywhere}
+  .profile-actions button{min-width:0;white-space:normal}
+  .google-form fieldset{min-width:0}
+  .google-controls button{min-width:0}
+  .offer-meter-head{flex-wrap:wrap}
+  /* Real Firefox can use a 245 px content viewport inside a narrow pane.
+     Permit grid children and editable form widgets to shrink past their
+     otherwise intrinsic min-content widths, without clipping their text. */
+  .hero h2{font-size:clamp(25px,8vw,39px);overflow-wrap:anywhere}
+  .section-head{min-width:0;flex-wrap:wrap}
+  .section-head h2{font-size:clamp(22px,7vw,32px);overflow-wrap:anywhere}
+  .ai-sidebar-actions,.ai-form,.ai-key-controls,.offer-panel,
+  .offer-selector,.google-results,.google-form fieldset{min-width:0;max-width:100%}
+  .ai-form select,.ai-form input,.ai-key-controls input,
+  .ai-console textarea,.offer-selector select,.trace-options select{
+    min-width:0;max-width:100%;
+  }
+  .ai-sidebar-actions button{min-width:0;white-space:normal;overflow-wrap:anywhere}
+  .section-head>*{min-width:0}
+  /* Grid auto tracks use their children's intrinsic min-content width.
+     An explicit zero-min track is required: min-width:0 on the outer
+     frame alone cannot shrink the implicit 228px AI form track. */
+  .ai-console,.ai-form,.ai-key-controls,.offer-selector,.offer-panel,
+  .conversation-panel,.google-form,.persona-form,.resource-list,
+  .google-results,.trace-options,.ai-context-panel{
+    grid-template-columns:minmax(0,1fr);
+  }
+  .columns>.frame{width:100%;min-width:0;max-width:100%}
+  .section-head,.ai-sidebar-actions{max-width:100%}
+  /* Native Firefox buttons inherit .mini's white-space:nowrap.
+     At a 245px pane, long OAuth consent labels otherwise overflow
+     even when the surrounding flex/grid tracks shrink correctly. */
+  .mini,.google-controls button,.google-metadata-buttons button,
+  .ai-form button,.ai-key-controls button,.updater-actions button{
+    min-width:0;max-width:100%;
+    white-space:normal;overflow-wrap:anywhere;line-height:1.45;
+  }
+}
+@media(max-width:350px){.side-shell{padding:8px;min-width:0}.sidebar-header{flex-wrap:wrap;gap:8px}.sidebar-header h1{font-size:23px}.side-panel{padding:12px}.resource-row{padding:9px 6px}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
 /* Multi-workspace profile controls, built from the same locally themed palette. */
 .profile-manager{display:grid;grid-template-columns:minmax(180px,1fr) minmax(230px,1.3fr);gap:18px;margin-bottom:20px;padding:18px 25px}
@@ -66,7 +121,7 @@ footer{display:flex;justify-content:space-between;gap:18px;margin-top:35px;paddi
 .profile-actions{display:flex;gap:8px;flex-wrap:wrap}
 .profile-actions button{width:auto;flex:1;min-width:110px}
 .profile-manager .quiet{grid-column:1 / -1;margin:0}
-@media(max-width:820px){.profile-manager{grid-template-columns:1fr}.profile-actions button{min-width:100px}}
+@media(max-width:820px){.profile-manager{grid-template-columns:minmax(0,1fr)}.profile-actions button{min-width:100px}}
 
 /* Ayarime personality configuration, consistent with the original station aesthetic. */
 .persona-section{margin-top:20px}
@@ -231,6 +286,7 @@ footer{display:flex;justify-content:space-between;gap:18px;margin-top:35px;paddi
 .google-metadata-entry a{color:var(--cyan);text-decoration:underline;overflow-wrap:anywhere}
 
 /* Coordinated ELF//SHELL station/companion entry and focused console. */
+.assistant-route-anchor{display:block;height:0;scroll-margin-top:20px}
 .assistant-quick-link{margin-left:auto;align-self:center;display:inline-flex;align-items:center;justify-content:center;text-decoration:none;white-space:nowrap;padding:11px 16px;letter-spacing:.13em;font:11px/1.4 ui-monospace,monospace;color:#f8eefa;background:linear-gradient(120deg,rgba(86,53,88,.95),rgba(31,39,63,.92));border:1px solid #d5a5c9;border-radius:4px;box-shadow:0 0 24px #9a648544}
 .assistant-quick-link:hover,.assistant-quick-link:focus-visible{background:#624160;border-color:var(--lime);color:#fff}
 .assistant-quick-link:focus-visible{outline:2px solid var(--lime);outline-offset:3px}
@@ -265,6 +321,17 @@ footer{display:flex;justify-content:space-between;gap:18px;margin-top:35px;paddi
 .conversation-privacy strong{color:#ffe1ee}
 #ai-conversation-status{min-height:0;margin:0;font-size:10px;color:var(--lime)}
 .prompt-shortcut{font-size:10px;margin:0;color:#b5cbd0}
+/* Prefer a quick route to chat; keep duplicated provider settings collapsed,
+   fully keyboard-accessible and locally editable when expanded. */
+.sidebar-chat-nav{margin:-7px 0 14px}
+.sidebar-chat-nav a{display:block;border:1px solid var(--ayarime-magenta);padding:12px;color:var(--ivory);background:#36273dcf;text-decoration:none;text-align:center;font:700 11px/1.5 ui-monospace,monospace;letter-spacing:.08em}
+.sidebar-chat-nav a:hover,.sidebar-chat-nav a:focus-visible{background:#604363;border-color:var(--lime)}
+.sidebar-provider-details{min-width:0;max-width:100%;border:1px solid #a779ac88;background:#161b2bd9;padding:0 10px 10px}
+.sidebar-provider-details>summary{cursor:pointer;color:#f1cde6;padding:12px 5px;line-height:1.45;font-size:11px;font-weight:700}
+.sidebar-provider-details:not([open]){padding-bottom:0}
+.sidebar-provider-details>.quiet{margin:0 0 12px}
+.side-shell .sidebar-provider-details input,.side-shell .sidebar-provider-details select{max-width:100%;min-width:0}
+.sidebar-provider-details .offer-panel{min-width:0}
 .side-shell .conversation-panel{padding:10px}
 .side-shell .conversation-list{max-height:380px}
 .side-shell .conversation-bubble{max-width:100%;padding:9px 10px}
