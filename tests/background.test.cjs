@@ -98,7 +98,7 @@ function createHarness(seed={},options={}) {
     browser,URL,URLSearchParams,console,fetch:mockFetch,crypto:cryptoApi,TextEncoder,TextDecoder,btoa,AbortController,Uint8Array,setTimeout,clearTimeout
   });
   for (const file of ["shared/workspace.js","shared/persona.js",
-    "google/oauth.js","google/read.js","google/files.js","google/catalog.js","briefing/engine.js","google/session.js","google/master-read-client.js",
+    "google/oauth.js","google/read.js","google/files.js","google/catalog.js","briefing/engine.js","google/session.js","google/master-read-client.js","google/master-oauth.js",
     "ai/providers.js","ai/openai-complimentary.js","diagnostics/connection.js","ai/session.js","ai/openai-stream.js","updater/release.js","updater/checker.js","background.js"]) {
     vm.runInContext(fs.readFileSync(path.resolve(__dirname,"..",file),"utf8"),context,{filename:file});
   }
@@ -1087,4 +1087,31 @@ test("Stage 5: Forget session key aborts an outstanding Gemini request",async()=
   assert.match(outcome.error,/cancelled/);
   assert.equal(h.sessionSettings["elfshell.byok.apiKey.v1"],undefined);
   assert.equal((await h.dispatch({type:"AI_CANCEL_REQUEST"})).cancelled,false);
+});
+
+test("Stage 6.1 Hub status/probe without account consent makes zero Worker network calls",async()=>{
+  const h=createHarness();
+  const status=await h.dispatch({type:"MASTER_STATUS"});
+  assert.equal(status.ok,true);
+  assert.equal(status.master.connected,false);
+  assert.equal(status.master.permissionsGranted,false);
+  const denied=await h.dispatch({type:"MASTER_CONNECT"});
+  assert.equal(denied.ok,false);
+  assert.match(denied.error,/MASTER_FIREFOX_PERMISSION_REQUIRED/);
+  const probe=await h.dispatch({type:"MASTER_PROBE"});
+  assert.equal(probe.ok,false);
+  assert.match(probe.error,/FIREFOX_HOST_PERMISSION_REQUIRED/);
+  const disconnected=await h.dispatch({type:"MASTER_DISCONNECT"});
+  assert.equal(disconnected.ok,true);
+  assert.equal(disconnected.master.localSessionCleared,true);
+  assert.equal(disconnected.master.remotelyRevoked,false);
+  assert.equal(h.fetchCalls.length,0);
+});
+test("Stage 6.1 Firefox identity is required after separate host consent, no implicit fallback",async()=>{
+  const h=createHarness({}, {googlePermission:true,googleDataConsent:true});
+  assert.equal((await h.dispatch({type:"MASTER_STATUS"})).master.permissionsGranted,true);
+  const connect=await h.dispatch({type:"MASTER_CONNECT"});
+  assert.equal(connect.ok,false);
+  assert.match(connect.error,/FIREFOX_IDENTITY_PERMISSION_REQUIRED/);
+  assert.equal(h.fetchCalls.length,0);
 });
