@@ -131,7 +131,7 @@
     }))url.searchParams.set(key,value);
     return url.href;
   }
-  function callbackCode(callback,redirect,state){
+  function callbackCode(callback,redirect,state,issuer=AUTH,requireIssuer=false){
     let actual,expected;
     try{actual=new URL(callback);expected=new URL(redirect);}
     catch{throw fail("OAUTH_CALLBACK_INVALID");}
@@ -140,11 +140,15 @@
        actual.searchParams.getAll("state").length!==1 ||
        actual.searchParams.get("state")!==state)
       throw fail("OAUTH_CALLBACK_INVALID");
+    const ids=actual.searchParams.getAll("iss");
+    if(ids.length>1 || (requireIssuer && ids.length!==1) ||
+       (ids.length===1 && ids[0]!==issuer))
+      throw fail("OAUTH_ISSUER_INVALID");
     if(actual.searchParams.has("error"))throw fail("OAUTH_USER_DECLINED");
     const codes=actual.searchParams.getAll("code");
     if(codes.length!==1||!codes[0]||codes[0].length>4096)
       throw fail("OAUTH_CALLBACK_INVALID");
-    if([...actual.searchParams.keys()].some(key=>!["state","code"].includes(key)))
+    if([...actual.searchParams.keys()].some(key=>!["state","code","iss"].includes(key)))
       throw fail("OAUTH_CALLBACK_INVALID");
     return codes[0];
   }
@@ -210,7 +214,9 @@
       const verifier=hex(cryptoApi,32),state=hex(cryptoApi,24);
       const challenge=await proof(cryptoApi,verifier);
       await browserApi.storage.session.set({[PENDING]:{
-        clientId,redirect,state,verifier,createdAt:now
+        clientId,redirect,state,verifier,createdAt:now,
+        issuer:metadata.issuer,
+        requireIssuer:metadata.authorization_response_iss_parameter_supported===true
       }});
       const authorized=await browserApi.identity.launchWebAuthFlow({
         url:authorizationUrl({clientId,redirect,state,challenge}),interactive:true
@@ -218,11 +224,14 @@
       const saved=(await browserApi.storage.session.get(PENDING))[PENDING];
       if(!isObject(saved)||saved.state!==state||saved.clientId!==clientId||
          saved.redirect!==redirect||saved.verifier!==verifier ||
+         saved.issuer!==metadata.issuer ||
+         saved.requireIssuer!==(metadata.authorization_response_iss_parameter_supported===true) ||
          !Number.isSafeInteger(saved.createdAt) ||
          Date.now()-saved.createdAt<0 ||
          Date.now()-saved.createdAt>=PENDING_MS)
         throw fail("OAUTH_TRANSACTION_EXPIRED");
-      const code=callbackCode(authorized,redirect,state);
+      const code=callbackCode(authorized,redirect,state,
+        metadata.issuer,metadata.authorization_response_iss_parameter_supported===true);
       await browserApi.storage.session.remove(PENDING); // single use
       if(!await permitted(browserApi))throw fail("MASTER_FIREFOX_PERMISSION_REQUIRED");
       const form=new URLSearchParams({
