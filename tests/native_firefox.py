@@ -91,6 +91,33 @@ try:
     WebDriverWait(driver,15).until(lambda d:len(d.find_elements(By.ID,"launch"))==1)
     check("Hub rendered as an extension page",lambda:require("Workspace Hub" in driver.title,driver.title))
 
+    # Stage 6.1: real Firefox identity and host-permission gates, no live OAuth.
+    check("manual Google Master controls are present but no auto-login occurs",
+          lambda:require(
+            len(driver.find_elements(By.ID,"master-connect"))==1 and
+            driver.find_element(By.ID,"master-connect").get_attribute("disabled") and
+            "Not connected" in driver.find_element(By.ID,"master-status").text,
+            "Master OAuth was unexpectedly offered without user-granted hosts"))
+    identity_url=driver.execute_script("return browser.identity.getRedirectURL()")
+    check("Firefox provides a stable OAuth identity redirect for the companion",
+          lambda:require(
+            identity_url.startswith("https://") and
+            ".extensions.allizom.org/" in identity_url,
+            "No Firefox identity callback"))
+    master_status=extension_call({"type":"MASTER_STATUS"})
+    check("Master OAuth startup reads local status only",
+          lambda:require(master_status["master"]["connected"] is False and
+            master_status["master"]["permissionsGranted"] is False,
+            "An unauthorized Master session was present"))
+    no_read=driver.execute_async_script("""
+      const done=arguments[arguments.length-1];
+      browser.runtime.sendMessage({type:"MASTER_PROBE"}).then(done);
+    """)
+    check("Master capability probe is blocked before any host or data consent",
+          lambda:require(no_read.get("ok") is False and
+            "FIREFOX_HOST_PERMISSION_REQUIRED" in no_read.get("error",""),
+            "Master probe bypassed Firefox permissions"))
+
     # No provider keys are configured; this exercises only local session history.
     empty_history=extension_call({"type":"AI_CONVERSATION_LIST"})
     check("conversation begins empty without requesting provider data",
