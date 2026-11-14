@@ -43,9 +43,17 @@
       for(const control of [connect,probe,disconnect])control.disabled=true;}
   }
   const origin=get("master-origin");
-  if(origin)origin.textContent=
-    "This installed Firefox instance uses origin "+new URL(browser.runtime.getURL("")).origin+
-    ". Add exactly this origin to the protected Worker's browser-origin allowlist when authorized.";
+  if(origin){
+    // moz-extension: is not a standard HTTP(S) URL. URL.origin may serialize
+    // as the opaque string "null" even though Firefox's extension principal
+    // has an exact moz-extension://<UUID> origin for the Worker CORS allowlist.
+    const parsed=new URL(browser.runtime.getURL(""));
+    const instanceOrigin=parsed.protocol==="moz-extension:" && parsed.hostname
+      ?parsed.protocol+"//"+parsed.host:"Unavailable in this Firefox context";
+    origin.textContent="This installed Firefox instance uses origin "+
+      instanceOrigin+
+      ". Add exactly this origin to the protected Worker's browser-origin allowlist when authorized.";
+  }
   // MUST be invoked synchronously inside the actual click: Firefox permission
   // requests are user-gesture gated. No Google OAuth / account read here.
   allow.addEventListener("click",()=>{
