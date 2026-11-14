@@ -38,7 +38,9 @@ function fixture(options={}){
         authUrls.push(url);
         if(options.cancelAuth)throw Error("BROWSER_SECRET_AUTH_FAILURE_TEXT");
         const state=new URL(url).searchParams.get("state");
-        return REDIRECT+"?state="+(options.wrongState?"WRONG":state)+"&code=FAKE_AUTH_CODE";
+        return REDIRECT+"?state="+(options.wrongState?"WRONG":state)+"&code=FAKE_AUTH_CODE"+
+          (options.omitIssuer?"":(options.issuerSupported||options.invalidIssuer
+            ?"&iss="+encodeURIComponent(options.invalidIssuer?"https://attacker.invalid":OAuth.AUTH):""));
       }
     }
   };
@@ -54,7 +56,8 @@ function fixture(options={}){
       authorization_endpoint:OAuth.AUTHORIZE,
       token_endpoint:OAuth.EXCHANGE,
       registration_endpoint:OAuth.REGISTER,
-      code_challenge_methods_supported:["S256"]
+      code_challenge_methods_supported:["S256"],
+      authorization_response_iss_parameter_supported:options.issuerSupported===true
     });
     if(url===OAuth.REGISTER){
       const request=JSON.parse(init.body);
@@ -226,4 +229,17 @@ test("validation only accepts strict redirect and token response",()=>{
     /OAUTH_CALLBACK_INVALID/);
   assert.throws(()=>OAuth.tokenResult({access_token:TOKEN,token_type:"Bearer",expires_in:3600,scope:"mcp:write"},CLIENT,Date.now()),
     /OAUTH_SCOPE_ESCALATION/);
+});
+
+test("OAuth RFC 9207 issuer identification matches metadata exactly when advertised",async()=>{
+  const good=fixture({issuerSupported:true});
+  assert.equal((await OAuth.connect(good.browser,good.fetchImpl,cryptoApi)).connected,true);
+  const forged=fixture({issuerSupported:true,invalidIssuer:true});
+  await assert.rejects(OAuth.connect(forged.browser,forged.fetchImpl,cryptoApi),
+    /OAUTH_ISSUER_INVALID/);
+  assert(!forged.requests.some(x=>x.url===OAuth.EXCHANGE));
+  const missing=fixture({issuerSupported:true,omitIssuer:true});
+  await assert.rejects(OAuth.connect(missing.browser,missing.fetchImpl,cryptoApi),
+    /OAUTH_ISSUER_INVALID/);
+  assert(!missing.requests.some(x=>x.url===OAuth.EXCHANGE));
 });
